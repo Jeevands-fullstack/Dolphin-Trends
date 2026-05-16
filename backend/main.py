@@ -27,7 +27,7 @@ reviews_table = db.table('reviews')
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-HF_TOKEN = "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"
+HF_TOKEN = HF_TOKEN = "your_token_here"
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
