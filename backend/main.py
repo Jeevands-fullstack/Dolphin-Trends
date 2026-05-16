@@ -67,7 +67,7 @@ async def add_product(
         "original_price": original_price,
         "description": description,
         "category": category,
-        "image": "http://localhost:8000/uploads/" + filename,
+        "image": "https://dolphin-trends.onrender.com/uploads/" + filename,
         "available": True
     }
     products_table.insert(product)
@@ -169,7 +169,7 @@ async def generate_model_image(file: UploadFile = File(...)):
             gen_filepath = "uploads/" + gen_filename
             with open(gen_filepath, "wb") as f:
                 f.write(response.content)
-            return {"success": True, "image_url": "http://localhost:8000/uploads/" + gen_filename}
+            return {"success": True, "image_url": "https://dolphin-trends.onrender.com/uploads/" + gen_filename}
         else:
             return {"success": False, "error": "HF API error " + str(response.status_code)}
     except Exception as e:

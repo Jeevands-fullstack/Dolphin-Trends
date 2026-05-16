@@ -24,7 +24,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
     : [];
 
   useEffect(() => {
-    fetch('http://localhost:8000/reviews/' + product.id)
+    fetch('https://dolphin-trends.onrender.com/reviews/' + product.id)
       .then(res => res.json())
       .then(data => setReviews(data))
       .catch(err => console.error(err));
@@ -46,7 +46,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   const handleAddReview = async () => {
     if (!reviewName || !reviewText) { alert('⚠️ Name ಮತ್ತು Review ಹಾಕಿ!'); return; }
     const review = { product_id: product.id, name: reviewName, text: reviewText, rating: reviewRating };
-    const res = await fetch('http://localhost:8000/reviews', {
+    const res = await fetch('https://dolphin-trends.onrender.com/reviews', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(review)
