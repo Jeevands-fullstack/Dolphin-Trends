@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form # Form ಅನ್ನು ಆಡ್ ಮಾಡಲಾಗಿದೆ
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from tinydb import TinyDB, Query
@@ -8,6 +8,7 @@ import os
 import shutil
 import uuid
 import requests
+import google.generativeai as genai  # ಗೂಗಲ್ ಜೆಮಿನಿ ಲೈಬ್ರರಿ
 
 app = FastAPI()
 
@@ -27,7 +28,12 @@ reviews_table = db.table('reviews')
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-HF_TOKEN = HF_TOKEN = "your_token_here"
+# ⚠️ ನಿಮ್ಮ ನಿಜವಾದ ಟೋಕನ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಹಾಕಿ
+HF_TOKEN = "your_token_here"
+GEMINI_API_KEY = "your_gemini_api_key_here"  # ನಿಮ್ಮ Gemini API ಕೀ ಇಲ್ಲಿ ಹಾಕಿ
+
+# ಜೆಮಿನಿ ಕಾನ್ಫಿಗರೇಶನ್
+genai.configure(api_key=GEMINI_API_KEY)
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -42,15 +48,15 @@ def get_products():
     return products_table.all()
 
 # ─────────────────────────────────────────
-# ✅ ಸರಿಪಡಿಸಲಾದ POST - Add product
+# ✅ POST - Add product (From Admin Panel)
 # ─────────────────────────────────────────
 @app.post("/products")
 async def add_product(
-    name: str = Form(...),          # Form(...) ಆಡ್ ಮಾಡಲಾಗಿದೆ
-    price: str = Form(...),         # Form(...) ಆಡ್ ಮಾಡಲಾಗಿದೆ
-    original_price: str = Form(...),# Form(...) ಆಡ್ ಮಾಡಲಾಗಿದೆ
-    description: str = Form(...),   # Form(...) ಆಡ್ ಮಾಡಲಾಗಿದೆ
-    category: str = Form(...),      # Form(...) ಆಡ್ ಮಾಡಲಾಗಿದೆ
+    name: str = Form(...),
+    price: str = Form(...),
+    original_price: str = Form(...),
+    description: str = Form(...),
+    category: str = Form(...),
     file: UploadFile = File(...)
 ):
     ext = file.filename.split(".")[-1]
@@ -72,6 +78,59 @@ async def add_product(
     }
     products_table.insert(product)
     return product
+
+# ─────────────────────────────────────────
+# 🤖 ಹೊಸ ಎಂಡ್ ಪಾಯಿಂಟ್: ಟೆಲಿಗ್ರಾಂ ಬೋಟ್ ಮತ್ತು ಜೆಮಿನಿ ಆಟೋಮೇಷನ್‌ಗಾಗಿ
+# ─────────────────────────────────────────
+@app.post("/upload-from-bot")
+async def upload_from_bot(file: UploadFile = File(...), category: str = Form("All")):
+    try:
+        # 1. ಫೋಟೋವನ್ನು ಮೊದಲು ಸರ್ವರ್‌ನಲ್ಲಿ ಸೇವ್ ಮಾಡಿ
+        ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        filename = str(uuid.uuid4()) + "." + ext
+        filepath = f"uploads/{filename}"
+
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # 2. ಜೆಮಿನಿ ಅಪ್‌ಡೇಟೆಡ್ ಮಾಡೆಲ್ (gemini-2.5-flash) ಕಾಲ್ ಮಾಡಿ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ರೆಡಿ ಮಾಡುವುದು
+        # ಉಚಿತ ಟೈರ್‌ನಲ್ಲಿ 100% ವರ್ಕ್ ಆಗುತ್ತದೆ
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        # ಇಮೇಜ್ ರೀಡ್ ಮಾಡುವುದು
+        with open(filepath, "rb") as f:
+            image_bytes = f.read()
+            
+        image_parts = [{"mime_type": "image/jpeg", "data": image_bytes}]
+        
+        prompt = (
+            "You are an expert fashion catalog writer for Dolphin Trends, Bangalore. "
+            "Look at this women's clothing item and generate: "
+            "1. A catchy product name. "
+            "2. An attractive product description in Kannada and English mixed. "
+            "Give the output clearly."
+        )
+
+        response = model.generate_content([prompt, image_parts[0]])
+        generated_text = response.text if response.text else "Beautiful Women's Fashion Wear"
+
+        # 3. ಪ್ರಾಡಕ್ಟ್ ಅನ್ನು ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇರಿಸುವುದು
+        product = {
+            "id": str(uuid.uuid4()),
+            "name": f"Dolphin Trendy {category}",
+            "price": "₹499",  # ಬೆಲೆಯನ್ನು ನೀವು ಆಮೇಲೆ ಎಡಿಟ್ ಮಾಡಬಹುದು
+            "original_price": "₹899",
+            "description": generated_text,
+            "category": category,
+            "image": "https://dolphin-trends.onrender.com/uploads/" + filename,
+            "available": True
+        }
+        products_table.insert(product)
+
+        return {"success": True, "product": product}
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 # ─────────────────────────────────────────
 # ✅ PUT - Edit product
