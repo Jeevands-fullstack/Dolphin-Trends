@@ -6,6 +6,7 @@ from google.genai import types
 from PIL import Image
 import io
 import json
+import re
 
 # ─────────────────────────────────────────────────────────────────
 # 🔑 ಕಾನ್ಫಿಗರೇಶನ್‌ಗಳು (Tokens & URLs)
@@ -62,7 +63,7 @@ Strict Rules for Analysis:
 1. Product Name: Provide a short, trendy, and elegant English name.
 2. Category: Choose EXACTLY ONE from: Tops, Leggings, Kurthas, Jeans, Patela Pants, Sets, Umbrella Dress, Frocks, Gym Pants.
 3. Description: Write an attractive 2-sentence description STRICTLY in English only. Do not use Kannada.
-4. Image Prompt Generation: Write a highly detailed text description of THIS SPECIFIC dress for an AI image generator. Describe the exact color, fabric texture, buttons, collar, and pocket. Add this rule: 'The model must wear the exact same dress without any changes to design or color. Subject must be a beautiful Indian woman giving 2 professional stylish studio poses, combined into a single wide banner image with a pure solid white background'. Do not include any URLs or markdown syntax in this description.
+4. Image Prompt Generation: Write a highly detailed description of THIS SPECIFIC dress for an AI image generator (describe color, fabric, style). Add this rule: 'The model must wear the exact same dress. Beautiful Indian woman giving 2 professional stylish studio poses, combined into a single wide banner image with a pure solid white background'.
 
 Respond in this exact JSON format only, do not include markdown blocks like ```json:
 {
@@ -92,13 +93,10 @@ Respond in this exact JSON format only, do not include markdown blocks like ```j
         description = ai_data.get("description", "New arrivals at Dolphin Trends")
         ai_image_prompt = ai_data.get("ai_image_prompt", f"A beautiful Indian woman wearing a {name} shirt, white background")
 
-        # 💡 ಲಿಂಕ್ ಎರರ್ ಬರದಂತೆ ತಡೆಯಲು ಜೆಮಿನಿ ಔಟ್‌ಪುಟ್‌ನಲ್ಲಿರೋ ಬ್ರಾಕೆಟ್ ಅಥವಾ ಮಾರ್ಕ್‌ಡೌನ್ ಯುಆರ್‌ಎಲ್ ಕ್ಲೀನ್ ಮಾಡೋ ಲಾಜಿಕ್:
-        clean_prompt = ai_image_prompt.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
-        if "https://" in clean_prompt:
-            clean_prompt = clean_prompt.split("https://")[-1]
-        if "image.pollinations.ai" in clean_prompt:
-            clean_prompt = clean_prompt.split("image.pollinations.ai")[-1]
-
+        # 💡 ಫುಲ್ ಪ್ರೂಫ್ ಕ್ಲೀನಿಂಗ್: ಪ್ರಾಂಪ್ಟ್ ಒಳಗೆ ಯಾವುದೇ ಲಿಂಕ್‌ಗಳು, ಬ್ರಾಕೆಟ್‌ಗಳು ಅಥವಾ ಮಾರ್ಕ್‌ಡೌನ್ ಇದ್ದರೆ ಪೂರ್ತಿಯಾಗಿ ಡಿಲೀಟ್ ಮಾಡೋ ಲಾಜಿಕ್
+        clean_prompt = re.sub(r'http\S+', '', ai_image_prompt) # ಎಂತಹುದೇ URL ಇದ್ದರೂ ರಿಮೂವ್ ಮಾಡುತ್ತೆ
+        clean_prompt = clean_prompt.replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("'", "").replace('"', "")
+        
         # ಡಿಫಾಲ್ಟ್ ಬೆಲೆ ಸೆಟ್ಟಿಂಗ್ಸ್
         if not price:
             price = "499"
@@ -112,10 +110,14 @@ Respond in this exact JSON format only, do not include markdown blocks like ```j
         pollinations_url = f"[https://image.pollinations.ai/p/](https://image.pollinations.ai/p/){formatted_prompt}?width=1200&height=800&seed=45"
         
         print(f"Generating Free AI Image with URL: {pollinations_url}")
-        img_response = requests.get(pollinations_url)
         
-        if img_response.status_code == 200:
+        # ಅಪ್ಪಿತಪ್ಪಿ ಯಾವುದೇ ತಪ್ಪು ಕ್ಯಾರೆಕ್ಟರ್ಸ್ ಇದ್ದರೂ requests ಸೇಫ್ ಆಗಿ ರನ್ ಆಗಲು ಹೆಡರ್ಸ್ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        img_response = requests.get(pollinations_url, headers=headers)
+        
+        if img_response.status_code == 200 and len(img_response.content) > 1000:
             final_image_bytes = img_response.content
+            print("AI image successfully downloaded!")
         else:
             final_image_bytes = image_bytes
             print("Failed to generate free AI image, falling back to original.")
