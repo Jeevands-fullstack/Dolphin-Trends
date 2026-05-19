@@ -1,164 +1,232 @@
 import os
-import telebot
 import requests
+import asyncio
+import threading
+import time
+from datetime import datetime
+from telegram import Update
+from telegram.ext import Application, MessageHandler, filters, ContextTypes
 from google import genai
 from google.genai import types
-from PIL import Image
-import io
-import json
-import re
 
-# ─────────────────────────────────────────────────────────────────
-# 🔑 ಕಾನ್ಫಿಗರೇಶನ್‌ಗಳು (Tokens & URLs)
-# ─────────────────────────────────────────────────────────────────
-TELEGRAM_TOKEN = "8008263693:AAF9aYopkRzzjPf6VxYZ-oVtOr66UzffYUs"
-BACKEND_URL = "https://dolphin-trends.onrender.com"
-
-# 🔐 ಸುರಕ್ಷಿತವಾಗಿ ಎನ್ವಿರಾನ್ಮೆಂಟ್ ಇಂದ ಕೀ ತಗೊಳ್ಳುವುದು
+# 1. ಸೆಟ್ಟಿಂಗ್ಸ್ ಮತ್ತು API ಕೀಗಳು
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+TELEGRAM_BOT_TOKEN = "8008263693:AAF9aYopkRzzjPf6VxYZ-oVtOr66UzffYUs"
+WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
+FRONTEND_URL = "https://dolphin-frontend-mvke.onrender.com"
 
-if not GEMINI_API_KEY:
-    print("⚠️ WARNING: GEMINI_API_KEY ಸಿಕ್ಕಿಲ್ಲ! ಟರ್ಮಿನಲ್‌ನಲ್ಲಿ ಕೀ ಸೆಟ್ ಮಾಡಿ.")
+GREEN_API_ID = "7107622422"
+GREEN_API_TOKEN = "615700ddddfc47b89c6a222ac5464dd45faec9e485a144d885"
 
-# ಹೊಸ ಜೆಮಿನಿ ಕ್ಲೈಂಟ್ ಇನಿಶಿಯಲೈಸೇಶನ್
 client = genai.Client(api_key=GEMINI_API_KEY)
-bot = telebot.TeleBot(TELEGRAM_TOKEN)
+ai_photo_queue = []
+is_loop_running = False
+COOLDOWN_SECONDS = 15 * 60
 
-@bot.message_handler(content_types=['photo'])
-def handle_photo(message):
+
+# ------------------ 2. Website Alive ಇಡುವ ಫಂಕ್ಷನ್ ------------------
+def keep_website_alive():
+    while True:
+        try:
+            requests.get("https://dolphin-trends.onrender.com/products", timeout=10)
+            requests.get(FRONTEND_URL, timeout=10)
+            print("✅ Both websites are Alive!")
+        except Exception as e:
+            print(f"⚠️ Keep-alive error: {str(e)}")
+        time.sleep(600)  # ಪ್ರತಿ 10 ನಿಮಿಷಕ್ಕೊಮ್ಮೆ ping
+
+
+# ------------------ 3. WhatsApp ಶೇರಿಂಗ್ ಫಂಕ್ಷನ್ ------------------
+def send_to_whatsapp_group(image_url):
+    url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
+
+    # ✅ Updated frontend URL
+    caption = f"🛍️ *Dolphin Trends*\n👇 ಹೊಸ ಕಲೆಕ್ಷನ್ ನೋಡಿ! 👇\n🔗 {FRONTEND_URL}"
+
+    payload = {
+        'chatId': "917411255628@c.us",
+        'urlFile': image_url,
+        'fileName': 'product.jpg',
+        'caption': caption
+    }
+
+    headers = {'Content-Type': 'application/json'}
+
     try:
-        # ಕೀ ಇದೆಯಾ ಇಲ್ವಾ ಅಂತ ಮತ್ತೊಮ್ಮೆ ಚೆಕ್ ಮಾಡುವುದು
-        if not os.environ.get("GEMINI_API_KEY"):
-            bot.reply_to(message, "❌ Error: API Key ಸೆಟ್ ಮಾಡಿಲ್ಲ. ದಯವಿಟ್ಟು ಟರ್ಮಿನಲ್ ಪರಿಶೀಲಿಸಿ.")
-            return
-
-        # 1. ಟೆಲಿಗ್ರಾಮ್ ಕ್ಯಾಪ್ಶನ್‌ನಿಂದ ಬೆಲೆಯನ್ನು ಪಡೆದುಕೊಳ್ಳುವುದು
-        caption = message.caption or ""
-        price = ""
-        original_price = ""
-
-        for line in caption.split('\n'):
-            if 'Price:' in line.strip() or 'price:' in line.strip():
-                price = line.split(':')[1].strip().replace("₹", "")
-            if 'Original:' in line.strip() or 'original:' in line.strip():
-                original_price = line.split(':')[1].strip().replace("₹", "")
-
-        # 2. ಟೆಲಿಗ್ರಾಮ್ ಸರ್ವರ್‌ನಿಂದ ಫೋಟೋ ಡೌನ್‌ಲೋಡ್ ಮಾಡುವುದು
-        file_id = message.photo[-1].file_id
-        file_info = bot.get_file(file_id)
-        file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_info.file_path}"
-        photo_response = requests.get(file_url)
-        image_bytes = photo_response.content
-
-        bot.reply_to(message, "🤖 AI ಫೋಟೋ ವಿಶ್ಲೇಷಣೆ ಮತ್ತು ಇಂಗ್ಲಿಷ್ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಬರೆಯುತ್ತಿದೆ...")
-
-        # ಇಮೇಜ್ ಆಬ್ಜೆಕ್ಟ್ ಸಿದ್ಧಪಡಿಸುವುದು
-        image = Image.open(io.BytesIO(image_bytes))
-
-        # 3. ಜೆಮಿನಿ ಸ್ಟ್ರಿಕ್ಟ್ ಇಂಗ್ಲಿಷ್ ಪ್ರಾಂಪ್ಟ್ (CRITICAL WARNING ADDED)
-        prompt = """This is a clothing photo for 'Dolphin Trends', Bangalore. 
-Please analyze it carefully and provide a response in the exact JSON format specified below.
-
-Strict Rules for Analysis:
-1. Product Name: Provide a short, trendy, and elegant English name.
-2. Category: Choose EXACTLY ONE from: Tops, Leggings, Kurthas, Jeans, Patela Pants, Sets, Umbrella Dress, Frocks, Gym Pants.
-3. Description: Write an attractive 2-sentence description STRICTLY in English only. Do not use Kannada.
-4. Image Prompt Generation: Write ONLY a descriptive paragraph of the dress for an AI generator. 
-   ⚠️ WARNING: DO NOT include any URLs, website links, brackets [], or () in the 'ai_image_prompt'. Start directly with words like 'A beautiful Indian woman...'.
-
-Respond in this exact JSON format only, do not include markdown blocks like ```json:
-{
-  "name": "product name here",
-  "category": "category here",
-  "description": "description here",
-  "ai_image_prompt": "highly detailed description text here"
-}"""
-
-        # ಜಿಮಿನಿ ಮಾಡೆಲ್ ಕಾಲ್
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[prompt, image]
-        )
-
-        response_text = response.text.strip()
-
-        # JSON ಡೇಟಾ ಫಿಲ್ಟರ್ ಮಾಡುವುದು
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-
-        ai_data = json.loads(response_text)
-        name = ai_data.get("name", "Dolphin Fashion Item")
-        category = ai_data.get("category", "Tops")
-        description = ai_data.get("description", "New arrivals at Dolphin Trends")
-        ai_image_prompt = ai_data.get("ai_image_prompt", f"A beautiful Indian woman wearing a {name} shirt, white background")
-
-        # 💡 ಸೂಪರ್ ಸ್ಟ್ರಾಂಗ್ ಕ್ಲೀನಿಂಗ್: ಪ್ರಾಂಪ್ಟ್ ಒಳಗಡೆ ಎಂತಹುದೇ ಲಿಂಕ್ ಸಿಕ್ಕರೂ ಪೂರ್ತಿಯಾಗಿ ಕಿತ್ತು ಬಿಸಾಡುತ್ತದೆ
-        # ಇದು http, https, image.pollinations, .ai ಎಲ್ಲವನ್ನೂ ಕ್ಲೀನ್ ಮಾಡುತ್ತೆ
-        clean_prompt = re.sub(r'http\S+', '', ai_image_prompt)
-        clean_prompt = re.sub(r'www\S+', '', clean_prompt)
-        clean_prompt = re.sub(r'image\.pollinations\S+', '', clean_prompt)
-        
-        # ಬ್ರಾಕೆಟ್‌ಗಳನ್ನು ಮತ್ತು ಕಸವನ್ನು ತೆಗೆಯುವುದು
-        clean_prompt = clean_prompt.replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("'", "").replace('"', "")
-        
-        # ಒಂದು ವೇಳೆ ಸ್ಟಾರ್ಟಿಂಗ್‌ನಲ್ಲಿ ಇನ್ನು ಕಸ ಉಳ್ಕೊಂಡಿದ್ರೆ ಕೇವಲ ಅಕ್ಷರಗಳಿಂದ ಮಾತ್ರ ಸ್ಟಾರ್ಟ್ ಆಗೋ ಹಾಗೆ ಟ್ರಿಮ್ ಮಾಡುವುದು
-        clean_prompt = clean_prompt.strip()
-
-        # ಡಿಫಾಲ್ಟ್ ಬೆಲೆ ಸೆಟ್ಟಿಂಗ್ಸ್
-        if not price:
-            price = "499"
-        if not original_price:
-            original_price = str(int(price) + 300)
-
-        bot.reply_to(message, f"✨ AI Details Ready (In English)!\n\n🛍️ {name}\n📁 Category: {category}\n📝 {description}\n\n🎨 ಈಗ ಉಚಿತವಾಗಿ ಸುಂದರವಾದ AI ಮಾಡೆಲ್ ಇಮೇಜ್ ರೆಡಿ ಮಾಡಲಾಗುತ್ತಿದೆ...")
-
-        # 4. Pollinations AI (ಉಚಿತ API) ಮೂಲಕ ವೈಟ್ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಫೋಟೋ ಜನರೇಟ್ ಮಾಡುವುದು
-        formatted_prompt = requests.utils.quote(clean_prompt.strip())
-        pollinations_url = f"[https://image.pollinations.ai/p/](https://image.pollinations.ai/p/){formatted_prompt}?width=1200&height=800&seed=45"
-        
-        print(f"Generating Free AI Image with URL: {pollinations_url}")
-        
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        img_response = requests.get(pollinations_url, headers=headers)
-        
-        if img_response.status_code == 200 and len(img_response.content) > 1000:
-            final_image_bytes = img_response.content
-            print("AI image successfully downloaded!")
-        else:
-            final_image_bytes = image_bytes
-            print("Failed to generate free AI image, falling back to original.")
-
-        bot.reply_to(message, "🌐 ವೆಬ್‌ಸೈಟ್‌ಗೆ ಹೊಸ AI ಇಮೇಜ್ ಮತ್ತು ಇಂಗ್ಲಿಷ್ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...")
-
-        # 5. ನಿಮ್ಮ FastAPI ವೆಬ್‌ಸೈಟ್‌ಗೆ ಅಪ್‌ಲೋಡ್ ಮಾಡುವುದು
-        files = {'file': ('image.jpg', final_image_bytes, 'image/jpeg')}
-        data = {
-            'name': name,
-            'price': f"₹{price}",
-            'original_price': f"₹{original_price}",
-            'description': description,
-            'category': category
-        }
-
-        upload_response = requests.post(
-            BACKEND_URL + "/products",
-            files=files,
-            data=data
-        )
-
-        if upload_response.status_code == 200:
-            bot.reply_to(message, f"✅ Successfully Uploaded to Website!\n\n🌐 Website: Updated with English details & Beautiful AI Model Image! 🚀")
-        else:
-            bot.reply_to(message, f"❌ Website upload failed: {upload_response.text}")
-
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        print(f"✅ WhatsApp Status: {response.status_code}")
+        print(f"✅ WhatsApp Response: {response.text}")
+        print(f"✅ Image URL Used: {image_url}")
     except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
+        print(f"❌ WhatsApp Error: {str(e)}")
 
-@bot.message_handler(commands=['start'])
-def handle_start(message):
-    bot.reply_to(message, "Welcome to Dolphin Trends Bot!\n\nಬಟ್ಟೆಯ ಫೋಟೋ ಹಾಕಿ, AI ತಾನಾಗಿಯೇ ವೈಟ್ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಇರೋ ಸುಂದರ ಮಾಡೆಲ್ ಫೋಟೋ ಮತ್ತು ಇಂಗ್ಲಿಷ್ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಕ್ರಿಯೇಟ್ ಮಾಡಿ ವೆಬ್‌ಸೈಟ್‌ಗೆ ಅಪ್‌ಲೋಡ್ ಮಾಡುತ್ತದೆ! 🐬")
 
-print("Dolphin Trends Bot starting...")
-bot.polling(none_stop=True)
+# ------------------ 4. AI Queue ಪ್ರೊಸೆಸ್ ಫಂಕ್ಷನ್ ------------------
+async def process_ai_queue(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    global is_loop_running, ai_photo_queue
+    is_loop_running = True
+
+    while len(ai_photo_queue) > 0:
+        current_job = ai_photo_queue.pop(0)
+        photo_bytes = current_job['photo_bytes']
+        clean_title = current_job['title']
+
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"✨ AI ಮೋಡ್: '{clean_title}' ಬಟ್ಟೆಗೆ ಮಾಡೆಲ್ ಶೂಟ್ ರೆಡಿ ಆಗ್ತಾ ಇದೆ..."
+        )
+
+        try:
+            prompt_text = (
+                "A high-fashion studio catalog style image of a beautiful young Indian model girl. "
+                "She is wearing the exact same color, ethnic embroidery patterns, and suit design from the source image. "
+                "Single frame split screen displaying exactly two stylish poses. Pure white background."
+            )
+
+            result = client.models.generate_images(
+                model='imagen-3.0-generate-001',
+                prompt=prompt_text,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    aspect_ratio="3:4",
+                    output_mime_type="image/jpeg",
+                    person_generation="ALLOW_ADULT"
+                )
+            )
+
+            final_bytes = result.generated_images[0].image.image_bytes
+            description_text = (
+                f"Premium beautiful {clean_title} featuring modern ethnic wear "
+                f"designs with dual studio model poses."
+            )
+
+            files = {'file': ('product.jpg', final_bytes, 'image/jpeg')}
+            data = {
+                'name': clean_title,
+                'price': '₹1200',
+                'original_price': '₹1999',
+                'description': description_text,
+                'category': 'Sets'
+            }
+
+            web_response = requests.post(WEBSITE_URL, data=data, files=files, timeout=120)
+
+            if web_response.status_code in [200, 201]:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"✅ '{clean_title}' ವೆಬ್‌ಸೈಟ್‌ಗೆ ಅಪ್‌ಲೋಡ್ ಆಗಿದೆ!"
+                )
+                try:
+                    web_data = web_response.json()
+                    uploaded_image_url = web_data.get('image')
+                    if not uploaded_image_url:
+                        uploaded_image_url = FRONTEND_URL
+                except Exception:
+                    uploaded_image_url = FRONTEND_URL
+
+                send_to_whatsapp_group(uploaded_image_url)
+
+            else:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"❌ ವೆಬ್‌ಸೈಟ್ ಅಪ್‌ಲೋಡ್ ಫೇಲ್: {web_response.status_code}"
+                )
+
+        except Exception as e:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"❌ AI Error: {str(e)}"
+            )
+
+        if len(ai_photo_queue) > 0:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="⏳ ಮುಂದಿನ ಫೋಟೋಗೆ 15 ನಿಮಿಷಗಳ ಗ್ಯಾಪ್ ತಗೊಳ್ತಾ ಇದ್ದೀನಿ..."
+            )
+            await asyncio.sleep(COOLDOWN_SECONDS)
+
+    is_loop_running = False
+
+
+# ------------------ 5. Image Handler ಫಂಕ್ಷನ್ ------------------
+async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global ai_photo_queue, is_loop_running
+
+    user_caption = update.message.caption if update.message.caption else ""
+    chat_id = update.message.chat_id
+
+    photo_file = await update.message.photo[-1].get_file()
+    photo_bytes = await photo_file.download_as_bytearray()
+
+    clean_title = user_caption.replace("#direct", "").strip()
+    if not clean_title:
+        clean_title = f"Dolphin Variant {datetime.now().strftime('%H%M%S')}"
+
+    # ──────────── #direct ಮೋಡ್ ────────────
+    if "#direct" in user_caption:
+        direct_description = (
+            f"Exclusive catalogue boutique item - {clean_title}. "
+            f"Premium quality comfort fabric."
+        )
+        await update.message.reply_text(
+            f"🚀 '{clean_title}' ಗೆ #direct ಇದೆ. ತಕ್ಷಣ ವೆಬ್‌ಸೈಟ್ ಮತ್ತು ವಾಟ್ಸಾಪ್‌ಗೆ ಕಳಿಸ್ತಾ ಇದ್ದೀನಿ..."
+        )
+
+        try:
+            files = {'file': ('product.jpg', photo_bytes, 'image/jpeg')}
+            data = {
+                'name': clean_title,
+                'price': '₹1200',
+                'original_price': '₹1999',
+                'description': direct_description,
+                'category': 'Sets'
+            }
+
+            web_response = requests.post(WEBSITE_URL, data=data, files=files, timeout=120)
+
+            if web_response.status_code in [200, 201]:
+                await update.message.reply_text(f"✅ Direct Upload Success: '{clean_title}'!")
+
+                try:
+                    web_data = web_response.json()
+                    uploaded_image_url = web_data.get('image')
+                    if not uploaded_image_url:
+                        uploaded_image_url = FRONTEND_URL
+                except Exception:
+                    uploaded_image_url = FRONTEND_URL
+
+                send_to_whatsapp_group(uploaded_image_url)
+
+            else:
+                await update.message.reply_text(
+                    f"❌ ವೆಬ್‌ಸೈಟ್ ಅಪ್‌ಲೋಡ್ ಫೇಲ್: {web_response.status_code}"
+                )
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error: {str(e)}")
+
+    # ──────────── AI ಮೋಡ್ ────────────
+    else:
+        ai_photo_queue.append({'photo_bytes': photo_bytes, 'title': clean_title})
+        await update.message.reply_text(
+            f"📥 '{clean_title}' ವೇಟಿಂಗ್ ಲಿಸ್ಟ್‌ಗೆ ಸೇರಿದೆ. "
+            f"ಕ್ಯೂನಲ್ಲಿರೋ ಒಟ್ಟು ಫೋಟೋ: {len(ai_photo_queue)}"
+        )
+        if not is_loop_running:
+            asyncio.create_task(process_ai_queue(context, chat_id))
+
+
+# ------------------ 6. Main ------------------
+def main():
+    print("🚀 Bot successfully turned on! Now send photo on Telegram...")
+
+    # ✅ Website sleep ಆಗದಂತೆ ತಡೆಯುತ್ತೆ
+    threading.Thread(target=keep_website_alive, daemon=True).start()
+
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    app.add_handler(MessageHandler(filters.PHOTO, handle_image))
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
