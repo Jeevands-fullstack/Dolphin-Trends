@@ -31,3 +31,4 @@ uvicorn==0.46.0
 Werkzeug==3.1.8
 google-genai
 google-generativeai
+python-telegram-bot==21.3
