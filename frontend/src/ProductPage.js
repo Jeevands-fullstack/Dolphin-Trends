@@ -13,7 +13,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const shopAddress = "Dolphin Trends, Rajagopala Nagar, Peenya 2nd Stage, Bangalore - 560058";
   const shopLocation = "https://maps.app.goo.gl/zQeV2fcEv2fY625Z7";
-  const ownerPhone = "917411255628";
+  const ownerPhone = "919353838835";
 
   const discount = product.original_price
     ? Math.round((1 - parseInt(product.price.replace('₹','')) / parseInt(product.original_price.replace('₹',''))) * 100)

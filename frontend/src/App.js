@@ -21,9 +21,9 @@ function App() {
   const [editLoading, setEditLoading] = useState(false);
 
   const categories = [
-    'All', 'Tops', 'Leggings', 'Kurtas', 'Jeans',
-    'Patiala Pants', 'Sets', 'Umbrella Tops', 'Frocks',
-    'Western Wear', 'Gym Pants'
+    'All', 'Leggings', 'Kurta Sets', 'Jeans',
+    'Patiala Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
+    'Western Wear', 'Gym Pants','250 Tops','350 Tops','Jeans Tops',
   ];
 
   const fetchProducts = () => {
@@ -262,7 +262,7 @@ function App() {
                     { icon:'🏪', label:'Shop Name', value:"Dolphin Trends — Women's Fashion Store" },
                     { icon:'📌', label:'Address', value:'Laggere Main Road, Bangalore — 560058' },
                     { icon:'🚇', label:'Nearest Metro', value:'Jalahalli Metro Station' },
-                    { icon:'🚌', label:'Bus Stop', value:'Laggere Bus Stop' },
+                    { icon:'🚌', label:'Bus Stop', value:'Laggere Aladmara Bus Stop' },
                   ].map((row, i) => (
                     <div className="contact-row" key={i}>
                       <div className="c-icon">{row.icon}</div>
@@ -306,7 +306,7 @@ function App() {
       <footer>
         <p><strong>🐬 Dolphin Trends</strong> | Women's Fashion Store | Bangalore</p>
         <p>📍 Laggere Main Road, Bangalore — 560058</p>
-        <p>📱 +91 7795800741 | 📸 @dolphintrends_blr</p>
+        <p>📱 +91 7795800741 | 📸 Developer by Jeevan JD</p>
       </footer>
 
       {/* Product Page */}

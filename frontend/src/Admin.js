@@ -136,10 +136,16 @@ function Admin({ onProductAdded }) {
             <label>Category</label>
             <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})}>
               <option value="Tops">Tops</option>
-              <option value="Kurthas">Kurthas</option>
+              <option value="Kurthas Sets">Kurthas Sets</option>
               <option value="Jeans">Jeans</option>
-              <option value="Sets">Sets</option>
+              <option value=" Umbrella Sets">Sets</option>
               <option value="Western wear">Western wear</option>
+              <option value="250 Tops">250 Tops</option>
+              <option value="Kurtha Tops">Kurtha Tops</option>
+              <option value="Jeans Tops">Jeans Tops</option>
+              <option value="Leggins">Leggins</option>
+              <option value="350 Sets">350 Sets</option>
+              <option value="frocks">frocks</option>
             </select>
           </div>
 
