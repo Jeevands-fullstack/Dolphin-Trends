@@ -11,15 +11,11 @@ import telebot
 
 # ================= SETTINGS =================
 
-# Render Environment Variables ನಿಂದ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಕೀಗಳನ್ನು ತಗೆದುಕೊಳ್ಳುತ್ತದೆ
-# ================= SETTINGS =================
-
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-# ✅ FIX: ಇಮೇಜ್ ಲಿಂಕ್ ಕ್ರಿಯೇಟ್ ಮಾಡಲು ಇದು ಹಳೇ ಬೇಸ್ ಯುಆರ್‌ಎಲ್ ತಗೊಳ್ಳುತ್ತೆ
 BACKEND_BASE_URL = "https://dolphin-trends.onrender.com"
-WEBSITE_URL = "https://dolphin-trends.onrender.com/products" # ನಿಮ್ಮ ಅಸಲಿ ವೆಬ್‌ಸೈಟ್ ಅಪ್‌ಲೋಡ್ ಲಿಂಕ್
+WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
@@ -124,28 +120,15 @@ def handle_photo(message):
         caption = message.caption or ""
         is_direct = "#direct" in caption.lower()
 
-        print("Caption:", caption)
-        print("Direct Mode:", is_direct)
-
         # ================= PRICE =================
         price = "499"
         original_price = "799"
 
         for line in caption.split('\n'):
             if 'price:' in line.lower():
-                price = (
-                    line.split(':')[1]
-                    .strip()
-                    .replace("₹", "")
-                    .replace("Rs.", "")
-                )
+                price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "")
             if 'original:' in line.lower():
-                original_price = (
-                    line.split(':')[1]
-                    .strip()
-                    .replace("₹", "")
-                    .replace("Rs.", "")
-                )
+                original_price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "")
 
         # ================= DOWNLOAD IMAGE =================
         file_id = message.photo[-1].file_id
@@ -160,13 +143,7 @@ def handle_photo(message):
         # =====================================================
         if is_direct:
             bot.reply_to(message, "⚡ Direct upload mode activated!")
-            clean_caption = (
-                caption
-                .replace("#direct", "")
-                .replace("Price:", "")
-                .replace("Original:", "")
-                .strip()
-            )
+            clean_caption = caption.replace("#direct", "").replace("Price:", "").replace("Original:", "").strip()
 
             if clean_caption == "":
                 clean_caption = "Dolphin Fashion"
@@ -175,6 +152,8 @@ def handle_photo(message):
             category = "Sets"
             description = "Premium fashion collection from Dolphin Trends"
             final_image = image_bytes
+            # ಬ್ಯಾಕ್‌ಅಪ್ ಯುಆರ್‌ಎಲ್ (ಟೆಲಿಗ್ರಾಮ್‌ನದ್ದೇ ಇಮೇಜ್ ಲಿಂಕ್)
+            backup_whatsapp_image = file_url
 
         # =====================================================
         # AI MODE
@@ -204,7 +183,6 @@ Respond ONLY in JSON:
 
             response_text = response.text.strip()
 
-            # ================= CLEAN JSON =================
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
@@ -218,7 +196,6 @@ Respond ONLY in JSON:
 
             bot.reply_to(message, "🎨 Generating AI model image...")
 
-            # ================= AI IMAGE =================
             ai_prompt = f"beautiful young Indian woman wearing {dress_details}, white background, studio fashion photography"
             formatted_prompt = requests.utils.quote(clean_text(ai_prompt))
 
@@ -232,9 +209,11 @@ Respond ONLY in JSON:
 
             if img_response.status_code == 200 and len(img_response.content) > 1000:
                 final_image = img_response.content
+                backup_whatsapp_image = pollinations_url # ಎಐ ಇಮೇಜ್ ಲಿಂಕ್ ಬ್ಯಾಕ್‌ಅಪ್
             else:
                 print("AI image failed. Using original image.")
                 final_image = image_bytes
+                backup_whatsapp_image = file_url
 
         # =====================================================
         # WEBSITE UPLOAD
@@ -258,22 +237,29 @@ Respond ONLY in JSON:
         # SUCCESS & WHATSAPP SHARING
         # =====================================================
         if upload.status_code in [200, 201]:
+            image_url = ""
             try:
+                # ವೆಬ್‌ಸೈಟ್ ಬ್ಯಾಕೆಂಡ್‌ನಿಂದ ಬಂದ ಇಮೇಜ್ ಪಾತ್ ಹುಡುಕೋದು
                 upload_json = upload.json()
-                raw_image_path = upload_json.get("image") or ""
+                # 'image', 'imageUrl', 'path' ಎಲ್ಲವನ್ನೂ ಒಮ್ಮೆ ಕ್ರಾಸ್ ಚೆಕ್ ಮಾಡುತ್ತೆ
+                raw_image_path = upload_json.get("image") or upload_json.get("imageUrl") or upload_json.get("path") or ""
                 
-                # ಬರೀ ಶಾರ್ಟ್ ಪಾತ್ ಸಿಕ್ಕರೆ ಅದಕ್ಕೆ ಬೇಸ್ ಯುಆರ್‌ಎಲ್ ಸೇರಿಸಿ ಕಂಪ್ಲೀಟ್ ಲಿಂಕ್ ಮಾಡಲಾಗುತ್ತೆ
-                if raw_image_path.startswith("http"):
-                    image_url = raw_image_path
-                else:
-                    if not raw_image_path.startswith("/"):
-                        raw_image_path = "/" + raw_image_path
-                    image_url = f"{BACKEND_BASE_URL}{raw_image_path}"
+                if raw_image_path:
+                    if raw_image_path.startswith("http"):
+                        image_url = raw_image_path
+                    else:
+                        if not raw_image_path.startswith("/"):
+                            raw_image_path = "/" + raw_image_path
+                        image_url = f"{BACKEND_BASE_URL}{raw_image_path}"
             except Exception as e:
-                print("JSON Parse error, using frontend url:", e)
-                image_url = FRONTEND_URL
+                print("JSON Parsing map failed, using backup image:", e)
+
+            # ✅ CRITICAL FIX: ವೆಬ್‌ಸೈಟ್‌ನಿಂದ ಇಮೇಜ್ ಯುಆರ್‌ಎಲ್ ಸಿಗದಿದ್ದರೆ ಬ್ಯಾಕ್‌ಅಪ್ ಲಿಂಕ್ ಬಳಸುತ್ತೆ!
+            if not image_url:
+                image_url = backup_whatsapp_image
 
             # ================= WHATSAPP CALL =================
+            print(f"🎯 Final WhatsApp Trigger URL: {image_url}")
             send_whatsapp(image_url, name, "Rs." + price)
 
             bot.reply_to(
