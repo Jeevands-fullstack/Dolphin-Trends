@@ -1,72 +1,52 @@
-import os
+
+ import os
 import io
 import json
 import re
 import base64
 import requests
-import threading
 import time
-from flask import Flask
+import sys
+import fcntl
 from PIL import Image
 import telebot
+
+# ================= SINGLE INSTANCE LOCK =================
+# Ee code multiple instances run aagodannu prevent madthade
+
+lock_file = open("/tmp/dolphin_bot.lock", "w")
+try:
+    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    print("✅ Bot lock acquired - single instance running")
+except IOError:
+    print("❌ Another bot instance is already running! Exiting...")
+    sys.exit(0)
 
 # ================= SETTINGS =================
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-BACKEND_BASE_URL = "https://dolphin-trends.onrender.com"
-WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
+UPLOAD_URL = "https://dolphin-trends.onrender.com/upload-from-bot"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
-
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
-
-# ================= FLASK =================
-
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def health():
-    return "Dolphin Bot is Live!", 200
-
-def run_flask():
-    port = int(os.environ.get('PORT', 10000))
-    flask_app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=False
-    )
-
-# ================= KEEP ALIVE =================
-
-def keep_alive():
-    while True:
-        try:
-            requests.get(WEBSITE_URL, timeout=10)
-            print("Website alive")
-        except Exception as e:
-            print("Keep alive error:", e)
-        time.sleep(600)
 
 # ================= CLEAN TEXT =================
 
 def clean_text(text):
     text = re.sub(r'http\S+', '', text)
     text = re.sub(r'www\S+', '', text)
-    text = text.replace("[", "")
-    text = text.replace("]", "")
-    text = text.replace("(", "")
-    text = text.replace(")", "")
+    text = text.replace("[", "").replace("]", "")
+    text = text.replace("(", "").replace(")", "")
     return text.strip()
 
-# ================= WHATSAPP (BASE64 - NO URL NEEDED) =================
+# ================= WHATSAPP =================
 
 def send_whatsapp(image_bytes, name, price):
     try:
-        # Image bytes → base64
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
         caption = (
@@ -85,14 +65,8 @@ def send_whatsapp(image_bytes, name, price):
             "caption": caption
         }
 
-        print(f"📡 Sending to WhatsApp via Base64...")
-
-        response = requests.post(
-            url,
-            json=payload,
-            timeout=60
-        )
-
+        print("📡 Sending to WhatsApp...")
+        response = requests.post(url, json=payload, timeout=60)
         print("WhatsApp Status:", response.status_code)
         print("WhatsApp Response:", response.text)
 
@@ -106,19 +80,15 @@ def send_whatsapp(image_bytes, name, price):
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ================= START COMMAND =================
-
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     bot.reply_to(
         message,
         "✅ Dolphin Trends Bot Ready!\n\n"
-        "📸 Send product photo\n\n"
-        "⚡ Direct Upload:\n"
-        "Blue Kurti #direct"
+        "📸 Product photo kalsidre auto upload aagthade\n\n"
+        "⚡ Direct mode: photo + caption alli #direct bari\n"
+        "Example: Blue Kurti #direct"
     )
-
-# ================= PHOTO HANDLER =================
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -133,9 +103,9 @@ def handle_photo(message):
 
         for line in caption.split('\n'):
             if 'price:' in line.lower():
-                price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "")
+                price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "").strip()
             if 'original:' in line.lower():
-                original_price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "")
+                original_price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "").strip()
 
         # ================= DOWNLOAD IMAGE =================
         file_id = message.photo[-1].file_id
@@ -154,11 +124,12 @@ def handle_photo(message):
         # DIRECT MODE
         # =====================================================
         if is_direct:
-            bot.reply_to(message, "⚡ Direct upload mode activated!")
-            clean_caption = caption.replace("#direct", "").replace("Price:", "").replace("Original:", "").strip()
-            if clean_caption == "":
-                clean_caption = "Dolphin Fashion"
-            name = clean_caption
+            bot.reply_to(message, "⚡ Direct upload mode!")
+            clean_caption = caption.replace("#direct", "").strip()
+            for part in ["Price:", "Original:", "price:", "original:"]:
+                clean_caption = clean_caption.split(part)[0].strip()
+            if clean_caption:
+                name = clean_caption
 
         # =====================================================
         # AI MODE
@@ -170,16 +141,14 @@ def handle_photo(message):
             client = genai.Client(api_key=GEMINI_API_KEY)
             image_pil = Image.open(io.BytesIO(image_bytes))
 
-            prompt = """
-Analyze this women's clothing photo.
+            prompt = """Analyze this women's clothing photo.
 Respond ONLY in JSON:
 {
   "name": "product name",
   "category": "Sets",
   "description": "short description",
   "dress_details": "dress color and style"
-}
-"""
+}"""
 
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
@@ -187,7 +156,6 @@ Respond ONLY in JSON:
             )
 
             response_text = response.text.strip()
-
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
@@ -203,24 +171,17 @@ Respond ONLY in JSON:
 
             ai_prompt = f"beautiful young Indian woman wearing {dress_details}, white background, studio fashion photography"
             formatted_prompt = requests.utils.quote(clean_text(ai_prompt))
-
             pollinations_url = f"https://image.pollinations.ai/prompt/{formatted_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
 
-            img_response = requests.get(
-                pollinations_url,
-                headers={'User-Agent': 'Mozilla/5.0'},
-                timeout=60
-            )
+            img_response = requests.get(pollinations_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=60)
 
             if img_response.status_code == 200 and len(img_response.content) > 1000:
                 final_image = img_response.content
-                print("✅ AI image generated successfully")
             else:
-                print("AI image failed. Using original image.")
                 final_image = image_bytes
 
         # =====================================================
-        # WEBSITE UPLOAD
+        # UPLOAD TO BACKEND
         # =====================================================
         bot.reply_to(message, "🚀 Uploading to website...")
 
@@ -233,41 +194,34 @@ Respond ONLY in JSON:
             'category': category
         }
 
-        upload = requests.post(WEBSITE_URL, files=files, data=data, timeout=60)
+        upload = requests.post(UPLOAD_URL, files=files, data=data, timeout=60)
         print("UPLOAD STATUS:", upload.status_code)
         print("UPLOAD RESPONSE:", upload.text)
 
-        # =====================================================
-        # SUCCESS & WHATSAPP
-        # =====================================================
         if upload.status_code in [200, 201]:
-
-            # WhatsApp ge direct image bytes kalsthide - URL beda!
-            print("📲 Sending WhatsApp message...")
             wa_success = send_whatsapp(final_image, name, "Rs." + price)
 
             if wa_success:
                 bot.reply_to(
                     message,
-                    f"✅ Successfully uploaded!\n"
+                    f"✅ Upload successful!\n"
                     f"📲 WhatsApp message sent!\n\n"
                     f"🛍️ {name}\n"
-                    f"💰 Price: Rs.{price}\n"
-                    f"📂 Category: {category}\n\n"
+                    f"💰 Rs.{price}\n"
+                    f"📂 {category}\n\n"
                     f"🌐 {FRONTEND_URL}"
                 )
             else:
                 bot.reply_to(
                     message,
                     f"✅ Website upload successful!\n"
-                    f"⚠️ WhatsApp send failed\n"
-                    f"(Render logs check madi)\n\n"
+                    f"⚠️ WhatsApp send failed\n\n"
                     f"🛍️ {name}\n"
-                    f"💰 Price: Rs.{price}\n"
+                    f"💰 Rs.{price}\n"
                     f"🌐 {FRONTEND_URL}"
                 )
         else:
-            bot.reply_to(message, f"❌ Upload failed\n\n{upload.text}")
+            bot.reply_to(message, f"❌ Upload failed\nStatus: {upload.status_code}\n{upload.text}")
 
     except Exception as e:
         print("ERROR:", str(e))
@@ -276,18 +230,15 @@ Respond ONLY in JSON:
 # ================= MAIN =================
 
 if __name__ == "__main__":
-    print("Starting Dolphin Bot...")
-
-    threading.Thread(target=run_flask, daemon=True).start()
-    threading.Thread(target=keep_alive, daemon=True).start()
+    print("🤖 Dolphin Bot Starting...")
 
     try:
         bot.remove_webhook()
     except:
         pass
 
-    time.sleep(3)
-    print("Bot polling started!")
+    time.sleep(2)
+    print("✅ Bot polling started!")
 
     while True:
         try:
@@ -295,5 +246,5 @@ if __name__ == "__main__":
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
-
+   
             
