@@ -6,10 +6,6 @@ pillow
 requests
 pyTelegramBotAPI
 google-genai
+google-generativeai
 flask
 httpx
-pyTelegramBotAPI
-flask
-requests
-pillow
-google-genai
