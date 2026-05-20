@@ -2,6 +2,7 @@ import os
 import io
 import json
 import re
+import base64
 import requests
 import threading
 import time
@@ -61,12 +62,12 @@ def clean_text(text):
     text = text.replace(")", "")
     return text.strip()
 
-# ================= WHATSAPP =================
+# ================= WHATSAPP (BASE64 - NO URL NEEDED) =================
 
-def send_whatsapp(image_url, name, price):
+def send_whatsapp(image_bytes, name, price):
     try:
-        # Green-API ಕರೆಕ್ಟ್ ಯುಆರ್‌ಎಲ್ ಫಿಕ್ಸ್ ಮಾಡಲಾಗಿದೆ
-        url = f"https://api.green-api.com/waInstance/{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
+        # Image bytes → base64
+        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
         caption = (
             "🛍️ *Dolphin Trends*\n\n"
@@ -75,27 +76,31 @@ def send_whatsapp(image_url, name, price):
             f"🌐 *Shop Now:*\n{FRONTEND_URL}"
         )
 
+        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
+
         payload = {
-            'chatId': WHATSAPP_NUMBER,
-            'urlFile': image_url,
-            'fileName': 'product.jpg',
-            'caption': caption
+            "chatId": WHATSAPP_NUMBER,
+            "file": f"data:image/jpeg;base64,{image_b64}",
+            "fileName": "product.jpg",
+            "caption": caption
         }
 
-        print(f"📡 Sending to WhatsApp. URL: {url}")
-        print(f"📡 Payload: {payload}")
+        print(f"📡 Sending to WhatsApp via Base64...")
 
         response = requests.post(
             url,
             json=payload,
-            timeout=30
+            timeout=60
         )
 
-        print("WhatsApp Status Code:", response.status_code)
-        print("WhatsApp Server Response:", response.text)
+        print("WhatsApp Status:", response.status_code)
+        print("WhatsApp Response:", response.text)
+
+        return response.status_code == 200
 
     except Exception as e:
-        print("WhatsApp Exception Error:", str(e))
+        print("WhatsApp Error:", str(e))
+        return False
 
 # ================= TELEGRAM BOT =================
 
@@ -122,6 +127,7 @@ def handle_photo(message):
         caption = message.caption or ""
         is_direct = "#direct" in caption.lower()
 
+        # ================= PRICE =================
         price = "499"
         original_price = "799"
 
@@ -131,6 +137,7 @@ def handle_photo(message):
             if 'original:' in line.lower():
                 original_price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "")
 
+        # ================= DOWNLOAD IMAGE =================
         file_id = message.photo[-1].file_id
         file_info = bot.get_file(file_id)
         file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_info.file_path}"
@@ -138,27 +145,30 @@ def handle_photo(message):
         photo_response = requests.get(file_url)
         image_bytes = photo_response.content
 
+        final_image = image_bytes
+        name = "Dolphin Fashion"
+        category = "Sets"
+        description = "Premium fashion collection from Dolphin Trends"
+
+        # =====================================================
         # DIRECT MODE
+        # =====================================================
         if is_direct:
             bot.reply_to(message, "⚡ Direct upload mode activated!")
             clean_caption = caption.replace("#direct", "").replace("Price:", "").replace("Original:", "").strip()
-
             if clean_caption == "":
                 clean_caption = "Dolphin Fashion"
-
             name = clean_caption
-            category = "Sets"
-            description = "Premium fashion collection from Dolphin Trends"
-            final_image = image_bytes
-            backup_whatsapp_image = file_url
 
+        # =====================================================
         # AI MODE
+        # =====================================================
         else:
             bot.reply_to(message, "🤖 AI analyzing image...")
             from google import genai
 
             client = genai.Client(api_key=GEMINI_API_KEY)
-            image = Image.open(io.BytesIO(image_bytes))
+            image_pil = Image.open(io.BytesIO(image_bytes))
 
             prompt = """
 Analyze this women's clothing photo.
@@ -173,7 +183,7 @@ Respond ONLY in JSON:
 
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
-                contents=[prompt, image]
+                contents=[prompt, image_pil]
             )
 
             response_text = response.text.strip()
@@ -204,13 +214,14 @@ Respond ONLY in JSON:
 
             if img_response.status_code == 200 and len(img_response.content) > 1000:
                 final_image = img_response.content
-                backup_whatsapp_image = pollinations_url
+                print("✅ AI image generated successfully")
             else:
                 print("AI image failed. Using original image.")
                 final_image = image_bytes
-                backup_whatsapp_image = file_url
 
+        # =====================================================
         # WEBSITE UPLOAD
+        # =====================================================
         bot.reply_to(message, "🚀 Uploading to website...")
 
         files = {'file': ('image.jpg', final_image, 'image/jpeg')}
@@ -226,36 +237,35 @@ Respond ONLY in JSON:
         print("UPLOAD STATUS:", upload.status_code)
         print("UPLOAD RESPONSE:", upload.text)
 
+        # =====================================================
+        # SUCCESS & WHATSAPP
+        # =====================================================
         if upload.status_code in [200, 201]:
-            image_url = ""
-            try:
-                upload_json = upload.json()
-                raw_image_path = upload_json.get("image") or upload_json.get("imageUrl") or upload_json.get("path") or ""
-                
-                if raw_image_path:
-                    if raw_image_path.startswith("http"):
-                        image_url = raw_image_path
-                    else:
-                        if not raw_image_path.startswith("/"):
-                            raw_image_path = "/" + raw_image_path
-                        image_url = f"{BACKEND_BASE_URL}{raw_image_path}"
-            except Exception as e:
-                print("JSON Parsing map failed, using backup image:", e)
 
-            if not image_url:
-                image_url = backup_whatsapp_image
+            # WhatsApp ge direct image bytes kalsthide - URL beda!
+            print("📲 Sending WhatsApp message...")
+            wa_success = send_whatsapp(final_image, name, "Rs." + price)
 
-            print(f"🎯 Final WhatsApp Trigger URL: {image_url}")
-            send_whatsapp(image_url, name, "Rs." + price)
-
-            bot.reply_to(
-                message,
-                f"✅ Successfully uploaded!\n\n"
-                f"🛍️ {name}\n"
-                f"💰 Price: Rs.{price}\n"
-                f"📂 Category: {category}\n\n"
-                f"🌐 {FRONTEND_URL}"
-            )
+            if wa_success:
+                bot.reply_to(
+                    message,
+                    f"✅ Successfully uploaded!\n"
+                    f"📲 WhatsApp message sent!\n\n"
+                    f"🛍️ {name}\n"
+                    f"💰 Price: Rs.{price}\n"
+                    f"📂 Category: {category}\n\n"
+                    f"🌐 {FRONTEND_URL}"
+                )
+            else:
+                bot.reply_to(
+                    message,
+                    f"✅ Website upload successful!\n"
+                    f"⚠️ WhatsApp send failed\n"
+                    f"(Render logs check madi)\n\n"
+                    f"🛍️ {name}\n"
+                    f"💰 Price: Rs.{price}\n"
+                    f"🌐 {FRONTEND_URL}"
+                )
         else:
             bot.reply_to(message, f"❌ Upload failed\n\n{upload.text}")
 
@@ -272,19 +282,16 @@ if __name__ == "__main__":
     threading.Thread(target=keep_alive, daemon=True).start()
 
     try:
-        print("Killing old telegram sessions...")
         bot.remove_webhook()
-        bot.delete_webhook(drop_pending_updates=True)
-    except Exception as e:
-        print("Webhook clean error:", e)
+    except:
+        pass
 
-    time.sleep(5)
+    time.sleep(3)
     print("Bot polling started!")
-    
+
     while True:
         try:
-            # ✅ ಇಲ್ಲಿ ತಪ್ಪು ಉಂಟು ಮಾಡ್ತಿದ್ದ non_stop=True ಅನ್ನು ಪೂರ್ತಿಯಾಗಿ ತೆಗೆದು ಕ್ಲೀನ್ ಮಾಡಲಾಗಿದೆ ಜೀವನ್
-            bot.infinity_polling(timeout=60, long_polling_timeout=60, interval=2)
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
