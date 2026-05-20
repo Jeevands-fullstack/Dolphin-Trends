@@ -10,7 +10,7 @@ from PIL import Image
 import telebot
 
 TELEGRAM_TOKEN = "8008263693:AAF9aYopkRzzjPf6VxYZ-oVtOr66UzffYUs"
-WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
+WEBSITE_URL = "https://dolphin-trends.onrender.com/upload-from-bot"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 GREEN_API_ID = "7107622422"
