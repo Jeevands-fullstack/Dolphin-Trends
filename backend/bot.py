@@ -15,7 +15,7 @@ import telebot
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-BACKEND_BASE_URL = "https://dolphin-trends-3.onrender.com
+BACKEND_BASE_URL = "https://dolphin-trends-3.onrender.com"
 WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
