@@ -15,8 +15,8 @@ import telebot
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-BACKEND_BASE_URL = "http://127.0.0.1:10000"
-WEBSITE_URL = "http://127.0.0.1:10000/upload-from-bot"
+BACKEND_BASE_URL = "https://dolphin-trends-3.onrender.com
+WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
@@ -62,28 +62,30 @@ def clean_text(text):
     text = text.replace(")", "")
     return text.strip()
 
-# ================= WHATSAPP (BASE64 - FIXED URL) =================
+# ================= WHATSAPP (BASE64 - NO URL NEEDED) =================
 
 def send_whatsapp(image_bytes, name, price):
     try:
+        # Image bytes → base64
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-        # ✅ FIX: ಯುಆರ್‌ಎಲ್ ಸ್ಲ್ಯಾಶ್‌ಗಳನ್ನು ಪರ್ಫೆಕ್ಟ್ ಆಗಿ ಜೋಡಿಸಲಾಗಿದೆ
-        url = f"https://api.green-api.com/waInstance/{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
+        caption = (
+            "🛍️ *Dolphin Trends*\n\n"
+            f"👕 *Product:* {name}\n"
+            f"💰 *Price:* {price}\n\n"
+            f"🌐 *Shop Now:*\n{FRONTEND_URL}"
+        )
+
+        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
 
         payload = {
             "chatId": WHATSAPP_NUMBER,
-            "file": image_b64,
+            "file": f"data:image/jpeg;base64,{image_b64}",
             "fileName": "product.jpg",
-            "caption": (
-                f"🛍️ *Dolphin Trends*\n\n"
-                f"👕 *Product:* {name}\n"
-                f"💰 *Price:* {price}\n\n"
-                f"🌐 *Shop Now:*\n{FRONTEND_URL}"
-            )
+            "caption": caption
         }
 
-        print(f"📡 Sending to WhatsApp Base64. URL: {url}")
+        print(f"📡 Sending to WhatsApp via Base64...")
 
         response = requests.post(
             url,
@@ -148,7 +150,9 @@ def handle_photo(message):
         category = "Sets"
         description = "Premium fashion collection from Dolphin Trends"
 
-        # Direct Mode
+        # =====================================================
+        # DIRECT MODE
+        # =====================================================
         if is_direct:
             bot.reply_to(message, "⚡ Direct upload mode activated!")
             clean_caption = caption.replace("#direct", "").replace("Price:", "").replace("Original:", "").strip()
@@ -156,7 +160,9 @@ def handle_photo(message):
                 clean_caption = "Dolphin Fashion"
             name = clean_caption
 
-        # AI Mode
+        # =====================================================
+        # AI MODE
+        # =====================================================
         else:
             bot.reply_to(message, "🤖 AI analyzing image...")
             from google import genai
@@ -213,7 +219,9 @@ Respond ONLY in JSON:
                 print("AI image failed. Using original image.")
                 final_image = image_bytes
 
-        # ================= WEBSITE UPLOAD =================
+        # =====================================================
+        # WEBSITE UPLOAD
+        # =====================================================
         bot.reply_to(message, "🚀 Uploading to website...")
 
         files = {'file': ('image.jpg', final_image, 'image/jpeg')}
@@ -229,8 +237,12 @@ Respond ONLY in JSON:
         print("UPLOAD STATUS:", upload.status_code)
         print("UPLOAD RESPONSE:", upload.text)
 
-        # ================= SUCCESS & WHATSAPP =================
+        # =====================================================
+        # SUCCESS & WHATSAPP
+        # =====================================================
         if upload.status_code in [200, 201]:
+
+            # WhatsApp ge direct image bytes kalsthide - URL beda!
             print("📲 Sending WhatsApp message...")
             wa_success = send_whatsapp(final_image, name, "Rs." + price)
 
@@ -261,7 +273,7 @@ Respond ONLY in JSON:
         print("ERROR:", str(e))
         bot.reply_to(message, "❌ Error:\n" + str(e))
 
-# ================= MAIN (FIXED FOR CONFLICTS) =================
+# ================= MAIN =================
 
 if __name__ == "__main__":
     print("Starting Dolphin Bot...")
@@ -270,18 +282,16 @@ if __name__ == "__main__":
     threading.Thread(target=keep_alive, daemon=True).start()
 
     try:
-        print("Killing old telegram sessions...")
         bot.remove_webhook()
-        bot.delete_webhook(drop_pending_updates=True)
     except:
         pass
 
-    time.sleep(5)
+    time.sleep(3)
     print("Bot polling started!")
 
     while True:
         try:
-            bot.infinity_polling(timeout=60, long_polling_timeout=60, interval=2)
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
