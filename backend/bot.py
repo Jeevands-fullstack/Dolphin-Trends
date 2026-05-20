@@ -66,26 +66,26 @@ def clean_text(text):
 
 def send_whatsapp(image_bytes, name, price):
     try:
-        # Image bytes → base64
+
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
-        caption = (
-            "🛍️ *Dolphin Trends*\n\n"
-            f"👕 *Product:* {name}\n"
-            f"💰 *Price:* {price}\n\n"
-            f"🌐 *Shop Now:*\n{FRONTEND_URL}"
+        url = (
+            f"https://api.green-api.com/waInstance"
+            f"{GREEN_API_ID}/sendFileByBase64/"
+            f"{GREEN_API_TOKEN}"
         )
-
-        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
 
         payload = {
             "chatId": WHATSAPP_NUMBER,
-            "file": f"data:image/jpeg;base64,{image_b64}",
+            "file": image_b64,
             "fileName": "product.jpg",
-            "caption": caption
+            "caption": (
+                f"🛍️ Dolphin Trends\n\n"
+                f"👗 {name}\n"
+                f"💰 {price}\n\n"
+                f"🌐 {FRONTEND_URL}"
+            )
         }
-
-        print(f"📡 Sending to WhatsApp via Base64...")
 
         response = requests.post(
             url,
