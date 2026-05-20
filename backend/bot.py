@@ -12,18 +12,19 @@ import telebot
 # ================= SETTINGS =================
 
 # Render Environment Variables ನಿಂದ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಕೀಗಳನ್ನು ತಗೆದುಕೊಳ್ಳುತ್ತದೆ
+# ================= SETTINGS =================
+
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-# ನಿಮ್ಮ ಲೇಟೆಸ್ಟ್ ಬ್ಯಾಕೆಂಡ್ ಮತ್ತು ಫ್ರಂಟ್‌ಎಂಡ್ URLಗಳು
-BACKEND_BASE_URL = "https://dolphin-trends-2.onrender.com"
-WEBSITE_URL = f"{BACKEND_BASE_URL}/products"
+# ✅ FIX: ಇಮೇಜ್ ಲಿಂಕ್ ಕ್ರಿಯೇಟ್ ಮಾಡಲು ಇದು ಹಳೇ ಬೇಸ್ ಯುಆರ್‌ಎಲ್ ತಗೊಳ್ಳುತ್ತೆ
+BACKEND_BASE_URL = "https://dolphin-trends.onrender.com"
+WEBSITE_URL = "https://dolphin-trends.onrender.com/products" # ನಿಮ್ಮ ಅಸಲಿ ವೆಬ್‌ಸೈಟ್ ಅಪ್‌ಲೋಡ್ ಲಿಂಕ್
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 
-# ವಾಟ್ಸಾಪ್ ನಂಬರ್ ಕೂಡ Render Env ನಿಂದಲೇ ಬರುತ್ತೆ, ಇಲ್ಲದಿದ್ದರೆ ನಿಮ್ಮ ಡಿಫಾಲ್ಟ್ ನಂಬರ್ ತಗೊಳ್ಳುತ್ತೆ
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
 
 # ================= FLASK =================
