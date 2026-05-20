@@ -4,12 +4,13 @@ import asyncio
 import threading
 import time
 from datetime import datetime
+from flask import Flask
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 from google import genai
 from google.genai import types
 
-# 1. ಸೆಟ್ಟಿಂಗ್ಸ್ ಮತ್ತು API ಕೀಗಳು
+# ------------------ 1. ಸೆಟ್ಟಿಂಗ್ಸ್ ------------------
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_BOT_TOKEN = "8008263693:AAF9aYopkRzzjPf6VxYZ-oVtOr66UzffYUs"
 WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
@@ -23,45 +24,50 @@ ai_photo_queue = []
 is_loop_running = False
 COOLDOWN_SECONDS = 15 * 60
 
+# ------------------ 2. Flask Health Check ------------------
+flask_app = Flask(__name__)
 
-# ------------------ 2. Website Alive ಇಡುವ ಫಂಕ್ಷನ್ ------------------
+@flask_app.route('/')
+def health():
+    return "🤖 Dolphin Bot is Live!", 200
+
+def run_flask():
+    port = int(os.environ.get('PORT', 8080))
+    print(f"🌐 Flask starting on port {port}...")
+    flask_app.run(host='0.0.0.0', port=port)
+
+
+# ------------------ 3. Website Alive ಫಂಕ್ಷನ್ ------------------
 def keep_website_alive():
     while True:
         try:
             requests.get("https://dolphin-trends.onrender.com/products", timeout=10)
             requests.get(FRONTEND_URL, timeout=10)
-            print("✅ Both websites are Alive!")
+            print("✅ Websites Alive!")
         except Exception as e:
             print(f"⚠️ Keep-alive error: {str(e)}")
-        time.sleep(600)  # ಪ್ರತಿ 10 ನಿಮಿಷಕ್ಕೊಮ್ಮೆ ping
+        time.sleep(600)
 
 
-# ------------------ 3. WhatsApp ಶೇರಿಂಗ್ ಫಂಕ್ಷನ್ ------------------
+# ------------------ 4. WhatsApp ಫಂಕ್ಷನ್ ------------------
 def send_to_whatsapp_group(image_url):
     url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
-
-    # ✅ Updated frontend URL
     caption = f"🛍️ *Dolphin Trends*\n👇 ಹೊಸ ಕಲೆಕ್ಷನ್ ನೋಡಿ! 👇\n🔗 {FRONTEND_URL}"
-
     payload = {
         'chatId': "917411255628@c.us",
         'urlFile': image_url,
         'fileName': 'product.jpg',
         'caption': caption
     }
-
     headers = {'Content-Type': 'application/json'}
-
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=30)
         print(f"✅ WhatsApp Status: {response.status_code}")
-        print(f"✅ WhatsApp Response: {response.text}")
-        print(f"✅ Image URL Used: {image_url}")
     except Exception as e:
         print(f"❌ WhatsApp Error: {str(e)}")
 
 
-# ------------------ 4. AI Queue ಪ್ರೊಸೆಸ್ ಫಂಕ್ಷನ್ ------------------
+# ------------------ 5. AI Queue ಫಂಕ್ಷನ್ ------------------
 async def process_ai_queue(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     global is_loop_running, ai_photo_queue
     is_loop_running = True
@@ -73,7 +79,7 @@ async def process_ai_queue(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
 
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"✨ AI ಮೋಡ್: '{clean_title}' ಬಟ್ಟೆಗೆ ಮಾಡೆಲ್ ಶೂಟ್ ರೆಡಿ ಆಗ್ತಾ ಇದೆ..."
+            text=f"✨ AI ಮೋಡ್: '{clean_title}' ಮಾಡೆಲ್ ಶೂಟ್ ರೆಡಿ ಆಗ್ತಾ ಇದೆ..."
         )
 
         try:
@@ -118,37 +124,31 @@ async def process_ai_queue(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
                 )
                 try:
                     web_data = web_response.json()
-                    uploaded_image_url = web_data.get('image')
-                    if not uploaded_image_url:
-                        uploaded_image_url = FRONTEND_URL
+                    uploaded_image_url = web_data.get('image') or FRONTEND_URL
                 except Exception:
                     uploaded_image_url = FRONTEND_URL
 
                 send_to_whatsapp_group(uploaded_image_url)
-
             else:
                 await context.bot.send_message(
                     chat_id=chat_id,
-                    text=f"❌ ವೆಬ್‌ಸೈಟ್ ಅಪ್‌ಲೋಡ್ ಫೇಲ್: {web_response.status_code}"
+                    text=f"❌ ಅಪ್‌ಲೋಡ್ ಫೇಲ್: {web_response.status_code}"
                 )
 
         except Exception as e:
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=f"❌ AI Error: {str(e)}"
-            )
+            await context.bot.send_message(chat_id=chat_id, text=f"❌ AI Error: {str(e)}")
 
         if len(ai_photo_queue) > 0:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="⏳ ಮುಂದಿನ ಫೋಟೋಗೆ 15 ನಿಮಿಷಗಳ ಗ್ಯಾಪ್ ತಗೊಳ್ತಾ ಇದ್ದೀನಿ..."
+                text="⏳ ಮುಂದಿನ ಫೋಟೋಗೆ 15 ನಿಮಿಷ..."
             )
             await asyncio.sleep(COOLDOWN_SECONDS)
 
     is_loop_running = False
 
 
-# ------------------ 5. Image Handler ಫಂಕ್ಷನ್ ------------------
+# ------------------ 6. Image Handler ------------------
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global ai_photo_queue, is_loop_running
 
@@ -162,16 +162,11 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not clean_title:
         clean_title = f"Dolphin Variant {datetime.now().strftime('%H%M%S')}"
 
-    # ──────────── #direct ಮೋಡ್ ────────────
     if "#direct" in user_caption:
         direct_description = (
-            f"Exclusive catalogue boutique item - {clean_title}. "
-            f"Premium quality comfort fabric."
+            f"Exclusive catalogue boutique item - {clean_title}. Premium quality comfort fabric."
         )
-        await update.message.reply_text(
-            f"🚀 '{clean_title}' ಗೆ #direct ಇದೆ. ತಕ್ಷಣ ವೆಬ್‌ಸೈಟ್ ಮತ್ತು ವಾಟ್ಸಾಪ್‌ಗೆ ಕಳಿಸ್ತಾ ಇದ್ದೀನಿ..."
-        )
-
+        await update.message.reply_text(f"🚀 '{clean_title}' ತಕ್ಷಣ ಕಳಿಸ್ತಾ ಇದ್ದೀನಿ...")
         try:
             files = {'file': ('product.jpg', photo_bytes, 'image/jpeg')}
             data = {
@@ -181,52 +176,41 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'description': direct_description,
                 'category': 'Sets'
             }
-
             web_response = requests.post(WEBSITE_URL, data=data, files=files, timeout=120)
 
             if web_response.status_code in [200, 201]:
-                await update.message.reply_text(f"✅ Direct Upload Success: '{clean_title}'!")
-
+                await update.message.reply_text(f"✅ Direct Upload: '{clean_title}'!")
                 try:
                     web_data = web_response.json()
-                    uploaded_image_url = web_data.get('image')
-                    if not uploaded_image_url:
-                        uploaded_image_url = FRONTEND_URL
+                    uploaded_image_url = web_data.get('image') or FRONTEND_URL
                 except Exception:
                     uploaded_image_url = FRONTEND_URL
-
                 send_to_whatsapp_group(uploaded_image_url)
-
             else:
-                await update.message.reply_text(
-                    f"❌ ವೆಬ್‌ಸೈಟ್ ಅಪ್‌ಲೋಡ್ ಫೇಲ್: {web_response.status_code}"
-                )
-
+                await update.message.reply_text(f"❌ ಫೇಲ್: {web_response.status_code}")
         except Exception as e:
             await update.message.reply_text(f"❌ Error: {str(e)}")
-
-    # ──────────── AI ಮೋಡ್ ────────────
     else:
         ai_photo_queue.append({'photo_bytes': photo_bytes, 'title': clean_title})
         await update.message.reply_text(
-            f"📥 '{clean_title}' ವೇಟಿಂಗ್ ಲಿಸ್ಟ್‌ಗೆ ಸೇರಿದೆ. "
-            f"ಕ್ಯೂನಲ್ಲಿರೋ ಒಟ್ಟು ಫೋಟೋ: {len(ai_photo_queue)}"
+            f"📥 '{clean_title}' ಕ್ಯೂಗೆ ಸೇರಿದೆ. ಒಟ್ಟು: {len(ai_photo_queue)}"
         )
         if not is_loop_running:
             asyncio.create_task(process_ai_queue(context, chat_id))
 
 
-# ------------------ 6. Main ------------------
-def main():
-    print("🚀 Bot successfully turned on! Now send photo on Telegram...")
+# ------------------ 7. Main ------------------
+if __name__ == "__main__":
+    print("🚀 Starting Dolphin Bot...")
 
-    # ✅ Website sleep ಆಗದಂತೆ ತಡೆಯುತ್ತೆ
+    # ✅ Flask - daemon thread ನಲ್ಲಿ
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    # ✅ Keep alive - daemon thread ನಲ್ಲಿ
     threading.Thread(target=keep_website_alive, daemon=True).start()
 
+    # ✅ Telegram Bot - main thread ನಲ್ಲಿ run_polling() ಉಪಯೋಗಿಸಿ
+    print("🤖 Telegram Bot Starting...")
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(MessageHandler(filters.PHOTO, handle_image))
     app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
