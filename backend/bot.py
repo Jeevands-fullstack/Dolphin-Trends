@@ -281,17 +281,12 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
     threading.Thread(target=keep_alive, daemon=True).start()
 
-    try:
-        bot.remove_webhook()
-    except:
-        pass
-
     time.sleep(3)
-    print("Bot polling started!")
 
-    while True:
-        try:
-            bot.infinity_polling(timeout=60, long_polling_timeout=60)
-        except Exception as e:
-            print("Polling Error:", e)
-            time.sleep(10)
+    print("Bot polling started!")
+    bot.polling(
+        timeout=60,
+        long_polling_timeout=60,
+        none_stop=True,
+        interval=1,
+    )
