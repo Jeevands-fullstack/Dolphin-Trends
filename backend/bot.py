@@ -14,7 +14,7 @@ import telebot
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-WEBSITE_URL = "https://dolphin-trends-2.onrender.com"
+WEBSITE_URL = "https://dolphin-trends.onrender.com/products"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
@@ -447,42 +447,29 @@ Respond ONLY in JSON:
         )
 
 # ================= MAIN =================
+# ================= MAIN =================
 
 if __name__ == "__main__":
-
     print("Starting Dolphin Bot...")
 
-    # Flask Thread
-    threading.Thread(
-        target=run_flask,
-        daemon=True
-    ).start()
+    threading.Thread(target=run_flask, daemon=True).start()
+    threading.Thread(target=keep_alive, daemon=True).start()
 
-    # Keep Alive Thread
-    threading.Thread(
-        target=keep_alive,
-        daemon=True
-    ).start()
+    try:
+        bot.remove_webhook()
+    except:
+        pass
 
-    # Remove old webhook
-    bot.remove_webhook()
+    time.sleep(3)
 
-    time.sleep(2)
-
-    # Polling Loop
+    print("Bot polling started!")
+    
     while True:
-
         try:
-
-            print("Bot polling started!")
-
             bot.infinity_polling(
                 timeout=60,
                 long_polling_timeout=60
             )
-
         except Exception as e:
-
             print("Polling Error:", e)
-
             time.sleep(10)
