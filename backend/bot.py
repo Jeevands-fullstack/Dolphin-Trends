@@ -391,7 +391,7 @@ Respond ONLY in JSON:
         )
 
         print("UPLOAD STATUS:", upload.status_code)
-        print(upload.text)
+        print("UPLOAD RESPONSE:", upload.text)
 
         # =====================================================
         # SUCCESS
