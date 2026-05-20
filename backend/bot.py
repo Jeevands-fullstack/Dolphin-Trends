@@ -275,6 +275,8 @@ Respond ONLY in JSON:
 
 # ================= MAIN =================
 
+# ================= MAIN =================
+
 if __name__ == "__main__":
     print("Starting Dolphin Bot...")
 
@@ -282,16 +284,20 @@ if __name__ == "__main__":
     threading.Thread(target=keep_alive, daemon=True).start()
 
     try:
+        print("Killing old telegram sessions...")
         bot.remove_webhook()
-    except:
-        pass
+        # ✅ ಹೊಸದಾಗಿ ಆಡ್ ಮಾಡಿರೋ ಲೈನ್: ಕ್ಯೂನಲ್ಲಿರೋ ಎಲ್ಲಾ ಹಳೇ ಮೆಸೇಜ್ ಗಿಜಿಗಿಜಿನ ಕ್ಲಿಯರ್ ಮಾಡುತ್ತೆ
+        bot.delete_webhook(drop_pending_updates=True)
+    except Exception as e:
+        print("Webhook clean error:", e)
 
-    time.sleep(3)
+    time.sleep(5) # ಸರ್ವರ್ ಸೆಟ್ ಆಗಲು 5 ಸೆಕೆಂಡ್ ಗ್ಯಾಪ್
     print("Bot polling started!")
-
+    
     while True:
         try:
-            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+            # ✅ non_stop=True ಮತ್ತು interval=2 ಕೊಟ್ಟರೆ ಕಾನ್ಫ್ಲಿಕ್ಟ್ ಚಾನ್ಸಸ್ ತುಂಬಾ ಕಮ್ಮಿ ಆಗುತ್ತೆ
+            bot.infinity_polling(timeout=60, long_polling_timeout=60, non_stop=True, interval=2)
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
