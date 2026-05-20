@@ -4,8 +4,7 @@ python-multipart
 tinydb
 pillow
 requests
-python-telegram-bot==20.7
+pyTelegramBotAPI
 google-genai
 flask
-httpx==0.25.2
-anyio
+httpx
