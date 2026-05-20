@@ -8,3 +8,8 @@ pyTelegramBotAPI
 google-genai
 flask
 httpx
+pyTelegramBotAPI
+flask
+requests
+pillow
+google-genai
