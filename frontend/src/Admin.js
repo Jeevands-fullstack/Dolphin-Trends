@@ -138,7 +138,7 @@ function Admin({ onProductAdded }) {
               <option value="Tops">Tops</option>
               <option value="Kurthas Sets">Kurthas Sets</option>
               <option value="Jeans">Jeans</option>
-              <option value=" Umbrella Sets">Sets</option>
+              <option value=" Umbrella Sets"> Umbrella Sets</option>
               <option value="Western wear">Western wear</option>
               <option value="250 Tops">250 Tops</option>
               <option value="Kurtha Tops">Kurtha Tops</option>
