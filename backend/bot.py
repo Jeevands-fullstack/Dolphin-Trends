@@ -297,7 +297,8 @@ if __name__ == "__main__":
     while True:
         try:
             # ✅ non_stop=True ಮತ್ತು interval=2 ಕೊಟ್ಟರೆ ಕಾನ್ಫ್ಲಿಕ್ಟ್ ಚಾನ್ಸಸ್ ತುಂಬಾ ಕಮ್ಮಿ ಆಗುತ್ತೆ
-            bot.infinity_polling(timeout=60, long_polling_timeout=60, non_stop=True, interval=2)
+            # ✅ ಈ ಹೊಸ ಲೈನ್ ಪೇಸ್ಟ್ ಮಾಡಿ:
+        bot.infinity_polling(timeout=60, long_polling_timeout=60, interval=2)
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
