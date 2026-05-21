@@ -40,6 +40,8 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ================= ENV VARIABLES =================
 
+HF_TOKEN = os.environ.get("HF_TOKEN", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
@@ -78,7 +80,7 @@ def send_whatsapp(image_url, name):
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": WHATSAPP_NUMBER,
-            "urlFile": image_url,
+            "urlFile": image_url, # ವೆಬ್‌ಸೈಟ್‌ಗೆ ಅಪ್‌ಲೋಡ್ ಆದ ಅದೇ AI ಇಮೇಜ್ ಲಿಂಕ್ ವಾಟ್ಸಾಪ್‌ಗೆ ಹೋಗುತ್ತೆ
             "fileName": "product.jpg",
             "caption": caption
         }
@@ -148,27 +150,51 @@ async def telegram_webhook(request: Request):
         final_product_image_bytes = None
 
         # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
-        # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
         if not is_direct:
-            send_telegram(chat_id, "🤖 AI editing and generating model image (Unlimited Mode)...")
+            send_telegram(chat_id, "🤖 Analyzing dress with Gemini and generating model image...")
             try:
-                # 🚀 ಜೀವನ್, ನಿಮ್ಮ ಕಂಡೀಷನ್‌ಗಳನ್ನೆಲ್ಲಾ ಸೇರಿಸಿ ನಾನು ರೆಡಿ ಮಾಡಿರೋ ಅಲ್ಟ್ರಾ-ಪರ್ಫೆಕ್ಟ್ ಪ್ರಾಂಪ್ಟ್ ಇಲ್ಲಿದೆ:
+                # 1. Gemini AI ಮೂಲಕ ಫೋಟೋ ಅನಲೈಸ್ ಮಾಡಿ ಡೀಟೇಲ್ಸ್ ಪಡೆಯುವುದು
+                gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+                import base64
+                image_base64 = base64.b64encode(downloaded_photo).decode("utf-8")
+                
+                gemini_payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": "Analyze the dress in this image. Give me only a short 20-word description of its exact color, pattern, fabric type, and embroidery details. Do not write anything else."},
+                            {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}}
+                        ]
+                    }]
+                }
+                gemini_res = requests.post(gemini_url, json=gemini_payload, timeout=30).json()
+                
+                try:
+                    dress_details = gemini_res['candidates'][0]['content']['parts'][0]['text'].strip()
+                    print("Gemini Analysis:", dress_details)
+                except:
+                    dress_details = "traditional Indian dress"
+                    print("Gemini analysis failed, using default description")
+
+                # 2. HuggingFace ಮೂಲಕ ಮಾದರಿ ಚಿತ್ರವನ್ನು ರಚಿಸುವುದು (ನಿಮ್ಮ ಹಳೇ API Key ಸಿಸ್ಟಮ್ ಜೀವನ್)
+                hf_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large"
+                headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+                
+                # ಒಂದೇ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಎರಡು ಪೋಸ್ ಮತ್ತು Dolphin Trends ಲೋಗೋ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಇರೋ ಪ್ರಾಂಪ್ಟ್ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ
                 ai_prompt = (
-                    f"A single high-resolution product image showcasing a beautiful young Indian fashion model in TWO different stylish poses within the SAME frame side-by-side. "
-                    f"She must be visible from head to toe (full body shot). In both poses, she is wearing the EXACT same outfit from the original photo without any changes to its pattern, color, and design: {category}. "
-                    f"The background is a clean, professional studio white backdrop featuring a beautiful watercolor splash with a blue dolphin logo and the text 'DOLPHIN TRENDS' printed clearly in the center behind the model. "
-                    f"Sharp focus on the intricate fabric textures, professional fashion catalog photography."
+                    f"A single high-resolution product catalog image showcasing a beautiful young Indian fashion model in TWO different stylish poses within the SAME frame side-by-side. "
+                    f"Full body shot visible from head to toe. She is wearing the exact outfit: {dress_details}. "
+                    f"The background is a clean, professional studio white backdrop featuring a beautiful watercolor splash with a blue dolphin logo and the text 'DOLPHIN TRENDS' printed clearly in the center behind the model."
                 )
                 
-                encoded_prompt = urllib.parse.quote(ai_prompt)
-                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&nologo=true&model=flux"
+                payload = {"inputs": ai_prompt}
+                img_response = requests.post(hf_url, headers=headers, json=payload, timeout=90)
                 
-                img_response = requests.get(pollinations_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=60)
                 if img_response.status_code == 200 and len(img_response.content) > 1000:
-                    print("Pollinations image received successfully")
+                    print("HuggingFace image received successfully")
                     final_product_image_bytes = img_response.content 
                 else:
-                    send_telegram(chat_id, "⚠️ AI Generation busy, using original photo.")
+                    print(f"HF Error code: {img_response.status_code}")
+                    send_telegram(chat_id, "⚠️ API Limit reached or busy, using original photo.")
             except Exception as e:
                 print("AI Error:", str(e))
                 send_telegram(chat_id, "⚠️ AI error, using original photo.")
