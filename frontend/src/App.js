@@ -50,10 +50,11 @@ function App() {
     }
   };
 
+  // ✅ FIX: Correct delete URL with /products/
   const handleDelete = (e, id) => {
     e.stopPropagation();
     if (!window.confirm('ಈ product delete ಮಾಡಬೇಕಾ?')) return;
-    fetch('https://dolphin-trends-3.onrender.com/' + id, { method: 'DELETE' })
+    fetch('https://dolphin-trends-3.onrender.com/products/' + id, { method: 'DELETE' })
       .then(r => { if (r.ok) setProducts(p => p.filter(x => x.id !== id)); });
   };
 
@@ -70,10 +71,11 @@ function App() {
     });
   };
 
+  // ✅ FIX: Correct edit save URL with /products/
   const handleEditSave = () => {
     if (!editProduct) return;
     setEditLoading(true);
-    fetch('' + editProduct.id, {
+    fetch('https://dolphin-trends-3.onrender.com/products/' + editProduct.id, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...editProduct, ...editForm }),
