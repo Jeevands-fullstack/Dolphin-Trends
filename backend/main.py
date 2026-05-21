@@ -77,8 +77,8 @@ def send_telegram(chat_id, text):
 
 def send_whatsapp(image_url, name):
     try:
-        # 🔥 ವಾಟ್ಸಾಪ್‌ಗೆ ಪ್ರೈಸ್ ಹೋಗಲ್ಲ ಜೀವನ್, ಬರೀ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಮತ್ತು ನಿಮ್ಮ ಫಾರ್ಮ್ಯಾಟ್ ಮಾತ್ರ ಹೋಗುತ್ತೆ
-        caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ {name}\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
+        # 🔥 ಇಲ್ಲಿ {name} ಬದಲಿಗೆ "Dolphin Collections" ಅಂತ ಪರ್ಮನೆಂಟ್ ಆಗಿ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್!
+        caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ *Dolphin Collections*\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
         
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
