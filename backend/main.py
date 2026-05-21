@@ -46,7 +46,7 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
-FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
+FRONTEND_URL =" https://dolphin-frontend-mvke.onrender.com"
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 
 genai.configure(api_key=GEMINI_API_KEY)
