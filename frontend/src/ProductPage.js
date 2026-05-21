@@ -24,7 +24,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
     : [];
 
   useEffect(() => {
-    fetch('https://dolphin-trends-3.onrender.com/reviews' + product.id)
+    fetch('https://dolphin-trends-3.onrender.com/reviews/' + product.id)
      .then(res => res.json())
 .then(data => {
    setReviews(Array.isArray(data) ? data : [])
