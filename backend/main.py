@@ -75,14 +75,19 @@ def send_telegram(chat_id, text):
         json={"chat_id": chat_id, "text": text}
     )
 
-def send_whatsapp(image_bytes, name, price):
+def send_whatsapp(image_url, name, price):
     try:
-        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-        caption = f"🛍️ *Dolphin Trends*\n\n👕 *Product:* {name}\n💰 *Price:* {price}\n\n🌐 *Shop Now:*\n{FRONTEND_URL}"
-        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
+        caption = f"🛍️ *Dolphin Trends*
+
+👕 *Product:* {name}
+💰 *Price:* {price}
+
+🌐 *Shop Now:*
+{FRONTEND_URL}"
+        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": WHATSAPP_NUMBER,
-            "file": f"data:image/jpeg;base64,{image_b64}",
+            "urlFile": image_url,
             "fileName": "product.jpg",
             "caption": caption
         }
@@ -226,7 +231,7 @@ async def telegram_webhook(request: Request):
         products_table.insert(product)
 
         # Send WhatsApp
-        wa_success = send_whatsapp(final_image, name, "Rs." + price)
+        wa_success = send_whatsapp(product["image"], name, "Rs." + price)
 
         if wa_success:
             send_telegram(chat_id,
