@@ -1,1 +1,22 @@
+import os
+import json
+from json.decoder import JSONDecodeError
 
+DATABASE_FILE = "database.json"
+
+def load_database():
+    if not os.path.exists(DATABASE_FILE):
+        return []
+
+    try:
+        with open(DATABASE_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            if not content:
+                return []
+            return json.loads(content)
+    except JSONDecodeError:
+        return []
+
+def save_database(data):
+    with open(DATABASE_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
