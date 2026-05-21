@@ -150,6 +150,7 @@ async def telegram_webhook(request: Request):
         final_product_image_bytes = None
 
         # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
+        # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
         if not is_direct:
             send_telegram(chat_id, "🤖 Analyzing dress with Gemini and generating model image...")
             try:
@@ -175,26 +176,25 @@ async def telegram_webhook(request: Request):
                     dress_details = "traditional Indian dress"
                     print("Gemini analysis failed, using default description")
 
-                # 2. HuggingFace ಮೂಲಕ ಮಾದರಿ ಚಿತ್ರವನ್ನು ರಚಿಸುವುದು (ನಿಮ್ಮ ಹಳೇ API Key ಸಿಸ್ಟಮ್ ಜೀವನ್)
-                hf_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large"
-                headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-                
-                # ಒಂದೇ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಎರಡು ಪೋಸ್ ಮತ್ತು Dolphin Trends ಲೋಗೋ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಇರೋ ಪ್ರಾಂಪ್ಟ್ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ
+                # 2. Pollinations AI ಮೂಲಕ ಎರರ್ ಇಲ್ಲದೆ ಇಮೇಜ್ ಜನರೇಟ್ ಮಾಡುವುದು
+                # ಒಂದೇ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಎರಡು ಪೋಸ್ ಮತ್ತು Dolphin Trends ಲೋಗೋ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಇರೋ ಪ್ರಾಂಪ್ಟ್ ಇಲ್ಲಿದೆ ಜೀವನ್
                 ai_prompt = (
                     f"A single high-resolution product catalog image showcasing a beautiful young Indian fashion model in TWO different stylish poses within the SAME frame side-by-side. "
                     f"Full body shot visible from head to toe. She is wearing the exact outfit: {dress_details}. "
                     f"The background is a clean, professional studio white backdrop featuring a beautiful watercolor splash with a blue dolphin logo and the text 'DOLPHIN TRENDS' printed clearly in the center behind the model."
                 )
                 
-                payload = {"inputs": ai_prompt}
-                img_response = requests.post(hf_url, headers=headers, json=payload, timeout=90)
+                encoded_prompt = urllib.parse.quote(ai_prompt)
+                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&nologo=true&model=flux"
+                
+                img_response = requests.get(pollinations_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=60)
                 
                 if img_response.status_code == 200 and len(img_response.content) > 1000:
-                    print("HuggingFace image received successfully")
+                    print("Pollinations image received successfully")
                     final_product_image_bytes = img_response.content 
                 else:
-                    print(f"HF Error code: {img_response.status_code}")
-                    send_telegram(chat_id, "⚠️ API Limit reached or busy, using original photo.")
+                    print(f"AI Provider Error code: {img_response.status_code}")
+                    send_telegram(chat_id, "⚠️ AI Provider busy, using original photo.")
             except Exception as e:
                 print("AI Error:", str(e))
                 send_telegram(chat_id, "⚠️ AI error, using original photo.")
