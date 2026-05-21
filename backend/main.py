@@ -66,9 +66,15 @@ def send_telegram(chat_id, text):
         json={"chat_id": chat_id, "text": text}
     )
 
-def send_whatsapp(image_url, name):
+def send_whatsapp(image_url, name, final_price, final_original):
     try:
-        caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ *Dolphin Collections*\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
+        caption = (
+            f"🔥 *Hurry! Limited Stock!*\n\n"
+            f"✨ *Dolphin Collections: {name}*\n"
+            f"💰 *Price:* Rs.{final_price}  (❌ MRP: ~Rs.{final_original}~)\n"
+            f"💃 *Grab yours before it's gone!*\n\n"
+            f"👇 *Shop Now:*\n{FRONTEND_URL}"
+        )
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": WHATSAPP_NUMBER,
@@ -86,7 +92,7 @@ def send_whatsapp(image_url, name):
 
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends Backend Running with Edit Mode"}
+    return {"status": "Dolphin Trends Backend with Dynamic Categories Active"}
 
 # ================= WEBHOOK SETUP =================
 
@@ -108,20 +114,41 @@ async def telegram_webhook(request: Request):
             return {"ok": True}
 
         send_telegram(chat_id, "📥 Photo received...")
-        caption = message.get("caption", "")
+        caption = message.get("caption", "").strip()
         
-        # 🔥 ಜೀವನ್, ಇಲ್ಲಿ ರಿವರ್ಸ್ ಲಾಜಿಕ್ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ:
-        # #edit ಅಂತ ಇದ್ದರೆ ಮಾತ್ರ AI ಎಡಿಟ್ ಆಗುತ್ತೆ, ಇಲ್ಲಾಂದ್ರೆ ಡೈರೆಕ್ಟ್ ಅಪ್‌ಲೋಡ್!
         is_edit_requested = "#edit" in caption.lower()
 
-        # Price parse
-        price = "499"
-        original_price = "799"
-        for line in caption.split('\n'):
+        # 🎯 1. ಲೈನ್ ಬೈ ಲೈನ್ ಪಾರ್ಸಿಂಗ್ ಲಾಜಿಕ್
+        lines = [line.strip() for line in caption.split('\n') if line.strip()]
+        
+        # ಡಿಫಾಲ್ಟ್ ವ್ಯಾಲ್ಯೂಗಳು
+        category = "Kurta Sets"
+        name = "Premium Collection"
+        input_price = 499
+
+        # ಜೀವನ್, ನೀವು ಕಳಿಸೋ ಮೆಸೇಜ್‌ನಿಂದ ಡೇಟಾ ತಗೆದುಕೊಳ್ಳುವ ಪರ್ಫೆಕ್ಟ್ ಲಾಜಿಕ್:
+        if len(lines) > 0:
+            # ಮೊದಲನೇ ಲೈನ್ ಅನ್ನು ಯಥಾವತ್ತಾಗಿ ಕ್ಯಾಟಗರಿ ಹೆಸರು ಅಂತ ತಗೋತ್ತೆ (ಉದಾ: Leggings, Umbrella Sets)
+            category = lines[0].replace("#edit", "").strip()
+        
+        if len(lines) > 1 and not lines[1].lower().startswith('price:'):
+            # ಎರಡನೇ ಲೈನ್ ಬಟ್ಟೆಯ ಹೆಸರು
+            name = lines[1]
+        else:
+            name = "Premium " + category
+
+        # ಪ್ರೈಸ್ ಪಾರ್ಸಿಂಗ್ ಮತ್ತು ಆಟೋ 40% ಕ್ಯಾಲ್ಕುಲೇಷನ್
+        for line in lines:
             if 'price:' in line.lower():
-                price = line.split(':')[1].strip().replace("₹","").replace("Rs.","").strip()
-            if 'original:' in line.lower():
-                original_price = line.split(':')[1].strip().replace("₹","").replace("Rs.","").strip()
+                try:
+                    price_str = line.split(':')[1].strip().replace("₹","").replace("Rs.","").strip()
+                    input_price = int(price_str)
+                except Exception as e:
+                    print("Price parse error:", e)
+
+        calculated_original = int(input_price * 1.40)
+        price = str(input_price)
+        original_price = str(calculated_original)
 
         # Download image from Telegram
         file_id = message["photo"][-1]["file_id"]
@@ -130,17 +157,13 @@ async def telegram_webhook(request: Request):
         file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
         downloaded_photo = requests.get(file_url).content
 
-        name = "Dolphin Fashion"
-        category = "Sets"
-        description = "Premium fashion collection from Dolphin Trends"
-        
+        description = f"Premium {name} from Dolphin Trends"
         final_product_image_bytes = None
 
-        # ================== 🤖 AI EDIT MODE (#edit ಅಂತ ಟೈಪ್ ಮಾಡಿದ್ರೆ) ==================
+        # ================== AI EDIT MODE ==================
         if is_edit_requested:
             send_telegram(chat_id, "🤖 AI Edit mode active. Generating model image...")
             try:
-                # Gemini Analysis
                 gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
                 import base64
                 image_base64 = base64.b64encode(downloaded_photo).decode("utf-8")
@@ -159,7 +182,6 @@ async def telegram_webhook(request: Request):
                 except:
                     dress_details = "traditional Indian dress"
 
-                # Pollinations Image Generation
                 ai_prompt = (
                     f"A single high-resolution product catalog image showcasing a beautiful young Indian fashion model in TWO different stylish poses within the SAME frame side-by-side. "
                     f"Full body shot visible from head to toe. She is wearing the exact outfit: {dress_details}. "
@@ -178,16 +200,8 @@ async def telegram_webhook(request: Request):
                 print("AI Error:", str(e))
                 send_telegram(chat_id, "⚠️ AI error, using original photo.")
 
-        # ================== ⚡ DIRECT MODE (ನಾರ್ಮಲ್ ಆಗಿ ಕಳಿಸಿದ್ರೆ) ==================
         else:
             send_telegram(chat_id, "⚡ Direct upload mode active (No AI changes).")
-            lines = [line.strip() for line in caption.split('\n') if line.strip()]
-            if len(lines) > 0:
-                category = lines[0].strip()
-            if len(lines) > 1 and not lines[1].lower().startswith(('price:', 'original:')):
-                name = lines[1]
-            else:
-                name = "Premium " + category
 
         # ================== SAVE & UPLOAD ==================
         send_telegram(chat_id, "🚀 Saving and uploading image...")
@@ -204,26 +218,26 @@ async def telegram_webhook(request: Request):
             image_pil = image_pil.convert("RGB")
         image_pil.save(filepath, "JPEG", quality=85, optimize=True)
 
-        # Database insert
+        # Database insert (ನಿಮ್ಮ ವೆಬ್‌ಸೈಟ್ ಮ್ಯಾಚಿಂಗ್ ಕ್ಯಾಟಗರಿ ಇಲ್ಲಿ ಸೇವ್ ಆಗುತ್ತೆ ಜೀವನ್)
         product = {
             "id": str(uuid.uuid4()),
             "name": name,
             "price": "Rs." + price,
             "original_price": "Rs." + original_price,
             "description": description,
-            "category": category,
+            "category": category, 
             "image": f"{BACKEND_URL}/uploads/{filename}",
             "available": True
         }
         products_table.insert(product)
 
         # WhatsApp share
-        wa_success = send_whatsapp(product["image"], name)
+        wa_success = send_whatsapp(product["image"], name, price, original_price)
 
         if wa_success:
-            send_telegram(chat_id, f"✅ Product Active!\n🌐 Website & 📲 WhatsApp Uploaded!\n\n🛍️ {name}\n💰 Rs.{price}\n🌐 {FRONTEND_URL}")
+            send_telegram(chat_id, f"✅ Uploaded to category: {category}!\n🌐 Website & 📲 WhatsApp Active!\n\n🛍️ {name}\n💰 Price: Rs.{price} (MRP: Rs.{original_price})\n🌐 {FRONTEND_URL}")
         else:
-            send_telegram(chat_id, f"✅ Website uploaded!\n⚠️ WhatsApp failed.\n\n🛍️ {name}\n🌐 {FRONTEND_URL}")
+            send_telegram(chat_id, f"✅ Website uploaded to {category}!\n⚠️ WhatsApp failed.\n\n🛍️ {name}\n🌐 {FRONTEND_URL}")
 
         return {"ok": True}
     except Exception as e:
