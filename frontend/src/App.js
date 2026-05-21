@@ -28,7 +28,7 @@ function App() {
 
   const fetchProducts = () => {
     setLoading(true);
-    fetch('https://dolphin-trends.onrender.com/products')
+    fetch('https://dolphin-trends-3.onrender.com')
       .then(r => r.json())
       .then(d => { setProducts(d); setLoading(false); })
       .catch(() => setLoading(false));
@@ -53,7 +53,7 @@ function App() {
   const handleDelete = (e, id) => {
     e.stopPropagation();
     if (!window.confirm('ಈ product delete ಮಾಡಬೇಕಾ?')) return;
-    fetch('https://dolphin-trends.onrender.com/products/' + id, { method: 'DELETE' })
+    fetch('https://dolphin-trends-3.onrender.com/' + id, { method: 'DELETE' })
       .then(r => { if (r.ok) setProducts(p => p.filter(x => x.id !== id)); });
   };
 
@@ -73,7 +73,7 @@ function App() {
   const handleEditSave = () => {
     if (!editProduct) return;
     setEditLoading(true);
-    fetch('https://dolphin-trends.onrender.com/products/' + editProduct.id, {
+    fetch('' + editProduct.id, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...editProduct, ...editForm }),
