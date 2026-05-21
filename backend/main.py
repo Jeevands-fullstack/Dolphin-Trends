@@ -48,8 +48,8 @@ WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 
-# 🔥 ಜೀವನ್, ನಿಮ್ಮ ಬಿಸಿನೆಸ್‌ನ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಲಿಸ್ಟ್ ಇಲ್ಲಿದೆ. 
-# ವೆಬ್‌ಸೈಟ್ ಬಟನ್‌ನ ಸ್ಪೆಲ್ಲಿಂಗ್ ಹೇಗಿದೆಯೋ ಹಾಗೇ ಕೀಗಳನ್ನು ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ. ನಿಮಗೆ ಬೇಕಾದ್ರೆ ಇಲ್ಲಿ ಪ್ರೈಸ್ ಚೇಂಜ್ ಮಾಡ್ಕೋಬಹುದು.
+# ================= DEFAULT PRICES =================
+
 DEFAULT_PRICES = {
     "leggings": 200,
     "kurtha top": 200,
@@ -58,21 +58,11 @@ DEFAULT_PRICES = {
     "jeans": 550,
     "jeans tops": 300,
     "frocks": 850,
-    "250 tops": 250,  # 👈 ನಿಮ್ಮ ವೆಬ್‌ಸೈಟ್ ಮ್ಯಾಚಿಂಗ್ ಪ್ರಕಾರ ಫಿಕ್ಸ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್!
-    "350 tops": 350,  # 👈 ಇಲ್ಲೂ ಅಷ್ಟೇ, ನಂಬರ್ ಮೊದಲು ಬಂದು ಆಮೇಲೆ ಸ್ಮಾಲ್ ಲೆಟರ್ಸ್
+    "250 tops": 250,
+    "350 tops": 350,
     "gym pants": 300,
     "patiala pants": 200
 }
-
-# ================= MODELS =================
-
-class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    price: Optional[str] = None
-    original_price: Optional[str] = None
-    description: Optional[str] = None
-    category: Optional[str] = None
-    available: Optional[bool] = None
 
 # ================= HELPERS =================
 
@@ -107,7 +97,7 @@ def send_whatsapp(image_url, name):
 
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends Backend - Smart Category Pricing Active"}
+    return {"status": "Dolphin Trends Backend - Zero Default Price Mode"}
 
 # ================= WEBHOOK SETUP =================
 
@@ -133,39 +123,42 @@ async def telegram_webhook(request: Request):
         
         is_edit_requested = "#edit" in caption.lower()
 
-        # ಲೈನ್ ಬೈ ಲೈನ್ ಪಾರ್ಸಿಂಗ್
+        # ಲೈನ್ ಬೈ ಲೈನ್ ಕ್ಲೀನ್ ಪಾರ್ಸಿಂಗ್
         lines = [line.strip() for line in caption.split('\n') if line.strip()]
         
         category = "Kurta Sets"
-        name = "Premium Collection"
+        name = ""
+        input_price = None
 
         if len(lines) > 0:
             category = lines[0].replace("#edit", "").strip()
         
-        if len(lines) > 1 and not ('price:' in lines[1].lower() or 'price :' in lines[1].lower()):
-            name = lines[1]
-        else:
-            name = "Premium " + category
-
-        # 🎯 ಜೀವನ್, ಇಲ್ಲಿ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಲಾಜಿಕ್ ಅಪ್ಲೈ ಆಗುತ್ತೆ:
-        # ಮೊದಲು ಆ ಕ್ಯಾಟಗರಿಗೆ ನಮ್ಮ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಇದೆಯಾ ಅಂತ ಚೆಕ್ ಮಾಡುತ್ತೆ, ಇಲ್ಲಾಂದ್ರೆ 499 ತಗೊಳ್ಳುತ್ತೆ.
-        cat_lower = category.lower().strip()
-        input_price = DEFAULT_PRICES.get(cat_lower, 499) 
-        has_custom_price = False
-
-        # ಒಂದು ವೇಳೆ ನೀವು ಬೋಟ್‌ಗೆ 'price: 500' ಅಂತ ಮ್ಯಾನುಯಲ್ ಆಗಿ ಕಳಿಸಿದ್ರೆ, ಅದು ಡಿಫಾಲ್ಟ್ ಬೆಲೆಯನ್ನು ಓವರ್‌ರೈಡ್ ಮಾಡುತ್ತೆ
+        # ಪ್ರೈಸ್ ಲೈನ್ ಪಾರ್ಸಿಂಗ್
         for line in lines:
             if 'price' in line.lower():
                 match = re.search(r'price\s*:\s*(\d+)', line.lower())
                 if match:
                     try:
                         input_price = int(match.group(1))
-                        has_custom_price = True
-                        print(f"User sent custom price: {input_price}")
                     except Exception as e:
                         print("Price parse error:", e)
 
-        # 40% ಆಟೋಮ್ಯಾಟಿಕ್ ಮಾರ್ಕಪ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್ (MRP ಸೆಟ್ ಮಾಡಲು)
+        # ಹೆಸರು ತಗೋಳೋ ಲಾಜಿಕ್
+        if len(lines) > 1:
+            second_line = lines[1]
+            if 'price' not in second_line.lower():
+                name = second_line
+            else:
+                name = "Premium " + category
+        else:
+            name = "Premium " + category
+
+        # 🎯 ಜೀವನ್, ಇಲ್ಲಿದ್ದ 499 ಡಿಫಾಲ್ಟ್ ವ್ಯಾಲ್ಯೂ ತೆಗೆದು '0' ಮಾಡಿದ್ದೀನಿ:
+        if input_price is None:
+            cat_lower = category.lower().strip()
+            input_price = DEFAULT_PRICES.get(cat_lower, 0) # 👈 ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಇಲ್ಲದಿದ್ರೆ 0 ಆಗುತ್ತೆ
+
+        # 40% ಮಾರ್ಕಪ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್
         calculated_original = int(input_price * 1.40)
         
         price = str(input_price)
@@ -255,9 +248,7 @@ async def telegram_webhook(request: Request):
         # WhatsApp share
         send_whatsapp(product["image"], name)
 
-        # ಟೆಲಿಗ್ರಾಮ್‌ಗೆ ಕನ್ಫರ್ಮೇಷನ್ ಮೆಸೇಜ್ ಕಳಿಸುವಾಗ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಯೂಸ್ ಆಗಿದೆಯಾ ಇಲ್ವಾ ಅಂತ ತೋರಿಸುತ್ತೆ ಜೀವನ್
-        price_status = "Custom Price" if has_custom_price else "Default Category Price"
-        send_telegram(chat_id, f"✅ Product Active ({price_status})!\n🌐 Website uploaded with Price: Rs.{price} (MRP: Rs.{original_price})!\n📂 Category: {category}\n🌐 {FRONTEND_URL}")
+        send_telegram(chat_id, f"✅ Product Active!\n🌐 Website uploaded with Price: Rs.{price}\n📲 WhatsApp shared (No Price!)\n🌐 {FRONTEND_URL}")
 
         return {"ok": True}
     except Exception as e:
@@ -269,25 +260,6 @@ async def telegram_webhook(request: Request):
 @app.get("/products")
 def get_products():
     return products_table.all()
-
-@app.post("/products")
-async def add_product(
-    name: str = Form(...), price: str = Form(...),
-    original_price: str = Form(...), description: str = Form(...),
-    category: str = Form(...), file: UploadFile = File(...)
-):
-    ext = file.filename.split(".")[-1]
-    filename = str(uuid.uuid4()) + "." + ext
-    filepath = "uploads/" + filename
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    product = {
-        "id": str(uuid.uuid4()), "name": name, "price": price,
-        "original_price": original_price, "description": description,
-        "category": category, "image": f"{BACKEND_URL}/uploads/{filename}", "available": True
-    }
-    products_table.insert(product)
-    return product
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: str):
@@ -306,16 +278,3 @@ def delete_product(product_id: str):
         print(e)
     products_table.remove(Product.id == product_id)
     return {"success": True}
-
-# ================= REVIEWS & BOOKINGS =================
-
-@app.get("/reviews/{product_id}")
-def get_reviews(product_id: str):
-    Review = Query()
-    return reviews_table.search(Review.product_id == product_id)
-
-@app.post("/reviews")
-def add_review(review: dict):
-    review["id"] = str(uuid.uuid4())
-    reviews_table.insert(review)
-    return review
