@@ -75,9 +75,11 @@ def send_telegram(chat_id, text):
         json={"chat_id": chat_id, "text": text}
     )
 
-def send_whatsapp(image_url, name, price):
+def send_whatsapp(image_url, name):
     try:
+        # 🔥 ವಾಟ್ಸಾಪ್‌ಗೆ ಪ್ರೈಸ್ ಹೋಗಲ್ಲ ಜೀವನ್, ಬರೀ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಮತ್ತು ನಿಮ್ಮ ಫಾರ್ಮ್ಯಾಟ್ ಮಾತ್ರ ಹೋಗುತ್ತೆ
         caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ {name}\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
+        
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": WHATSAPP_NUMBER,
@@ -212,6 +214,7 @@ async def telegram_webhook(request: Request):
         with open(filepath, "wb") as f:
             f.write(final_image)
 
+        # ✅ ರಿಯಾಕ್ಟ್ ಬ್ಲಾಕ್ ಸ್ಕ್ರೀನ್ ತಡೆಯಲು "Rs." ಫಾರ್ಮ್ಯಾಟ್‌ಗೆ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್
         product = {
             "id": str(uuid.uuid4()),
             "name": name,
@@ -224,8 +227,8 @@ async def telegram_webhook(request: Request):
         }
         products_table.insert(product)
 
-        # Send WhatsApp
-        wa_success = send_whatsapp(product["image"], name, "Rs." + price)
+        # 🚨 ಪ್ರೈಸ್ ಆರ್ಗ್ಯುಮೆಂಟ್ ತೆಗೆದು ಕೇವಲ ಇಮೇಜ್ ಮತ್ತು ನೇಮ್ ಮಾತ್ರ ಕಳುಹಿಸ್ತಾ ಇದ್ದೀವಿ ಜೀವನ್
+        wa_success = send_whatsapp(product["image"], name)
 
         if wa_success:
             send_telegram(chat_id,
