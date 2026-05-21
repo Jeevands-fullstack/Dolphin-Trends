@@ -26,7 +26,7 @@ function BookingModal({ product, onClose }) {
     };
 
     try {
-      await fetch('https://dolphin-trends.onrender.com/bookings', {
+      await fetch('https://dolphin-trends-3.onrender.com/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
@@ -35,7 +35,7 @@ function BookingModal({ product, onClose }) {
       console.error(err);
     }
 
-    const ownerPhone = "917411255628";
+    const ownerPhone = "919353344035";
     const ownerMsg = "🛍 New Booking Request!\n\nProduct: " + product.name + "\nSize: " + selectedSize + "\nPrice: " + product.price + "\nAdvance: Rs." + advanceAmount + "\nCustomer: " + customerName + "\nPhone: " + phone + "\n\nPlease check Admin panel!";
     window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
 
