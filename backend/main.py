@@ -40,7 +40,6 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ================= ENV VARIABLES =================
 
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
@@ -61,12 +60,6 @@ class ProductUpdate(BaseModel):
 
 # ================= HELPERS =================
 
-def clean_text(text):
-    text = re.sub(r'http\S+', '', text)
-    text = re.sub(r'www\S+', '', text)
-    text = text.replace("[","").replace("]","").replace("(","").replace(")","")
-    return text.strip()
-
 def send_telegram(chat_id, text):
     requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
@@ -76,16 +69,14 @@ def send_telegram(chat_id, text):
 def send_whatsapp(image_url, name):
     try:
         caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ *Dolphin Collections*\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
-        
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": WHATSAPP_NUMBER,
-            "urlFile": image_url, # ವೆಬ್‌ಸೈಟ್‌ಗೆ ಅಪ್‌ಲೋಡ್ ಆದ ಅದೇ AI ಇಮೇಜ್ ಲಿಂಕ್ ವಾಟ್ಸಾಪ್‌ಗೆ ಹೋಗುತ್ತೆ
+            "urlFile": image_url,
             "fileName": "product.jpg",
             "caption": caption
         }
         response = requests.post(url, json=payload, timeout=60)
-        print("WhatsApp Status:", response.status_code, response.text)
         return response.status_code == 200
     except Exception as e:
         print("WhatsApp Error:", str(e))
@@ -95,7 +86,7 @@ def send_whatsapp(image_url, name):
 
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends Backend Running"}
+    return {"status": "Dolphin Trends Backend Running with Edit Mode"}
 
 # ================= WEBHOOK SETUP =================
 
@@ -103,11 +94,7 @@ def home():
 async def startup():
     webhook_url = f"{BACKEND_URL}/webhook"
     requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook")
-    r = requests.post(
-        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook",
-        json={"url": webhook_url}
-    )
-    print("Webhook set:", r.text)
+    requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook", json={"url": webhook_url})
 
 # ================= TELEGRAM WEBHOOK =================
 
@@ -117,15 +104,15 @@ async def telegram_webhook(request: Request):
         update = await request.json()
         message = update.get("message", {})
         chat_id = message.get("chat", {}).get("id")
-        if not chat_id:
-            return {"ok": True}
-
-        if "photo" not in message:
+        if not chat_id or "photo" not in message:
             return {"ok": True}
 
         send_telegram(chat_id, "📥 Photo received...")
         caption = message.get("caption", "")
-        is_direct = "#direct" in caption.lower()
+        
+        # 🔥 ಜೀವನ್, ಇಲ್ಲಿ ರಿವರ್ಸ್ ಲಾಜಿಕ್ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ:
+        # #edit ಅಂತ ಇದ್ದರೆ ಮಾತ್ರ AI ಎಡಿಟ್ ಆಗುತ್ತೆ, ಇಲ್ಲಾಂದ್ರೆ ಡೈರೆಕ್ಟ್ ಅಪ್‌ಲೋಡ್!
+        is_edit_requested = "#edit" in caption.lower()
 
         # Price parse
         price = "499"
@@ -149,12 +136,11 @@ async def telegram_webhook(request: Request):
         
         final_product_image_bytes = None
 
-        # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
-        # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
-        if not is_direct:
-            send_telegram(chat_id, "🤖 Analyzing dress with Gemini and generating model image...")
+        # ================== 🤖 AI EDIT MODE (#edit ಅಂತ ಟೈಪ್ ಮಾಡಿದ್ರೆ) ==================
+        if is_edit_requested:
+            send_telegram(chat_id, "🤖 AI Edit mode active. Generating model image...")
             try:
-                # 1. Gemini AI ಮೂಲಕ ಫೋಟೋ ಅನಲೈಸ್ ಮಾಡಿ ಡೀಟೇಲ್ಸ್ ಪಡೆಯುವುದು
+                # Gemini Analysis
                 gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
                 import base64
                 image_base64 = base64.b64encode(downloaded_photo).decode("utf-8")
@@ -162,22 +148,18 @@ async def telegram_webhook(request: Request):
                 gemini_payload = {
                     "contents": [{
                         "parts": [
-                            {"text": "Analyze the dress in this image. Give me only a short 20-word description of its exact color, pattern, fabric type, and embroidery details. Do not write anything else."},
+                            {"text": "Analyze the dress. Give me a short 20-word description of its exact color, pattern, and style. No extra text."},
                             {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}}
                         ]
                     }]
                 }
                 gemini_res = requests.post(gemini_url, json=gemini_payload, timeout=30).json()
-                
                 try:
                     dress_details = gemini_res['candidates'][0]['content']['parts'][0]['text'].strip()
-                    print("Gemini Analysis:", dress_details)
                 except:
                     dress_details = "traditional Indian dress"
-                    print("Gemini analysis failed, using default description")
 
-                # 2. Pollinations AI ಮೂಲಕ ಎರರ್ ಇಲ್ಲದೆ ಇಮೇಜ್ ಜನರೇಟ್ ಮಾಡುವುದು
-                # ಒಂದೇ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಎರಡು ಪೋಸ್ ಮತ್ತು Dolphin Trends ಲೋಗೋ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಇರೋ ಪ್ರಾಂಪ್ಟ್ ಇಲ್ಲಿದೆ ಜೀವನ್
+                # Pollinations Image Generation
                 ai_prompt = (
                     f"A single high-resolution product catalog image showcasing a beautiful young Indian fashion model in TWO different stylish poses within the SAME frame side-by-side. "
                     f"Full body shot visible from head to toe. She is wearing the exact outfit: {dress_details}. "
@@ -188,32 +170,27 @@ async def telegram_webhook(request: Request):
                 pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&nologo=true&model=flux"
                 
                 img_response = requests.get(pollinations_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=60)
-                
                 if img_response.status_code == 200 and len(img_response.content) > 1000:
-                    print("Pollinations image received successfully")
                     final_product_image_bytes = img_response.content 
                 else:
-                    print(f"AI Provider Error code: {img_response.status_code}")
-                    send_telegram(chat_id, "⚠️ AI Provider busy, using original photo.")
+                    send_telegram(chat_id, "⚠️ AI busy, falling back to original photo.")
             except Exception as e:
                 print("AI Error:", str(e))
                 send_telegram(chat_id, "⚠️ AI error, using original photo.")
-                
-        # ================== DIRECT MODE (#direct ಇರುತ್ತೆ) ==================
+
+        # ================== ⚡ DIRECT MODE (ನಾರ್ಮಲ್ ಆಗಿ ಕಳಿಸಿದ್ರೆ) ==================
         else:
-            send_telegram(chat_id, "⚡ Direct upload mode active.")
+            send_telegram(chat_id, "⚡ Direct upload mode active (No AI changes).")
             lines = [line.strip() for line in caption.split('\n') if line.strip()]
             if len(lines) > 0:
-                category_match = lines[0].replace("#direct", "").strip()
-                if category_match:
-                    category = category_match
+                category = lines[0].strip()
             if len(lines) > 1 and not lines[1].lower().startswith(('price:', 'original:')):
                 name = lines[1]
             else:
                 name = "Premium " + category
-                
-        # ================== FILE PROCESSING & UPLOAD ==================
-        send_telegram(chat_id, "🚀 Saving image and uploading everywhere...")
+
+        # ================== SAVE & UPLOAD ==================
+        send_telegram(chat_id, "🚀 Saving and uploading image...")
         filename = str(uuid.uuid4()) + ".jpg"
         filepath = f"uploads/{filename}"
         
@@ -222,17 +199,12 @@ async def telegram_webhook(request: Request):
         else:
             img_file = io.BytesIO(downloaded_photo)
             
-        try:
-            image_pil = Image.open(img_file)
-            if image_pil.mode in ("RGBA", "P"):
-                image_pil = image_pil.convert("RGB")
-            image_pil.save(filepath, "JPEG", quality=85, optimize=True)
-        except Exception as e:
-            print("Image save error:", str(e))
-            send_telegram(chat_id, "⚠️ Image error, upload failed.")
-            return {"ok": True}
+        image_pil = Image.open(img_file)
+        if image_pil.mode in ("RGBA", "P"):
+            image_pil = image_pil.convert("RGB")
+        image_pil.save(filepath, "JPEG", quality=85, optimize=True)
 
-        # ================== SAVE TO DATABASE ==================
+        # Database insert
         product = {
             "id": str(uuid.uuid4()),
             "name": name,
@@ -245,21 +217,17 @@ async def telegram_webhook(request: Request):
         }
         products_table.insert(product)
 
-        # ================== SEND TO WHATSAPP ==================
+        # WhatsApp share
         wa_success = send_whatsapp(product["image"], name)
 
         if wa_success:
-            send_telegram(chat_id,
-                f"✅ AI Edit Successful!\n🌐 Website Uploaded!\n📲 WhatsApp Shared!\n\n"
-                f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n\n🌐 {FRONTEND_URL}"
-            )
+            send_telegram(chat_id, f"✅ Product Active!\n🌐 Website & 📲 WhatsApp Uploaded!\n\n🛍️ {name}\n💰 Rs.{price}\n🌐 {FRONTEND_URL}")
         else:
-            send_telegram(chat_id, f"✅ Website upload done!\n⚠️ WhatsApp failed\n\n🛍️ {name}\n💰 Rs.{price}\n🌐 {FRONTEND_URL}")
+            send_telegram(chat_id, f"✅ Website uploaded!\n⚠️ WhatsApp failed.\n\n🛍️ {name}\n🌐 {FRONTEND_URL}")
 
         return {"ok": True}
-
     except Exception as e:
-        print("Webhook Error:", str(e))
+        print("Error:", str(e))
         return {"ok": True}
 
 # ================= PRODUCTS ENDPOINTS =================
@@ -282,9 +250,7 @@ async def add_product(
     product = {
         "id": str(uuid.uuid4()), "name": name, "price": price,
         "original_price": original_price, "description": description,
-        "category": category,
-        "image": f"{BACKEND_URL}/uploads/{filename}",
-        "available": True
+        "category": category, "image": f"{BACKEND_URL}/uploads/{filename}", "available": True
     }
     products_table.insert(product)
     return product
@@ -303,10 +269,9 @@ def delete_product(product_id: str):
             if os.path.exists(filepath):
                 os.remove(filepath)
     except Exception as e:
-        print("Image delete error:", e)
-        
+        print(e)
     products_table.remove(Product.id == product_id)
-    return {"success": True, "message": "Product deleted successfully"}
+    return {"success": True}
 
 # ================= REVIEWS & BOOKINGS =================
 
@@ -331,17 +296,3 @@ def add_booking(booking: dict):
 @app.get("/bookings")
 def get_bookings():
     return bookings_table.all()
-
-@app.put("/bookings/{booking_id}/confirm")
-def confirm_booking(booking_id: str):
-    Booking = Query()
-    bookings_table.update({"status": "Confirmed"}, Booking.id == booking_id)
-    booking = bookings_table.search(Booking.id == booking_id)
-    return booking[0] if booking else {}
-
-@app.put("/bookings/{booking_id}/reject")
-def reject_booking(booking_id: str):
-    Booking = Query()
-    bookings_table.update({"status": "Rejected"}, Booking.id == booking_id)
-    booking = bookings_table.search(Booking.id == booking_id)
-    return booking[0] if booking else {}
