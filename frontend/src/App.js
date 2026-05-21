@@ -28,7 +28,7 @@ function App() {
 
   const fetchProducts = () => {
     setLoading(true);
-    fetch('https://dolphin-trends-3.onrender.com')
+    fetch('https://dolphin-trends-3.onrender.com/products')
       .then(r => r.json())
       .then(d => { setProducts(d); setLoading(false); })
       .catch(() => setLoading(false));
