@@ -48,6 +48,22 @@ WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 
+# 🔥 ಜೀವನ್, ನಿಮ್ಮ ಬಿಸಿನೆಸ್‌ನ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಲಿಸ್ಟ್ ಇಲ್ಲಿದೆ. 
+# ವೆಬ್‌ಸೈಟ್ ಬಟನ್‌ನ ಸ್ಪೆಲ್ಲಿಂಗ್ ಹೇಗಿದೆಯೋ ಹಾಗೇ ಕೀಗಳನ್ನು ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ. ನಿಮಗೆ ಬೇಕಾದ್ರೆ ಇಲ್ಲಿ ಪ್ರೈಸ್ ಚೇಂಜ್ ಮಾಡ್ಕೋಬಹುದು.
+DEFAULT_PRICES = {
+    "Leggings": 200,
+    "Kurtha top": 200,
+    "Umbrella sets": 1000,
+    "Kurta sets": 1200,
+    "Jeans": 550,
+    "Jeans Tops": 300,
+    "Frocks" : 850,
+    "Tops 250" : 250,
+    "Tops 350" : 350,
+    "Gym Pants" 300,
+    "Patiala Pants" : 200
+}
+
 # ================= MODELS =================
 
 class ProductUpdate(BaseModel):
@@ -66,14 +82,13 @@ def send_telegram(chat_id, text):
         json={"chat_id": chat_id, "text": text}
     )
 
-def send_whatsapp(image_url, name, final_price, final_original):
+def send_whatsapp(image_url, name):
     try:
         caption = (
             f"🔥 *Hurry! Limited Stock!*\n\n"
-            f"✨ *Dolphin Collections: {name}*\n"
-            f"💰 *Price:* Rs.{final_price}  (❌ MRP: ~Rs.{final_original}~)\n"
+            f"✨ *New Arrival: {name}*\n"
             f"💃 *Grab yours before it's gone!*\n\n"
-            f"👇 *Shop Now:*\n{FRONTEND_URL}"
+            f"👇 *Check Price & Shop Now:*\n{FRONTEND_URL}"
         )
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
@@ -92,7 +107,7 @@ def send_whatsapp(image_url, name, final_price, final_original):
 
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends Backend with Dynamic Categories Active"}
+    return {"status": "Dolphin Trends Backend - Smart Category Pricing Active"}
 
 # ================= WEBHOOK SETUP =================
 
@@ -118,35 +133,41 @@ async def telegram_webhook(request: Request):
         
         is_edit_requested = "#edit" in caption.lower()
 
-        # 🎯 1. ಲೈನ್ ಬೈ ಲೈನ್ ಪಾರ್ಸಿಂಗ್ ಲಾಜಿಕ್
+        # ಲೈನ್ ಬೈ ಲೈನ್ ಪಾರ್ಸಿಂಗ್
         lines = [line.strip() for line in caption.split('\n') if line.strip()]
         
-        # ಡಿಫಾಲ್ಟ್ ವ್ಯಾಲ್ಯೂಗಳು
         category = "Kurta Sets"
         name = "Premium Collection"
-        input_price = 499
 
-        # ಜೀವನ್, ನೀವು ಕಳಿಸೋ ಮೆಸೇಜ್‌ನಿಂದ ಡೇಟಾ ತಗೆದುಕೊಳ್ಳುವ ಪರ್ಫೆಕ್ಟ್ ಲಾಜಿಕ್:
         if len(lines) > 0:
-            # ಮೊದಲನೇ ಲೈನ್ ಅನ್ನು ಯಥಾವತ್ತಾಗಿ ಕ್ಯಾಟಗರಿ ಹೆಸರು ಅಂತ ತಗೋತ್ತೆ (ಉದಾ: Leggings, Umbrella Sets)
             category = lines[0].replace("#edit", "").strip()
         
-        if len(lines) > 1 and not lines[1].lower().startswith('price:'):
-            # ಎರಡನೇ ಲೈನ್ ಬಟ್ಟೆಯ ಹೆಸರು
+        if len(lines) > 1 and not ('price:' in lines[1].lower() or 'price :' in lines[1].lower()):
             name = lines[1]
         else:
             name = "Premium " + category
 
-        # ಪ್ರೈಸ್ ಪಾರ್ಸಿಂಗ್ ಮತ್ತು ಆಟೋ 40% ಕ್ಯಾಲ್ಕುಲೇಷನ್
-        for line in lines:
-            if 'price:' in line.lower():
-                try:
-                    price_str = line.split(':')[1].strip().replace("₹","").replace("Rs.","").strip()
-                    input_price = int(price_str)
-                except Exception as e:
-                    print("Price parse error:", e)
+        # 🎯 ಜೀವನ್, ಇಲ್ಲಿ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಲಾಜಿಕ್ ಅಪ್ಲೈ ಆಗುತ್ತೆ:
+        # ಮೊದಲು ಆ ಕ್ಯಾಟಗರಿಗೆ ನಮ್ಮ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಇದೆಯಾ ಅಂತ ಚೆಕ್ ಮಾಡುತ್ತೆ, ಇಲ್ಲಾಂದ್ರೆ 499 ತಗೊಳ್ಳುತ್ತೆ.
+        cat_lower = category.lower().strip()
+        input_price = DEFAULT_PRICES.get(cat_lower, 499) 
+        has_custom_price = False
 
+        # ಒಂದು ವೇಳೆ ನೀವು ಬೋಟ್‌ಗೆ 'price: 500' ಅಂತ ಮ್ಯಾನುಯಲ್ ಆಗಿ ಕಳಿಸಿದ್ರೆ, ಅದು ಡಿಫಾಲ್ಟ್ ಬೆಲೆಯನ್ನು ಓವರ್‌ರೈಡ್ ಮಾಡುತ್ತೆ
+        for line in lines:
+            if 'price' in line.lower():
+                match = re.search(r'price\s*:\s*(\d+)', line.lower())
+                if match:
+                    try:
+                        input_price = int(match.group(1))
+                        has_custom_price = True
+                        print(f"User sent custom price: {input_price}")
+                    except Exception as e:
+                        print("Price parse error:", e)
+
+        # 40% ಆಟೋಮ್ಯಾಟಿಕ್ ಮಾರ್ಕಪ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್ (MRP ಸೆಟ್ ಮಾಡಲು)
         calculated_original = int(input_price * 1.40)
+        
         price = str(input_price)
         original_price = str(calculated_original)
 
@@ -218,26 +239,25 @@ async def telegram_webhook(request: Request):
             image_pil = image_pil.convert("RGB")
         image_pil.save(filepath, "JPEG", quality=85, optimize=True)
 
-        # Database insert (ನಿಮ್ಮ ವೆಬ್‌ಸೈಟ್ ಮ್ಯಾಚಿಂಗ್ ಕ್ಯಾಟಗರಿ ಇಲ್ಲಿ ಸೇವ್ ಆಗುತ್ತೆ ಜೀವನ್)
+        # Database insert
         product = {
             "id": str(uuid.uuid4()),
             "name": name,
             "price": "Rs." + price,
             "original_price": "Rs." + original_price,
             "description": description,
-            "category": category, 
+            "category": category,
             "image": f"{BACKEND_URL}/uploads/{filename}",
             "available": True
         }
         products_table.insert(product)
 
         # WhatsApp share
-        wa_success = send_whatsapp(product["image"], name, price, original_price)
+        send_whatsapp(product["image"], name)
 
-        if wa_success:
-            send_telegram(chat_id, f"✅ Uploaded to category: {category}!\n🌐 Website & 📲 WhatsApp Active!\n\n🛍️ {name}\n💰 Price: Rs.{price} (MRP: Rs.{original_price})\n🌐 {FRONTEND_URL}")
-        else:
-            send_telegram(chat_id, f"✅ Website uploaded to {category}!\n⚠️ WhatsApp failed.\n\n🛍️ {name}\n🌐 {FRONTEND_URL}")
+        # ಟೆಲಿಗ್ರಾಮ್‌ಗೆ ಕನ್ಫರ್ಮೇಷನ್ ಮೆಸೇಜ್ ಕಳಿಸುವಾಗ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಯೂಸ್ ಆಗಿದೆಯಾ ಇಲ್ವಾ ಅಂತ ತೋರಿಸುತ್ತೆ ಜೀವನ್
+        price_status = "Custom Price" if has_custom_price else "Default Category Price"
+        send_telegram(chat_id, f"✅ Product Active ({price_status})!\n🌐 Website uploaded with Price: Rs.{price} (MRP: Rs.{original_price})!\n📂 Category: {category}\n🌐 {FRONTEND_URL}")
 
         return {"ok": True}
     except Exception as e:
@@ -299,14 +319,3 @@ def add_review(review: dict):
     review["id"] = str(uuid.uuid4())
     reviews_table.insert(review)
     return review
-
-@app.post("/bookings")
-def add_booking(booking: dict):
-    booking["id"] = str(uuid.uuid4())
-    booking["status"] = "Pending"
-    bookings_table.insert(booking)
-    return booking
-
-@app.get("/bookings")
-def get_bookings():
-    return bookings_table.all()
