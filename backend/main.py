@@ -10,9 +10,9 @@ import uuid
 import requests
 import json
 import re
-import base64
 import io
-import google.generativeai as genai
+import urllib.parse
+from PIL import Image
 
 # ================= FASTAPI =================
 
@@ -40,16 +40,12 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # ================= ENV VARIABLES =================
 
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
-
-genai.configure(api_key=GEMINI_API_KEY)
 
 # ================= MODELS =================
 
@@ -117,26 +113,11 @@ async def startup():
 async def telegram_webhook(request: Request):
     try:
         update = await request.json()
-        print("Update received:", json.dumps(update)[:200])
-
         message = update.get("message", {})
         chat_id = message.get("chat", {}).get("id")
         if not chat_id:
             return {"ok": True}
 
-        # Start command
-        if "text" in message and message["text"] == "/start":
-            send_telegram(chat_id,
-                "✅ Dolphin Trends Bot Ready!\n\n"
-                "📸 Product photo kalsidre auto upload aagthade\n\n"
-                "⚡ Direct Mode New Format (AI Description):\n"
-                "#direct Kurthas\n"
-                "price: 1200\n"
-                "original: 1600"
-            )
-            return {"ok": True}
-
-        # Photo handler
         if "photo" not in message:
             return {"ok": True}
 
@@ -153,119 +134,94 @@ async def telegram_webhook(request: Request):
             if 'original:' in line.lower():
                 original_price = line.split(':')[1].strip().replace("₹","").replace("Rs.","").strip()
 
-        # Download image
+        # Download image from Telegram
         file_id = message["photo"][-1]["file_id"]
-        file_info = requests.get(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile",
-            params={"file_id": file_id}
-        ).json()
+        file_info = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile", params={"file_id": file_id}).json()
         file_path = file_info["result"]["file_path"]
         file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
-        image_bytes = requests.get(file_url).content
+        downloaded_photo = requests.get(file_url).content
 
-        final_image = image_bytes
         name = "Dolphin Fashion"
         category = "Sets"
         description = "Premium fashion collection from Dolphin Trends"
+        
+        final_product_image_bytes = None
 
-        # Direct mode (ಬರೀ ಕ್ಯಾಟಗರಿ ಮತ್ತು ಪ್ರೈಸ್ ಕಳಿಸಿದಾಗ ಕೆಲಸ ಮಾಡೋ ಲಾಜಿಕ್ ಜೀವನ್)
-        if is_direct:
-            send_telegram(chat_id, "⚡ Direct upload mode active...")
+        # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
+        if not is_direct:
+            send_telegram(chat_id, "🤖 AI editing and generating model image (Unlimited Mode)...")
+            try:
+                # 🚀 ✅ ಇಲ್ಲಿ ಅನ್‌ಲಿಮಿಟೆಡ್ Pollinations AI ಲಿಂಕ್ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್ (No API Key Required!)
+                ai_prompt = "beautiful young Indian woman wearing elegant traditional dress, studio white background, professional photography, high resolution"
+                encoded_prompt = urllib.parse.quote(ai_prompt)
+                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=1024&nologo=true&model=flux"
+                
+                img_response = requests.get(pollinations_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=60)
+                if img_response.status_code == 200 and len(img_response.content) > 1000:
+                    print("Pollinations image received successfully")
+                    final_product_image_bytes = img_response.content 
+                else:
+                    send_telegram(chat_id, "⚠️ AI Generation busy, using original photo.")
+            except Exception as e:
+                print("AI Error:", str(e))
+                send_telegram(chat_id, "⚠️ AI error, using original photo.")
+                
+        # ================== DIRECT MODE (#direct ಇರುತ್ತೆ) ==================
+        else:
+            send_telegram(chat_id, "⚡ Direct upload mode active.")
             lines = [line.strip() for line in caption.split('\n') if line.strip()]
-            
-            # 1. ಕ್ಯಾಟಗರಿ ಸೆಟ್ ಮಾಡೋದು
             if len(lines) > 0:
                 category_match = lines[0].replace("#direct", "").strip()
                 if category_match:
                     category = category_match
-            
-            # 2. ಹೆಸರು ಸೆಟ್ ಮಾಡೋದು (ಒಂದು ವೇಳೆ 2ನೇ ಲೈನ್‌ನಲ್ಲಿ ಪ್ರೈಸ್ ಇಲ್ಲದಿದ್ರೆ ಅದನ್ನೇ ಹೆಸರು ಮಾಡ್ಕೋತೀವಿ)
             if len(lines) > 1 and not lines[1].lower().startswith(('price:', 'original:')):
                 name = lines[1]
             else:
                 name = "Premium " + category
                 
-            # 🤖 3. ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಬರೆಯೋಕೆ ಬೋಟ್ ತಾನಾಗಿಯೇ Gemini AI ಕಾಲ್ ಮಾಡುತ್ತೆ ಜೀವನ್!
-            send_telegram(chat_id, "✍️ AI is writing product description automatically...")
-            try:
-                from google import genai as genai2
-                client = genai2.Client(api_key=GEMINI_API_KEY)
-                from PIL import Image as PILImage
-                image_pil = PILImage.open(io.BytesIO(image_bytes))
-                
-                # AI ಗೆ ಆಜ್ಞೆ: ಫೋಟೋ ನೋಡಿ ಒಂದೇ ಒಂದು ಲೈನ್‌ನಲ್ಲಿ ಸಖತ್ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಬರಿ ಅಂತ
-                prompt = f"Analyze this clothing item for category '{category}'. Write a short, attractive product description in English (maximum 15-20 words) for an e-commerce website. Respond ONLY with the description text."
-                response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, image_pil])
-                if response.text:
-                    description = response.text.strip()
-            except Exception as ai_err:
-                print("Direct Mode AI Error:", ai_err)
-                description = f"High quality premium {category} from Dolphin Trends collection."
-
-        # Full AI mode (ಫೋಟೋ ಮಾತ್ರ ಕಳಿಸಿದಾಗ ಹಳೇ ಲಾಜಿಕ್ ವರ್ಕ್ ಆಗುತ್ತೆ ಜೀವನ್)
-        else:
-            send_telegram(chat_id, "🤖 AI analyzing image completely...")
-            try:
-                from google import genai as genai2
-                client = genai2.Client(api_key=GEMINI_API_KEY)
-                from PIL import Image as PILImage
-                image_pil = PILImage.open(io.BytesIO(image_bytes))
-                prompt = 'Analyze this clothing photo. Respond ONLY in JSON: {"name":"product name","category":"Sets","description":"short description","dress_details":"dress color and style"}'
-                response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, image_pil])
-                response_text = response.text.strip()
-                if "```json" in response_text:
-                    response_text = response_text.split("```json")[1].split("```")[0].strip()
-                elif "```" in response_text:
-                    response_text = response_text.split("```")[1].split("```")[0].strip()
-                ai_data = json.loads(response_text)
-                name = ai_data.get("name","Fashion Item")
-                category = ai_data.get("category","Sets")
-                description = ai_data.get("description","Beautiful fashion item")
-                dress_details = clean_text(ai_data.get("dress_details","beautiful traditional dress"))
-
-                send_telegram(chat_id, "🎨 Generating AI model image...")
-                ai_prompt = requests.utils.quote(f"beautiful young Indian woman wearing {dress_details}, white background, studio photography")
-                pollinations_url = f"https://image.pollinations.ai/prompt/{ai_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
-                img_response = requests.get(pollinations_url, headers={"User-Agent":"Mozilla/5.0"}, timeout=60)
-                if img_response.status_code == 200 and len(img_response.content) > 1000:
-                    final_image = img_response.content
-            except Exception as e:
-                print("AI Error:", e)
-
-        # Upload to website
-        send_telegram(chat_id, "🚀 Uploading to website...")
-        ext = "jpg"
-        filename = str(uuid.uuid4()) + "." + ext
+        # ================== FILE PROCESSING & UPLOAD ==================
+        send_telegram(chat_id, "🚀 Saving image and uploading everywhere...")
+        filename = str(uuid.uuid4()) + ".jpg"
         filepath = f"uploads/{filename}"
-        with open(filepath, "wb") as f:
-            f.write(final_image)
+        
+        if final_product_image_bytes:
+            img_file = io.BytesIO(final_product_image_bytes)
+        else:
+            img_file = io.BytesIO(downloaded_photo)
+            
+        try:
+            image_pil = Image.open(img_file)
+            if image_pil.mode in ("RGBA", "P"):
+                image_pil = image_pil.convert("RGB")
+            image_pil.save(filepath, "JPEG", quality=85, optimize=True)
+        except Exception as e:
+            print("Image save error:", str(e))
+            send_telegram(chat_id, "⚠️ Image error, upload failed.")
+            return {"ok": True}
 
-        # Product Object
+        # ================== SAVE TO DATABASE ==================
         product = {
             "id": str(uuid.uuid4()),
             "name": name,
             "price": "Rs." + price,
             "original_price": "Rs." + original_price,
-            "description": description,  # ✅ AI ಬರೆದ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಇಲ್ಲಿ ಆಟೋ ಸೇವ್ ಆಗುತ್ತೆ!
+            "description": description,
             "category": category,
             "image": f"{BACKEND_URL}/uploads/{filename}",
             "available": True
         }
         products_table.insert(product)
 
-        # Send WhatsApp
+        # ================== SEND TO WHATSAPP ==================
         wa_success = send_whatsapp(product["image"], name)
 
         if wa_success:
             send_telegram(chat_id,
-                f"✅ Upload successful!\n📲 WhatsApp sent!\n\n"
-                f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n📝 {description}\n\n🌐 {FRONTEND_URL}"
+                f"✅ AI Edit Successful!\n🌐 Website Uploaded!\n📲 WhatsApp Shared!\n\n"
+                f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n\n🌐 {FRONTEND_URL}"
             )
         else:
-            send_telegram(chat_id,
-                f"✅ Website upload done!\n⚠️ WhatsApp failed\n\n"
-                f"🛍️ {name}\n💰 Rs.{price}\n🌐 {FRONTEND_URL}"
-            )
+            send_telegram(chat_id, f"✅ Website upload done!\n⚠️ WhatsApp failed\n\n🛍️ {name}\n💰 Rs.{price}\n🌐 {FRONTEND_URL}")
 
         return {"ok": True}
 
@@ -273,7 +229,7 @@ async def telegram_webhook(request: Request):
         print("Webhook Error:", str(e))
         return {"ok": True}
 
-# ================= PRODUCTS =================
+# ================= PRODUCTS ENDPOINTS =================
 
 @app.get("/products")
 def get_products():
@@ -294,46 +250,11 @@ async def add_product(
         "id": str(uuid.uuid4()), "name": name, "price": price,
         "original_price": original_price, "description": description,
         "category": category,
-        "image": "https://dolphin-trends-3.onrender.com/uploads/" + filename,
+        "image": f"{BACKEND_URL}/uploads/{filename}",
         "available": True
     }
     products_table.insert(product)
     return product
-
-@app.post("/upload-from-bot")
-async def upload_from_bot(
-    file: UploadFile = File(...), name: str = Form(...),
-    price: str = Form(...), original_price: str = Form(...),
-    description: str = Form(...), category: str = Form(...)
-):
-    try:
-        ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-        filename = str(uuid.uuid4()) + "." + ext
-        filepath = f"uploads/{filename}"
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        product = {
-            "id": str(uuid.uuid4()), "name": name, "price": price,
-            "original_price": original_price, "description": description,
-            "category": category,
-            "image": "https://dolphin-trends-3.onrender.com/uploads/" + filename,
-            "available": True
-        }
-        products_table.insert(product)
-        return {"success": True, "product": product}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-@app.put("/products/{product_id}")
-def update_product(product_id: str, data: ProductUpdate):
-    Product = Query()
-    existing = products_table.search(Product.id == product_id)
-    if not existing:
-        return {"error": "Product not found"}
-    update_data = {k: v for k, v in data.dict().items() if v is not None}
-    products_table.update(update_data, Product.id == product_id)
-    updated = products_table.search(Product.id == product_id)
-    return updated[0] if updated else {}
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: str):
@@ -345,22 +266,16 @@ def delete_product(product_id: str):
         image_url = existing[0].get("image", "")
         if "uploads/" in image_url:
             filename = image_url.split("uploads/")[-1]
-            filepath = "uploads/" + filename
+            filepath = f"uploads/{filename}"
             if os.path.exists(filepath):
                 os.remove(filepath)
-    except:
-        pass
+    except Exception as e:
+        print("Image delete error:", e)
+        
     products_table.remove(Product.id == product_id)
-    return {"success": True, "message": "Product deleted"}
+    return {"success": True, "message": "Product deleted successfully"}
 
-@app.put("/products/{product_id}/availability")
-def update_availability(product_id: str, available: bool):
-    Product = Query()
-    products_table.update({"available": available}, Product.id == product_id)
-    product = products_table.search(Product.id == product_id)
-    return product[0] if product else {}
-
-# ================= REVIEWS =================
+# ================= REVIEWS & BOOKINGS =================
 
 @app.get("/reviews/{product_id}")
 def get_reviews(product_id: str):
@@ -372,8 +287,6 @@ def add_review(review: dict):
     review["id"] = str(uuid.uuid4())
     reviews_table.insert(review)
     return review
-
-# ================= BOOKINGS =================
 
 @app.post("/bookings")
 def add_booking(booking: dict):
@@ -399,23 +312,3 @@ def reject_booking(booking_id: str):
     bookings_table.update({"status": "Rejected"}, Booking.id == booking_id)
     booking = bookings_table.search(Booking.id == booking_id)
     return booking[0] if booking else {}
-
-# ================= AI MODEL IMAGE =================
-
-@app.post("/generate-model-image")
-async def generate_model_image(file: UploadFile = File(...)):
-    try:
-        API_URL = "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-3.5-large/text-to-image"
-        headers = {"Authorization": "Bearer " + HF_TOKEN}
-        payload = {"inputs": "A beautiful young Indian woman wearing elegant fashion dress, studio white background, professional photography"}
-        response = requests.post(API_URL, headers=headers, json=payload)
-        if response.status_code == 200:
-            gen_filename = str(uuid.uuid4()) + ".png"
-            gen_filepath = "uploads/" + gen_filename
-            with open(gen_filepath, "wb") as f:
-                f.write(response.content)
-            return {"success": True, "image_url": "https://dolphin-trends-3.onrender.com/uploads/" + gen_filename}
-        else:
-            return {"success": False, "error": "HF API error " + str(response.status_code)}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
