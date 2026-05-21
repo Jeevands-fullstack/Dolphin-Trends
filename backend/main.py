@@ -74,6 +74,7 @@ def send_telegram(chat_id, text):
 
 def send_whatsapp(image_url, name):
     try:
+        # ವಾಟ್ಸಾಪ್ ಕ್ಯಾಪ್ಷನ್ - ಕೇವಲ ಬಟ್ಟೆಯ ಹೆಸರು ಮಾತ್ರ ಇರುತ್ತೆ
         caption = (
             f"🔥 *Hurry! Limited Stock!*\n\n"
             f"✨ *New Arrival: {name}*\n"
@@ -97,7 +98,7 @@ def send_whatsapp(image_url, name):
 
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends Backend - Zero Default Price Mode"}
+    return {"status": "Dolphin Trends Backend - Absolute Price Filter Active"}
 
 # ================= WEBHOOK SETUP =================
 
@@ -133,9 +134,10 @@ async def telegram_webhook(request: Request):
         if len(lines) > 0:
             category = lines[0].replace("#edit", "").strip()
         
-        # ಪ್ರೈಸ್ ಲೈನ್ ಪಾರ್ಸಿಂಗ್
+        # 🎯 1. ಪ್ರೈಸ್ ಹುಡುಕೋದು ಮತ್ತು ಪಾರ್ಸ್ ಮಾಡೋದು
         for line in lines:
             if 'price' in line.lower():
+                # ಇದು 'price:1100', 'Price : 1100', 'PRICE  :  1100' ಎಲ್ಲವನ್ನೂ ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ
                 match = re.search(r'price\s*:\s*(\d+)', line.lower())
                 if match:
                     try:
@@ -143,22 +145,25 @@ async def telegram_webhook(request: Request):
                     except Exception as e:
                         print("Price parse error:", e)
 
-        # ಹೆಸರು ತಗೋಳೋ ಲಾಜಿಕ್
-        if len(lines) > 1:
-            second_line = lines[1]
-            if 'price' not in second_line.lower():
-                name = second_line
-            else:
-                name = "Premium " + category
+        # 🎯 2. ಜೀವನ್, ವಾಟ್ಸಾಪ್‌ಗೆ ಹೆಸರು ಫಿಕ್ಸ್ ಮಾಡೋ ಪಕ್ಕಾ ಬ್ರ್ಯಾಂಡಿಂಗ್ ಲಾಜಿಕ್:
+        # ಮೊದಲನೇ ಲೈನ್ (Category) ಮತ್ತು 'price' ಇರೋ ಯಾವುದೇ ಲೈನ್ ಅನ್ನು ಹೆಸರಿಗೆ ತಗೋಬಾರದು.
+        valid_name_lines = []
+        for line in lines[1:]: # ಮೊದಲನೇ ಲೈನ್ ಬಿಟ್ಟು ಉಳಿದವೆಲ್ಲಾ
+            if 'price' not in line.lower():
+                valid_name_lines.append(line)
+        
+        # ಒಂದು ವೇಳೆ ನೀವು ಬಟ್ಟೆಯ ಹೆಸರು ಕೊಟ್ಟಿದ್ರೆ ಅದನ್ನೇ ತಗೊಳ್ಳುತ್ತೆ, ಇಲ್ಲಾಂದ್ರೆ 'Premium [Category Name]' ಅಂತ ತಗೊಳ್ಳುತ್ತೆ
+        if valid_name_lines:
+            name = " ".join(valid_name_lines)
         else:
             name = "Premium " + category
 
-        # 🎯 ಜೀವನ್, ಇಲ್ಲಿದ್ದ 499 ಡಿಫಾಲ್ಟ್ ವ್ಯಾಲ್ಯೂ ತೆಗೆದು '0' ಮಾಡಿದ್ದೀನಿ:
+        # ಒಂದು ವೇಳೆ ನೀವು ಬೋಟ್‌ನಲ್ಲಿ ಪ್ರೈಸ್ ಕಳಿಸದಿದ್ದರೆ, ಡಿಫಾಲ್ಟ್ ಲಿಸ್ಟ್‌ನಿಂದ ತಗೊಳ್ಳುತ್ತೆ
         if input_price is None:
             cat_lower = category.lower().strip()
-            input_price = DEFAULT_PRICES.get(cat_lower, 0) # 👈 ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಇಲ್ಲದಿದ್ರೆ 0 ಆಗುತ್ತೆ
+            input_price = DEFAULT_PRICES.get(cat_lower, 0)
 
-        # 40% ಮಾರ್ಕಪ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್
+        # 40% ಆಟೋಮ್ಯಾಟಿಕ್ ಮಾರ್ಕಪ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್ (ವೆಬ್‌ಸೈಟ್‌ಗೆ ಮಾತ್ರ)
         calculated_original = int(input_price * 1.40)
         
         price = str(input_price)
