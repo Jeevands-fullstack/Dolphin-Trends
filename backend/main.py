@@ -77,7 +77,7 @@ def send_telegram(chat_id, text):
 
 def send_whatsapp(image_url, name, price):
     try:
-        caption = f"🛍️ *Dolphin Trends*\n\n👕 *Product:* {name}\n💰 *Price:* {price}\n\n🌐 *Shop Now:*\n{FRONTEND_URL}"
+        caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ {name}\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": WHATSAPP_NUMBER,
