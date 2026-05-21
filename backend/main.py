@@ -148,13 +148,20 @@ async def telegram_webhook(request: Request):
         final_product_image_bytes = None
 
         # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
+        # ================== AI MODE (#direct ಇರಲ್ಲ) ==================
         if not is_direct:
             send_telegram(chat_id, "🤖 AI editing and generating model image (Unlimited Mode)...")
             try:
-                # 🚀 ✅ ಇಲ್ಲಿ ಅನ್‌ಲಿಮಿಟೆಡ್ Pollinations AI ಲಿಂಕ್ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್ (No API Key Required!)
-                ai_prompt = "beautiful young Indian woman wearing elegant traditional dress, studio white background, professional photography, high resolution"
+                # 🚀 ಜೀವನ್, ನಿಮ್ಮ ಕಂಡೀಷನ್‌ಗಳನ್ನೆಲ್ಲಾ ಸೇರಿಸಿ ನಾನು ರೆಡಿ ಮಾಡಿರೋ ಅಲ್ಟ್ರಾ-ಪರ್ಫೆಕ್ಟ್ ಪ್ರಾಂಪ್ಟ್ ಇಲ್ಲಿದೆ:
+                ai_prompt = (
+                    f"A single high-resolution product image showcasing a beautiful young Indian fashion model in TWO different stylish poses within the SAME frame side-by-side. "
+                    f"She must be visible from head to toe (full body shot). In both poses, she is wearing the EXACT same outfit from the original photo without any changes to its pattern, color, and design: {category}. "
+                    f"The background is a clean, professional studio white backdrop featuring a beautiful watercolor splash with a blue dolphin logo and the text 'DOLPHIN TRENDS' printed clearly in the center behind the model. "
+                    f"Sharp focus on the intricate fabric textures, professional fashion catalog photography."
+                )
+                
                 encoded_prompt = urllib.parse.quote(ai_prompt)
-                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=768&height=1024&nologo=true&model=flux"
+                pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=768&nologo=true&model=flux"
                 
                 img_response = requests.get(pollinations_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=60)
                 if img_response.status_code == 200 and len(img_response.content) > 1000:
