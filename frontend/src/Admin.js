@@ -42,7 +42,7 @@ function Admin({ onProductAdded }) {
     dataToSend.append('file', file);
 
     try {
-      const response = await fetch('https://dolphin-trends.onrender.com/products', {
+      const response = await fetch('https://dolphin-trends-3.onrender.com', {
         method: 'POST',
         body: dataToSend,
       });
