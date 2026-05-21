@@ -15,21 +15,32 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   const shopLocation = "https://maps.app.goo.gl/zQeV2fcEv2fY625Z7";
   const ownerPhone = "919353838835";
 
+  // ಪಾರ್ಸ್ ಮಾಡುವಾಗ ₹ ಸಿಂಬಲ್ ಜೊತೆಗೆ Rs. ಮತ್ತು ಖಾಲಿ ಸ್ಪೇಸ್ ಇದ್ದರೂ ಎರರ್ ಬರದಂತೆ ಸೇಫ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್
+  const cleanPrice = (priceStr) => {
+    if (!priceStr) return 0;
+    return parseInt(priceStr.replace(/[^\d]/g, '')) || 0;
+  };
+
   const discount = product.original_price
-    ? Math.round((1 - parseInt(product.price.replace('₹','')) / parseInt(product.original_price.replace('₹',''))) * 100)
+    ? Math.round((1 - cleanPrice(product.price) / cleanPrice(product.original_price)) * 100)
     : 0;
 
   const similarProducts = allProducts
     ? allProducts.filter(p => p.category === product.category && p.id !== product.id)
     : [];
 
+  // 1. ಇಲ್ಲಿ ಆ ಸ್ಲ್ಯಾಶ್ (/) ಪ್ರಾಬ್ಲಮ್ ಮತ್ತು ಕ್ಲೋಸಿಂಗ್ ಬ್ರಾಕೆಟ್ ಎರಡನ್ನೂ ಪರ್ಫೆಕ್ಟ್ ಆಗಿ ಫಿಕ್ಸ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್!
   useEffect(() => {
     fetch('https://dolphin-trends-3.onrender.com/reviews/' + product.id)
-     .then(res => res.json())
-.then(data => {
-   setReviews(Array.isArray(data) ? data : [])
-})
-.catch(err => console.error(err));
+      .then(res => res.json())
+      .then(data => {
+        setReviews(Array.isArray(data) ? data : []);
+      })
+      .catch(err => {
+        console.error("Reviews fetch error:", err);
+        setReviews([]); // ಎರರ್ ಬಂದ್ರೂ ಬ್ಲಾಕ್ ಸ್ಕ್ರೀನ್ ಬರದಂತೆ ತಡೆಯುತ್ತೆ
+      });
+  }, [product.id]); 
 
   const handleBuyNow = () => {
     if (!selectedSize) { alert('⚠️ Please select a size!'); return; }
@@ -46,15 +57,23 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
 
   const handleAddReview = async () => {
     if (!reviewName || !reviewText) { alert('⚠️ Name ಮತ್ತು Review ಹಾಕಿ!'); return; }
-    const review = { product_id: product.id, name: reviewName, text: reviewText, rating: reviewRating };
-    const res = await fetch('https://dolphin-trends-3.onrender.com/reviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(review)
-    });
-    const data = await res.json();
-    setReviews([...reviews, data]);
-    setReviewName(''); setReviewText(''); setReviewRating(5);
+    try {
+      const review = { product_id: product.id, name: reviewName, text: reviewText, rating: reviewRating };
+      const res = await fetch('https://dolphin-trends-3.onrender.com/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(review)
+      });
+      const data = await res.json();
+      
+      // ಡೇಟಾ ಸರಿಯಾಗಿ ಬಂದರೆ ಮಾತ್ರ ಲಿಸ್ಟ್‌ಗೆ ಆಡ್ ಮಾಡುತ್ತೆ ಜೀವನ್
+      if (data && !data.error) {
+        setReviews(prev => [...prev, data]);
+      }
+      setReviewName(''); setReviewText(''); setReviewRating(5);
+    } catch (err) {
+      console.error("Add review error:", err);
+    }
   };
 
   return (
@@ -64,7 +83,6 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
 
         {/* Top Section */}
         <div className="pp-top">
-
           {/* Left - Image */}
           <div className="pp-img-box">
             <img src={product.image} alt={product.name} />
@@ -150,11 +168,11 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
           {reviews.length === 0 ? (
             <p style={{color:'#7a85a0', textAlign:'center', padding:'20px'}}>😊 ಇನ್ನೂ reviews ಇಲ್ಲ!</p>
           ) : (
-            reviews.map(review => (
-              <div key={review.id} style={{background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'15px', marginBottom:'12px'}}>
+            reviews.map((review, idx) => (
+              <div key={review.id || idx} style={{background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'15px', marginBottom:'12px'}}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
                   <strong style={{color:'#f0f4ff'}}>{review.name}</strong>
-                  <span>{'⭐'.repeat(review.rating)}</span>
+                  <span>{'⭐'.repeat(review.rating || 5)}</span>
                 </div>
                 <p style={{color:'#7a85a0', fontSize:'0.9rem'}}>{review.text}</p>
               </div>
