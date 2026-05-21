@@ -51,17 +51,17 @@ BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 # 🔥 ಜೀವನ್, ನಿಮ್ಮ ಬಿಸಿನೆಸ್‌ನ ಡಿಫಾಲ್ಟ್ ಪ್ರೈಸ್ ಲಿಸ್ಟ್ ಇಲ್ಲಿದೆ. 
 # ವೆಬ್‌ಸೈಟ್ ಬಟನ್‌ನ ಸ್ಪೆಲ್ಲಿಂಗ್ ಹೇಗಿದೆಯೋ ಹಾಗೇ ಕೀಗಳನ್ನು ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ. ನಿಮಗೆ ಬೇಕಾದ್ರೆ ಇಲ್ಲಿ ಪ್ರೈಸ್ ಚೇಂಜ್ ಮಾಡ್ಕೋಬಹುದು.
 DEFAULT_PRICES = {
-    "Leggings": 200,
-    "Kurtha top": 200,
-    "Umbrella sets": 1000,
-    "Kurta sets": 1200,
-    "Jeans": 550,
-    "Jeans Tops": 300,
-    "Frocks" : 850,
-    "Tops 250" : 250,
-    "Tops 350" : 350,
-    "Gym Pants" 300,
-    "Patiala Pants" : 200
+    "leggings": 200,
+    "kurtha top": 200,
+    "umbrella sets": 1000,
+    "kurta sets": 1200,
+    "jeans": 550,
+    "jeans tops": 300,
+    "frocks": 850,
+    "250 tops": 250,  # 👈 ನಿಮ್ಮ ವೆಬ್‌ಸೈಟ್ ಮ್ಯಾಚಿಂಗ್ ಪ್ರಕಾರ ಫಿಕ್ಸ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್!
+    "350 tops": 350,  # 👈 ಇಲ್ಲೂ ಅಷ್ಟೇ, ನಂಬರ್ ಮೊದಲು ಬಂದು ಆಮೇಲೆ ಸ್ಮಾಲ್ ಲೆಟರ್ಸ್
+    "gym pants": 300,
+    "patiala pants": 200
 }
 
 # ================= MODELS =================
