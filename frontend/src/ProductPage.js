@@ -25,10 +25,11 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
 
   useEffect(() => {
     fetch('https://dolphin-trends-3.onrender.com/reviews' + product.id)
-      .then(res => res.json())
-      .then(data => setReviews(data))
-      .catch(err => console.error(err));
-  }, [product.id]);
+     .then(res => res.json())
+.then(data => {
+   setReviews(Array.isArray(data) ? data : [])
+})
+.catch(err => console.error(err));
 
   const handleBuyNow = () => {
     if (!selectedSize) { alert('⚠️ Please select a size!'); return; }
