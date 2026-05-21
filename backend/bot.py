@@ -26,8 +26,8 @@ except IOError:
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-UPLOAD_URL = "https://dolphin-trends.onrender.com/upload-from-bot"
-FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
+UPLOAD_URL = "https://dolphin-trends-3.onrender.com/upload-from-bot"
+FRONTEND_URL = "https://dolphin-frontend-mvke.onrender.com"
 
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
