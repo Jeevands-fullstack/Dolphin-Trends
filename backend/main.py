@@ -77,7 +77,6 @@ def send_telegram(chat_id, text):
 
 def send_whatsapp(image_url, name):
     try:
-        # 🔥 ಇಲ್ಲಿ {name} ಬದಲಿಗೆ "Dolphin Collections" ಅಂತ ಪರ್ಮನೆಂಟ್ ಆಗಿ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್!
         caption = f"🔥 *Hurry! Limited Stock!*\n\n✨ *Dolphin Collections*\n\n💃 *Grab yours before it's gone!*\n\n👇 *Shop Now:*\n{FRONTEND_URL}"
         
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
@@ -130,8 +129,10 @@ async def telegram_webhook(request: Request):
             send_telegram(chat_id,
                 "✅ Dolphin Trends Bot Ready!\n\n"
                 "📸 Product photo kalsidre auto upload aagthade\n\n"
-                "⚡ Direct mode: photo + caption alli #direct bari\n"
-                "Example: Blue Kurti #direct"
+                "⚡ Direct Mode New Format (AI Description):\n"
+                "#direct Kurthas\n"
+                "price: 1200\n"
+                "original: 1600"
             )
             return {"ok": True}
 
@@ -167,18 +168,43 @@ async def telegram_webhook(request: Request):
         category = "Sets"
         description = "Premium fashion collection from Dolphin Trends"
 
-        # Direct mode
+        # Direct mode (ಬರೀ ಕ್ಯಾಟಗರಿ ಮತ್ತು ಪ್ರೈಸ್ ಕಳಿಸಿದಾಗ ಕೆಲಸ ಮಾಡೋ ಲಾಜಿಕ್ ಜೀವನ್)
         if is_direct:
-            send_telegram(chat_id, "⚡ Direct upload mode!")
-            clean_caption = caption.replace("#direct","").strip()
-            for part in ["Price:", "Original:", "price:", "original:"]:
-                clean_caption = clean_caption.split(part)[0].strip()
-            if clean_caption:
-                name = clean_caption
+            send_telegram(chat_id, "⚡ Direct upload mode active...")
+            lines = [line.strip() for line in caption.split('\n') if line.strip()]
+            
+            # 1. ಕ್ಯಾಟಗರಿ ಸೆಟ್ ಮಾಡೋದು
+            if len(lines) > 0:
+                category_match = lines[0].replace("#direct", "").strip()
+                if category_match:
+                    category = category_match
+            
+            # 2. ಹೆಸರು ಸೆಟ್ ಮಾಡೋದು (ಒಂದು ವೇಳೆ 2ನೇ ಲೈನ್‌ನಲ್ಲಿ ಪ್ರೈಸ್ ಇಲ್ಲದಿದ್ರೆ ಅದನ್ನೇ ಹೆಸರು ಮಾಡ್ಕೋತೀವಿ)
+            if len(lines) > 1 and not lines[1].lower().startswith(('price:', 'original:')):
+                name = lines[1]
+            else:
+                name = "Premium " + category
+                
+            # 🤖 3. ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಬರೆಯೋಕೆ ಬೋಟ್ ತಾನಾಗಿಯೇ Gemini AI ಕಾಲ್ ಮಾಡುತ್ತೆ ಜೀವನ್!
+            send_telegram(chat_id, "✍️ AI is writing product description automatically...")
+            try:
+                from google import genai as genai2
+                client = genai2.Client(api_key=GEMINI_API_KEY)
+                from PIL import Image as PILImage
+                image_pil = PILImage.open(io.BytesIO(image_bytes))
+                
+                # AI ಗೆ ಆಜ್ಞೆ: ಫೋಟೋ ನೋಡಿ ಒಂದೇ ಒಂದು ಲೈನ್‌ನಲ್ಲಿ ಸಖತ್ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಬರಿ ಅಂತ
+                prompt = f"Analyze this clothing item for category '{category}'. Write a short, attractive product description in English (maximum 15-20 words) for an e-commerce website. Respond ONLY with the description text."
+                response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, image_pil])
+                if response.text:
+                    description = response.text.strip()
+            except Exception as ai_err:
+                print("Direct Mode AI Error:", ai_err)
+                description = f"High quality premium {category} from Dolphin Trends collection."
 
-        # AI mode
+        # Full AI mode (ಫೋಟೋ ಮಾತ್ರ ಕಳಿಸಿದಾಗ ಹಳೇ ಲಾಜಿಕ್ ವರ್ಕ್ ಆಗುತ್ತೆ ಜೀವನ್)
         else:
-            send_telegram(chat_id, "🤖 AI analyzing image...")
+            send_telegram(chat_id, "🤖 AI analyzing image completely...")
             try:
                 from google import genai as genai2
                 client = genai2.Client(api_key=GEMINI_API_KEY)
@@ -214,26 +240,26 @@ async def telegram_webhook(request: Request):
         with open(filepath, "wb") as f:
             f.write(final_image)
 
-        # ✅ ರಿಯಾಕ್ಟ್ ಬ್ಲಾಕ್ ಸ್ಕ್ರೀನ್ ತಡೆಯಲು "Rs." ಫಾರ್ಮ್ಯಾಟ್‌ಗೆ ಸೆಟ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್
+        # Product Object
         product = {
             "id": str(uuid.uuid4()),
             "name": name,
             "price": "Rs." + price,
             "original_price": "Rs." + original_price,
-            "description": description,
+            "description": description,  # ✅ AI ಬರೆದ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ ಇಲ್ಲಿ ಆಟೋ ಸೇವ್ ಆಗುತ್ತೆ!
             "category": category,
             "image": f"{BACKEND_URL}/uploads/{filename}",
             "available": True
         }
         products_table.insert(product)
 
-        # 🚨 ಪ್ರೈಸ್ ಆರ್ಗ್ಯುಮೆಂಟ್ ತೆಗೆದು ಕೇವಲ ಇಮೇಜ್ ಮತ್ತು ನೇಮ್ ಮಾತ್ರ ಕಳುಹಿಸ್ತಾ ಇದ್ದೀವಿ ಜೀವನ್
+        # Send WhatsApp
         wa_success = send_whatsapp(product["image"], name)
 
         if wa_success:
             send_telegram(chat_id,
                 f"✅ Upload successful!\n📲 WhatsApp sent!\n\n"
-                f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n\n🌐 {FRONTEND_URL}"
+                f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n📝 {description}\n\n🌐 {FRONTEND_URL}"
             )
         else:
             send_telegram(chat_id,
