@@ -1,18 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from tinydb import TinyDB, Query
+from pymongo import MongoClient
+from pydantic import BaseModel
 import os
-import shutil
 import uuid
 import requests
 import json
 import re
-import io
-from PIL import Image
 
-# ================= FASTAPI =================
-
+# ================= FASTAPI SETUP =================
 app = FastAPI()
 
 app.add_middleware(
@@ -23,58 +19,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= DATABASE =================
+# ================= MONGODB ATLAS SETUP =================
+MONGO_URL = os.environ.get("MONGO_URL", "")
 
-db = TinyDB("database.json")
-products_table = db.table("products")
-
-# ================= UPLOAD FOLDER =================
-
-os.makedirs("uploads", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+if MONGO_URL:
+    client = MongoClient(MONGO_URL)
+    db = client["dolphin_trends_db"]
+    products_table = db["products"]
+    print("✅ Connected to MongoDB Atlas Successfully!")
+else:
+    from tinydb import TinyDB
+    local_db = TinyDB("database.json")
+    products_table = local_db.table("products")
+    print("⚠️ Using local TinyDB Backup.")
 
 # ================= ENV VARIABLES =================
-
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
-BACKEND_URL = "https://dolphin-trends-3.onrender.com"
-
-# ================= DEFAULT PRICES =================
 
 DEFAULT_PRICES = {
-    "leggings": 200,
-    "kurtha top": 200,
-    "umbrella sets": 1000,
-    "kurta sets": 1200,
-    "jeans": 550,
-    "jeans tops": 300,
-    "frocks": 850,
-    "250 tops": 250,
-    "350 tops": 350,
-    "gym pants": 300,
-    "patiala pants": 200
+    "leggings": 200, "kurtha top": 200, "umbrella sets": 1000,
+    "kurta sets": 1200, "jeans": 550, "jeans tops": 300,
+    "frocks": 850, "250 tops": 250, "350 tops": 350,
+    "gym pants": 300, "patiala pants": 200
 }
 
 # ================= HELPERS =================
-
 def send_telegram(chat_id, text):
-    requests.post(
-        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-        json={"chat_id": chat_id, "text": text}
-    )
+    requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage", json={"chat_id": chat_id, "text": text})
 
 def send_whatsapp(image_url, display_name):
     try:
-        # 🎯 ಜೀವನ್, ವಾಟ್ಸಾಪ್‌ಗೆ ಕಳುಹಿಸುವ ಹೆಸರಿನಿಂದ ನಂಬರ್‌ಗಳನ್ನು (250, 350, 1200) ಕಂಪ್ಲೀಟ್ ಆಗಿ ತೆಗೆದುಹಾಕುವ ಲಾಜಿಕ್:
         clean_name = re.sub(r'\d+', '', display_name).replace('Rs.', '').strip()
-        # ಡಬಲ್ ಸ್ಪೇಸ್ ಇದ್ದರೆ ಸಿಂಗಲ್ ಸ್ಪೇಸ್ ಮಾಡೋದು
-        clean_name = " ".join(clean_name.split())
-        
-        # ಮೊದಲನೇ ಅಕ್ಷರ ಕ್ಯಾಪಿಟಲ್ ಮಾಡೋದು
-        clean_name = clean_name.title()
+        clean_name = " ".join(clean_name.split()).title()
 
         caption = (
             f"🔥 *Hurry! Limited Stock!*\n\n"
@@ -83,130 +63,170 @@ def send_whatsapp(image_url, display_name):
             f"👇 *Check Price & Shop Now:*\n{FRONTEND_URL}"
         )
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
-        payload = {
-            "chatId": WHATSAPP_NUMBER,
-            "urlFile": image_url,
-            "fileName": "product.jpg",
-            "caption": caption
-        }
+        payload = {"chatId": WHATSAPP_NUMBER, "urlFile": image_url, "fileName": "product.jpg", "caption": caption}
         requests.post(url, json=payload, timeout=60)
         return True
     except Exception as e:
         print("WhatsApp Error:", str(e))
         return False
 
-# ================= HEALTH =================
-
+# ================= HEALTH CHECK =================
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends Backend - Perfect Number Filter Active"}
+    status = "Active" if MONGO_URL else "Running on Backup"
+    return {"status": f"Dolphin Trends API - MongoDB Cloud is {status}"}
 
-# ================= WEBHOOK SETUP =================
-
-@app.on_event("startup")
-async def startup():
-    webhook_url = f"{BACKEND_URL}/webhook"
-    requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook")
-    requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/setWebhook", json={"url": webhook_url})
-
-# ================= TELEGRAM WEBHOOK =================
-
+# ================= TELEGRAM WEBHOOK (WITH EDIT & MONGO LOGIC) =================
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
         update = await request.json()
         message = update.get("message", {})
         chat_id = message.get("chat", {}).get("id")
-        if not chat_id or "photo" not in message:
+        if not chat_id:
             return {"ok": True}
 
-        send_telegram(chat_id, "📥 Photo received...")
         caption = message.get("caption", "").strip()
+        is_edit = "#edit" in caption.lower()
 
-        # ಲೈನ್ ಬೈ ಲೈನ್ ಕ್ಲೀನ್ ಪಾರ್ಸಿಂಗ್
+        # ಫೋಟೋ ಇಲ್ಲದೆ ಬರೀ ಟೆಕ್ಸ್ಟ್ ಕಳಿಸಿದ್ರೂ ಎಡಿಟ್ ಆಗೋಕೆ ಹೆಲ್ಪ್ ಮಾಡುತ್ತೆ (ಬರೀ ಪ್ರೈಸ್ ಚೇಂಜ್ ಮಾಡೋಕೆ)
+        if "photo" not in message and not is_edit:
+            return {"ok": True}
+
+        send_telegram(chat_id, "📥 Processing your request...")
+
+        # ಮೆಸೇಜ್ ಲೈನ್‌ಗಳನ್ನು ಕ್ಲೀನ್ ಮಾಡಿಕೊಳ್ಳುವುದು
         lines = [line.strip() for line in caption.split('\n') if line.strip()]
-        
-        category = "Kurta Sets"  
-        product_name = ""
+        clean_lines = [l for l in lines if "#edit" not in l.lower()]
+
+        if not clean_lines and not is_edit:
+            send_telegram(chat_id, "❌ ದಯವಿಟ್ಟು ಡೀಟೇಲ್ಸ್ ಹಾಕಿ!")
+            return {"ok": True}
+
+        # 🔍 ಕ್ಯಾಪ್ಷನ್‌ನಿಂದ ಪ್ರಾಡಕ್ಟ್ ಐಡಿ ಹುಡುಕೋದು
+        target_product_id = None
+        for line in clean_lines:
+            if "id" in line.lower():
+                match = re.search(r'(?:id|product id)\s*:\s*([\w-]+)', line.lower())
+                if match:
+                    target_product_id = match.group(1).strip()
+
+        # ಐಡಿ ಸಿಕ್ಕಿದ್ರೆ ಆ ಲೈನ್ ಅನ್ನು ಲಿಸ್ಟ್‌ನಿಂದ ಹಟಾಯಿಸುವುದು
+        clean_lines = [l for l in clean_lines if "id" not in l.lower()]
+
+        category = clean_lines[0].strip() if len(clean_lines) > 0 else "Kurta Sets"
         input_price = None
 
-        if len(lines) > 0:
-            category = lines[0].strip()
-        
-        for line in lines:
+        for line in clean_lines:
             if 'price' in line.lower():
                 match = re.search(r'price\s*:\s*(\d+)', line.lower())
-                if match:
-                    input_price = int(match.group(1))
+                if match: input_price = int(match.group(1))
 
-        # ಪ್ರೈಸ್ ಲೈನ್ ಅಲ್ಲದ ಬೇರೆ ಹೆಸರುಗಳಿದ್ದರೆ ತಗೊಳ್ಳುತ್ತೆ
-        name_parts = []
-        for line in lines[1:]:
-            if 'price' not in line.lower():
-                name_parts.append(line)
-        
-        if name_parts:
-            product_name = " ".join(name_parts)
-        else:
-            product_name = category
+        name_parts = [line for line in clean_lines[1:] if 'price' not in line.lower()]
+        product_name = " ".join(name_parts) if name_parts else category
 
-        # ಪ್ರೈಸ್ ಇಲ್ಲದಿದ್ದರೆ ಡಿಫಾಲ್ಟ್ ಚೆಕ್
         if input_price is None:
-            cat_lower = category.lower().strip()
-            input_price = DEFAULT_PRICES.get(cat_lower, 0)
+            input_price = DEFAULT_PRICES.get(category.lower().strip(), 0)
 
         calculated_original = int(input_price * 1.40)
 
-        # Download original image from Telegram
-        file_id = message["photo"][-1]["file_id"]
-        file_info = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile", params={"file_id": file_id}).json()
-        file_path = file_info["result"]["file_path"]
-        file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
-        downloaded_photo = requests.get(file_url).content
+        # ಇಮೇಜ್ ಪ್ರೊಸೆಸಿಂಗ್ (ಫೋಟೋ ಕಳುಹಿಸಿದ್ದರೆ ಮಾತ್ರ)
+        final_image_url = None
+        if "photo" in message:
+            file_id = message["photo"][-1]["file_id"]
+            file_info = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile", params={"file_id": file_id}).json()
+            file_path = file_info["result"]["file_path"]
+            final_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
 
-        # SAVE IMAGE
-        filename = str(uuid.uuid4()) + ".jpg"
-        filepath = f"uploads/{filename}"
-        
-        img_file = io.BytesIO(downloaded_photo)
-        image_pil = Image.open(img_file)
-        if image_pil.mode in ("RGBA", "P"):
-            image_pil = image_pil.convert("RGB")
-        image_pil.save(filepath, "JPEG", quality=85, optimize=True)
+        # 🎯 1. ಎಡಿಟಿಂಗ್ ಲಾಜಿಕ್ (#edit ಇದ್ದಾಗ)
+        if is_edit:
+            if not target_product_id:
+                send_telegram(chat_id, "❌ ಎಡಿಟ್ ಮಾಡಲು ಪ್ರಾಡಕ್ಟ್ ಐಡಿ ಕಡ್ಡಾಯ! (Example -> ID: ನಿಮ್ಮ-ಐಡಿ)")
+                return {"ok": True}
 
-        final_image_url = f"{BACKEND_URL}/uploads/{filename}"
+            # ಮೂಂಗೋಡಿಬಿಯಲ್ಲಿ ಹಳೇ ಪ್ರಾಡಕ್ಟ್ ಹುಡುಕೋದು
+            if MONGO_URL:
+                existing_product = products_table.find_one({"id": target_product_id})
+            else:
+                from tinydb import Query
+                Product = Query()
+                res = products_table.search(Product.id == target_product_id)
+                existing_product = res[0] if res else None
 
-        # Database insert (ಕ್ಯಾಟಗರಿ ಹೆಸರು ಬಾಕ್ಸ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗೋ ತರಹ '250 tops' ಅಂತಾನೇ ಇರುತ್ತೆ)
-        product = {
-            "id": str(uuid.uuid4()),
-            "name": product_name,
-            "price": "Rs." + str(input_price),
-            "original_price": "Rs." + str(calculated_original),
-            "description": f"Premium {product_name} from Dolphin Trends",
-            "category": category,  
-            "image": final_image_url,
-            "available": True
-        }
-        products_table.insert(product)
+            if existing_product:
+                # ಹೊಸ ಫೋಟೋ ಹಾಕದಿದ್ದರೆ ಹಳೇ ಫೋಟೋನೇ ಇರಲಿ
+                img_url = final_image_url if final_image_url else existing_product.get("image")
+                
+                updated_data = {
+                    "name": product_name,
+                    "price": "Rs." + str(input_price),
+                    "original_price": "Rs." + str(calculated_original),
+                    "description": f"Premium {product_name} from Dolphin Trends",
+                    "category": category,
+                    "image": img_url,
+                    "available": True
+                }
 
-        # WhatsApp share (ಇಲ್ಲಿ ಇಂಟೆಲಿಜೆಂಟ್ ಆಗಿ ನಂಬರ್ ಡಿಲೀಟ್ ಆಗಿ ಹೋಗುತ್ತೆ)
-        send_whatsapp(final_image_url, product_name)
+                if MONGO_URL:
+                    products_table.update_one({"id": target_product_id}, {"$set": updated_data})
+                else:
+                    from tinydb import Query
+                    Product = Query()
+                    products_table.update(updated_data, Product.id == target_product_id)
 
-        send_telegram(chat_id, f"✅ Done!\n📂 Category: {category}\n✨ Sent to WhatsApp (Price Hidden!)\n🌐 {FRONTEND_URL}")
-        return {"ok": True}
+                # 🔥 ನೋಡಿ ಜೀವನ್, ಇಲ್ಲಿ ಬರೀ ಟೆಲಿಗ್ರಾಮ್ ಮೆಸೇಜ್ ಮಾತ್ರ ಹೋಗುತ್ತೆ, ವಾಟ್ಸಾಪ್‌ಗೆ ಮೆಸೇಜ್ ಹೋಗಲ್ಲ!
+                send_telegram(chat_id, f"✅ Product ID: {target_product_id} Edited in MongoDB!\n🌐 {FRONTEND_URL}")
+                return {"ok": True}
+            else:
+                send_telegram(chat_id, "❌ ಮಂಗೋಡಿಬಿಯಲ್ಲಿ ಈ ಐಡಿಯ ಪ್ರಾಡಕ್ಟ್ ಸಿಗುತ್ತಿಲ್ಲ!")
+                return {"ok": True}
+
+        # 🎯 2. ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಅಪ್‌ಲೋಡ್ ಲಾಜಿಕ್ (ಯಾವುದೇ ಟ್ಯಾಗ್ ಇಲ್ಲದಿದ್ದಾಗ)
+        else:
+            if not final_image_url:
+                send_telegram(chat_id, "❌ ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಫೋಟೋ ಕಡ್ಡಾಯ!")
+                return {"ok": True}
+
+            new_id = str(uuid.uuid4())
+            product = {
+                "id": new_id,
+                "name": product_name,
+                "price": "Rs." + str(input_price),
+                "original_price": "Rs." + str(calculated_original),
+                "description": f"Premium {product_name} from Dolphin Trends",
+                "category": category,
+                "image": final_image_url,
+                "available": True
+            }
+            
+            if MONGO_URL:
+                products_table.insert_one(product)
+            else:
+                products_table.insert(product)
+
+            # 🔔 ಹೊಸ ಪ್ರಾಡಕ್ಟ್‌ಗೆ ಮಾತ್ರ ವಾಟ್ಸಾಪ್ ಅಲರ್ಟ್ ಹೋಗುತ್ತೆ!
+            send_whatsapp(final_image_url, product_name)
+            send_telegram(chat_id, f"✅ Live on MongoDB Cloud!\n🆔 ID: {new_id}\n🌐 {FRONTEND_URL}")
+            return {"ok": True}
         
     except Exception as e:
-        print("Error:", str(e))
+        print("Webhook Error:", str(e))
         return {"ok": True}
 
 # ================= PRODUCTS ENDPOINTS =================
-
 @app.get("/products")
 def get_products():
+    if MONGO_URL:
+        all_products = list(products_table.find({}, {"_id": 0}))
+        return all_products
     return products_table.all()
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: str):
-    Product = Query()
-    products_table.remove(Product.id == product_id)
+    if MONGO_URL:
+        products_table.delete_one({"id": product_id})
+    else:
+        from tinydb import Query
+        Product = Query()
+        products_table.remove(Product.id == product_id)
     return {"success": True}
