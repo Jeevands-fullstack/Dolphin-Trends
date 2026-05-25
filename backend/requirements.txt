@@ -1,12 +1,11 @@
 fastapi
 uvicorn
 python-multipart
+pymongo[srv]
+dnspython
+certifi
 tinydb
-pillow
 requests
-pyTelegramBotAPI
-google-genai
 google-generativeai
-flask
-httpx
-pymongo
+pillow
+python-dotenv
