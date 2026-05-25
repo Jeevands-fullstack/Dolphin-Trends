@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
-from pydantic import BaseModel
 import os
 import uuid
 import requests
@@ -76,7 +75,7 @@ def home():
     status = "Active" if MONGO_URL else "Running on Backup"
     return {"status": f"Dolphin Trends API - MongoDB Cloud is {status}"}
 
-# ================= TELEGRAM WEBHOOK (WITH EDIT & MONGO LOGIC) =================
+# ================= TELEGRAM WEBHOOK (EDIT & NEW UPLOAD) =================
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
@@ -89,7 +88,7 @@ async def telegram_webhook(request: Request):
         caption = message.get("caption", "").strip()
         is_edit = "#edit" in caption.lower()
 
-        # ಫೋಟೋ ಇಲ್ಲದೆ ಬರೀ ಟೆಕ್ಸ್ಟ್ ಕಳಿಸಿದ್ರೂ ಎಡಿಟ್ ಆಗೋಕೆ ಹೆಲ್ಪ್ ಮಾಡುತ್ತೆ (ಬರೀ ಪ್ರೈಸ್ ಚೇಂಜ್ ಮಾಡೋಕೆ)
+        # ಫೋಟೋ ಇಲ್ಲದೆ ಬರೀ ಟೆಕ್ಸ್ಟ್ ಕಳಿಸಿದ್ರೂ ಎಡಿಟ್ ಆಗೋಕೆ ಹೆಲ್ಪ್ ಮಾಡುತ್ತೆ
         if "photo" not in message and not is_edit:
             return {"ok": True}
 
@@ -98,10 +97,6 @@ async def telegram_webhook(request: Request):
         # ಮೆಸೇಜ್ ಲೈನ್‌ಗಳನ್ನು ಕ್ಲೀನ್ ಮಾಡಿಕೊಳ್ಳುವುದು
         lines = [line.strip() for line in caption.split('\n') if line.strip()]
         clean_lines = [l for l in lines if "#edit" not in l.lower()]
-
-        if not clean_lines and not is_edit:
-            send_telegram(chat_id, "❌ ದಯವಿಟ್ಟು ಡೀಟೇಲ್ಸ್ ಹಾಕಿ!")
-            return {"ok": True}
 
         # 🔍 ಕ್ಯಾಪ್ಷನ್‌ನಿಂದ ಪ್ರಾಡಕ್ಟ್ ಐಡಿ ಹುಡುಕೋದು
         target_product_id = None
@@ -114,23 +109,28 @@ async def telegram_webhook(request: Request):
         # ಐಡಿ ಸಿಕ್ಕಿದ್ರೆ ಆ ಲೈನ್ ಅನ್ನು ಲಿಸ್ಟ್‌ನಿಂದ ಹಟಾಯಿಸುವುದು
         clean_lines = [l for l in clean_lines if "id" not in l.lower()]
 
-        category = clean_lines[0].strip() if len(clean_lines) > 0 else "Kurta Sets"
+        # ಡಿಫಾಲ್ಟ್ ವ್ಯಾಲ್ಯೂಸ್ (ಬರೀ ಫೋಟೋ ಕಳಿಸಿದ್ರೆ ಇವು ಅಪ್ಲೈ ಆಗುತ್ತೆ)
+        category = "Kurta Sets"
         input_price = None
+        product_name = "Kurta Sets"
 
-        for line in clean_lines:
-            if 'price' in line.lower():
-                match = re.search(r'price\s*:\s*(\d+)', line.lower())
-                if match: input_price = int(match.group(1))
+        if clean_lines:
+            category = clean_lines[0].strip()
+            
+            for line in clean_lines:
+                if 'price' in line.lower():
+                    match = re.search(r'price\s*:\s*(\d+)', line.lower())
+                    if match: input_price = int(match.group(1))
 
-        name_parts = [line for line in clean_lines[1:] if 'price' not in line.lower()]
-        product_name = " ".join(name_parts) if name_parts else category
+            name_parts = [line for line in clean_lines[1:] if 'price' not in line.lower()]
+            product_name = " ".join(name_parts) if name_parts else category
 
         if input_price is None:
-            input_price = DEFAULT_PRICES.get(category.lower().strip(), 0)
+            input_price = DEFAULT_PRICES.get(category.lower().strip(), 1200)
 
         calculated_original = int(input_price * 1.40)
 
-        # ಇಮೇಜ್ ಪ್ರೊಸೆಸಿಂಗ್ (ಫೋಟೋ ಕಳುಹಿಸಿದ್ದರೆ ಮಾತ್ರ)
+        # ಇಮೇಜ್ ಲಿಂಕ್ ತಗೊಳೋದು
         final_image_url = None
         if "photo" in message:
             file_id = message["photo"][-1]["file_id"]
@@ -144,7 +144,6 @@ async def telegram_webhook(request: Request):
                 send_telegram(chat_id, "❌ ಎಡಿಟ್ ಮಾಡಲು ಪ್ರಾಡಕ್ಟ್ ಐಡಿ ಕಡ್ಡಾಯ! (Example -> ID: ನಿಮ್ಮ-ಐಡಿ)")
                 return {"ok": True}
 
-            # ಮೂಂಗೋಡಿಬಿಯಲ್ಲಿ ಹಳೇ ಪ್ರಾಡಕ್ಟ್ ಹುಡುಕೋದು
             if MONGO_URL:
                 existing_product = products_table.find_one({"id": target_product_id})
             else:
@@ -174,14 +173,14 @@ async def telegram_webhook(request: Request):
                     Product = Query()
                     products_table.update(updated_data, Product.id == target_product_id)
 
-                # 🔥 ನೋಡಿ ಜೀವನ್, ಇಲ್ಲಿ ಬರೀ ಟೆಲಿಗ್ರಾಮ್ ಮೆಸೇಜ್ ಮಾತ್ರ ಹೋಗುತ್ತೆ, ವಾಟ್ಸಾಪ್‌ಗೆ ಮೆಸೇಜ್ ಹೋಗಲ್ಲ!
-                send_telegram(chat_id, f"✅ Product ID: {target_product_id} Edited in MongoDB!\n🌐 {FRONTEND_URL}")
+                # 🔥 ಎಡಿಟ್ ಆದಾಗ ಬರೀ ಟೆಲಿಗ್ರಾಮ್ ಅಲರ್ಟ್ ಬರುತ್ತೆ, ವಾಟ್ಸಾಪ್‌ಗೆ ಹೋಗಲ್ಲ!
+                send_telegram(chat_id, f"✅ Product ID: {target_product_id} Edited in MongoDB Successfully!\n📂 Category: {category}\n🌐 {FRONTEND_URL}")
                 return {"ok": True}
             else:
                 send_telegram(chat_id, "❌ ಮಂಗೋಡಿಬಿಯಲ್ಲಿ ಈ ಐಡಿಯ ಪ್ರಾಡಕ್ಟ್ ಸಿಗುತ್ತಿಲ್ಲ!")
                 return {"ok": True}
 
-        # 🎯 2. ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಅಪ್‌ಲೋಡ್ ಲಾಜಿಕ್ (ಯಾವುದೇ ಟ್ಯಾಗ್ ಇಲ್ಲದಿದ್ದಾಗ)
+        # 🎯 2. ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಅಪ್‌ಲೋಡ್ ಲಾಜಿಕ್
         else:
             if not final_image_url:
                 send_telegram(chat_id, "❌ ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಫೋಟೋ ಕಡ್ಡಾಯ!")
@@ -204,9 +203,9 @@ async def telegram_webhook(request: Request):
             else:
                 products_table.insert(product)
 
-            # 🔔 ಹೊಸ ಪ್ರಾಡಕ್ಟ್‌ಗೆ ಮಾತ್ರ ವಾಟ್ಸಾಪ್ ಅಲರ್ಟ್ ಹೋಗುತ್ತೆ!
+            # ಹೊಸದಕ್ಕೆ ಮಾತ್ರ ವಾಟ್ಸಾಪ್ ಹೋಗುತ್ತೆ
             send_whatsapp(final_image_url, product_name)
-            send_telegram(chat_id, f"✅ Live on MongoDB Cloud!\n🆔 ID: {new_id}\n🌐 {FRONTEND_URL}")
+            send_telegram(chat_id, f"✅ Live on MongoDB Cloud!\n📂 Category: {category}\n🆔 ID: {new_id}\n🌐 {FRONTEND_URL}")
             return {"ok": True}
         
     except Exception as e:
@@ -217,8 +216,7 @@ async def telegram_webhook(request: Request):
 @app.get("/products")
 def get_products():
     if MONGO_URL:
-        all_products = list(products_table.find({}, {"_id": 0}))
-        return all_products
+        return list(products_table.find({}, {"_id": 0}))
     return products_table.all()
 
 @app.delete("/products/{product_id}")
