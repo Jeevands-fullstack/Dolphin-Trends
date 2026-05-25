@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pymongo import MongoClient
@@ -6,7 +6,10 @@ from tinydb import TinyDB, Query
 import os
 import uuid
 import requests
+import shutil
 import re
+import certifi
+import google.generativeai as genai
 
 # ================= FASTAPI =================
 
@@ -20,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= STATIC FILES =================
+# ================= UPLOADS =================
 
 os.makedirs("uploads", exist_ok=True)
 
@@ -30,35 +33,62 @@ app.mount(
     name="uploads"
 )
 
-# ================= MONGODB =================
+# ================= ENV =================
 
 MONGO_URL = os.environ.get("MONGO_URL", "")
 
-if MONGO_URL:
-    client = MongoClient(MONGO_URL)
-    db = client["dolphin_trends_db"]
-    products_table = db["products"]
-    print("✅ MongoDB Connected")
-else:
-    local_db = TinyDB("database.json")
-    products_table = local_db.table("products")
-    print("⚠️ TinyDB Local Mode")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 
-# ================= ENV =================
-
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
+
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
+
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
+
 WHATSAPP_NUMBER = os.environ.get(
     "WHATSAPP_NUMBER",
     "917411255628@c.us"
 )
 
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
+
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 
-# ================= DEFAULT PRICES =================
+# ================= GOOGLE GEMINI =================
+
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    print("✅ Gemini Configured")
+
+# ================= DATABASE =================
+
+if MONGO_URL:
+
+    client = MongoClient(
+        MONGO_URL,
+        tls=True,
+        tlsCAFile=certifi.where()
+    )
+
+    db = client["dolphin_trends_db"]
+
+    products_table = db["products"]
+
+    mongodb_mode = True
+
+    print("✅ MongoDB Connected")
+
+else:
+
+    local_db = TinyDB("database.json")
+
+    products_table = local_db.table("products")
+
+    mongodb_mode = False
+
+    print("⚠️ TinyDB Mode")
+
+# ================= HELPERS =================
 
 DEFAULT_PRICES = {
     "leggings": 200,
@@ -74,38 +104,21 @@ DEFAULT_PRICES = {
     "patiala pants": 250
 }
 
-# ================= TELEGRAM MESSAGE =================
-
-def send_telegram(chat_id, text):
-    try:
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": text
-            },
-            timeout=30
-        )
-    except Exception as e:
-        print("Telegram Error:", str(e))
-
-# ================= WHATSAPP =================
-
 def send_whatsapp(image_url, product_name):
 
     try:
-
-        caption = (
-            f"🛍️ *Dolphin Trends*\n\n"
-            f"✨ *{product_name}*\n\n"
-            f"🔥 New Arrival Available Now\n\n"
-            f"🌐 Shop Now:\n{FRONTEND_URL}"
-        )
 
         url = (
             f"https://api.green-api.com/waInstance"
             f"{GREEN_API_ID}/sendFileByUrl/"
             f"{GREEN_API_TOKEN}"
+        )
+
+        caption = (
+            f"🛍️ Dolphin Trends\n\n"
+            f"✨ {product_name}\n\n"
+            f"🌐 Shop Now:\n"
+            f"{FRONTEND_URL}"
         )
 
         payload = {
@@ -131,220 +144,146 @@ def send_whatsapp(image_url, product_name):
 @app.get("/products")
 def get_products():
 
-    if MONGO_URL:
-        return list(
+    if mongodb_mode:
+
+        products = list(
             products_table.find({}, {"_id": 0})
         )
 
+        return products
+
     return products_table.all()
 
-# ================= DELETE PRODUCT =================
+# ================= ADD PRODUCT =================
 
-@app.delete("/products/{product_id}")
-def delete_product(product_id: str):
+@app.post("/upload-from-bot")
+async def upload_from_bot(
 
-    if MONGO_URL:
+    file: UploadFile = File(...),
 
-        products_table.delete_one({
-            "id": product_id
-        })
+    category: str = Form("Kurta Sets"),
 
-    else:
+    name: str = Form("Fashion Product"),
 
-        Product = Query()
+    price: str = Form("499"),
 
-        products_table.remove(
-            Product.id == product_id
-        )
+    original_price: str = Form("799"),
 
-    return {
-        "success": True
-    }
-
-# ================= TELEGRAM WEBHOOK =================
-
-@app.post("/webhook")
-async def telegram_webhook(request: Request):
+    description: str = Form("Premium Fashion")
+):
 
     try:
 
-        update = await request.json()
+        # ================= SAVE ORIGINAL =================
 
-        message = update.get("message", {})
+        ext = file.filename.split(".")[-1]
 
-        if "photo" not in message:
-            return {"ok": True}
+        filename = str(uuid.uuid4()) + "." + ext
 
-        chat_id = message["chat"]["id"]
+        filepath = "uploads/" + filename
 
-        caption = message.get("caption", "")
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-        is_edit_mode = "#edit" in caption.lower()
+        image_url = BACKEND_URL + "/uploads/" + filename
 
-        send_telegram(
-            chat_id,
-            "📥 Photo received..."
-        )
+        final_image_url = image_url
 
-        # ================= TELEGRAM IMAGE =================
+        # ================= AI IMAGE GENERATION =================
 
-        file_id = message["photo"][-1]["file_id"]
+        try:
 
-        file_info = requests.get(
-            f"https://api.telegram.org/bot"
-            f"{TELEGRAM_TOKEN}/getFile",
-            params={
-                "file_id": file_id
+            hf_url = (
+                "https://api-inference.huggingface.co/models/"
+                "stabilityai/stable-diffusion-xl-base-1.0"
+            )
+
+            headers = {
+                "Authorization": f"Bearer {HF_TOKEN}"
             }
-        ).json()
 
-        file_path = file_info["result"]["file_path"]
-
-        telegram_image_url = (
-            f"https://api.telegram.org/file/bot"
-            f"{TELEGRAM_TOKEN}/{file_path}"
-        )
-
-        image_bytes = requests.get(
-            telegram_image_url
-        ).content
-
-        # ================= CATEGORY =================
-
-        category = "Kurta Sets"
-
-        lower_caption = caption.lower()
-
-        for cat in DEFAULT_PRICES.keys():
-
-            if cat in lower_caption:
-                category = cat.title()
-
-        # ================= PRICE =================
-
-        price = DEFAULT_PRICES.get(
-            category.lower(),
-            999
-        )
-
-        # ================= PRODUCT NAME =================
-
-        clean_caption = (
-            caption
-            .replace("#edit", "")
-            .strip()
-        )
-
-        if clean_caption == "":
-            clean_caption = category
-
-        product_name = clean_caption
-
-        # ================= AI IMAGE =================
-
-        final_image_url = telegram_image_url
-
-        if is_edit_mode:
-
-            try:
-
-                send_telegram(
-                    chat_id,
-                    "🎨 Creating AI fashion model..."
-                )
-
-                headers = {
-                    "Authorization": f"Bearer {HF_TOKEN}",
-                    "Content-Type": "application/octet-stream"
-                }
-
-                response = requests.post(
-                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-                    headers=headers,
-                    data=image_bytes,
-                    timeout=120
-                )
-
-                if response.status_code == 200:
-
-                    ai_filename = (
-                        str(uuid.uuid4()) + ".jpg"
-                    )
-
-                    ai_filepath = (
-                        "uploads/" + ai_filename
-                    )
-
-                    with open(ai_filepath, "wb") as f:
-                        f.write(response.content)
-
-                    final_image_url = (
-                        f"{BACKEND_URL}/uploads/"
-                        f"{ai_filename}"
-                    )
-
-                    send_telegram(
-                        chat_id,
-                        "✅ AI model generated!"
-                    )
-
-                else:
-
-                    print(response.text)
-
-                    send_telegram(
-                        chat_id,
-                        "⚠️ AI failed. Using original image."
-                    )
-
-            except Exception as e:
-
-                print("AI ERROR:", str(e))
-
-                send_telegram(
-                    chat_id,
-                    "⚠️ AI Error. Using original image."
-                )
-
-        else:
-
-            # NORMAL MODE SAVE ORIGINAL IMAGE
-
-            original_filename = (
-                str(uuid.uuid4()) + ".jpg"
+            prompt = (
+                f"A beautiful stylish Indian female model "
+                f"wearing the exact same {category}, "
+                f"same cloth design, same color, "
+                f"same pattern, full body, "
+                f"2 stylish poses side by side, "
+                f"white studio background, "
+                f"professional fashion photography"
             )
 
-            original_filepath = (
-                "uploads/" + original_filename
+            payload = {
+                "inputs": prompt
+            }
+
+            ai_response = requests.post(
+                hf_url,
+                headers=headers,
+                json=payload,
+                timeout=120
             )
 
-            with open(original_filepath, "wb") as f:
-                f.write(image_bytes)
+            if ai_response.status_code == 200:
 
-            final_image_url = (
-                f"{BACKEND_URL}/uploads/"
-                f"{original_filename}"
-            )
+                ai_filename = (
+                    str(uuid.uuid4()) + ".jpg"
+                )
+
+                ai_filepath = (
+                    "uploads/" + ai_filename
+                )
+
+                with open(ai_filepath, "wb") as f:
+                    f.write(ai_response.content)
+
+                final_image_url = (
+                    BACKEND_URL +
+                    "/uploads/" +
+                    ai_filename
+                )
+
+                print("✅ AI IMAGE CREATED")
+
+            else:
+
+                print("HF ERROR:", ai_response.text)
+
+        except Exception as e:
+
+            print("AI IMAGE ERROR:", str(e))
+
+        # ================= CATEGORY PRICE =================
+
+        cat_lower = category.lower().strip()
+
+        auto_price = DEFAULT_PRICES.get(
+            cat_lower,
+            500
+        )
+
+        if price == "499":
+            price = str(auto_price)
+
+        original_price = str(
+            int(float(price) * 1.4)
+        )
 
         # ================= PRODUCT =================
 
         product = {
             "id": str(uuid.uuid4()),
-            "name": product_name,
-            "price": f"Rs.{price}",
-            "original_price": f"Rs.{int(price * 1.5)}",
-            "description": (
-                f"Premium {category} "
-                f"Collection from Dolphin Trends"
-            ),
+            "name": name,
+            "price": "Rs." + price,
+            "original_price": "Rs." + original_price,
+            "description": description,
             "category": category,
             "image": final_image_url,
             "available": True
         }
 
-        # ================= SAVE DATABASE =================
+        # ================= SAVE DB =================
 
-        if MONGO_URL:
+        if mongodb_mode:
 
             products_table.insert_one(product)
 
@@ -356,36 +295,59 @@ async def telegram_webhook(request: Request):
 
         send_whatsapp(
             final_image_url,
-            product_name
-        )
-
-        # ================= SUCCESS =================
-
-        send_telegram(
-            chat_id,
-            f"✅ Product Live Successfully!\n\n"
-            f"🛍️ {product_name}\n"
-            f"📂 {category}\n"
-            f"💰 Rs.{price}\n\n"
-            f"🌐 {FRONTEND_URL}"
+            name
         )
 
         return {
-            "ok": True
+            "success": True,
+            "product": product
         }
 
     except Exception as e:
 
-        print("WEBHOOK ERROR:", str(e))
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+# ================= DELETE =================
+
+@app.delete("/products/{product_id}")
+def delete_product(product_id: str):
+
+    try:
+
+        if mongodb_mode:
+
+            products_table.delete_one({
+                "id": product_id
+            })
+
+        else:
+
+            Product = Query()
+
+            products_table.remove(
+                Product.id == product_id
+            )
 
         return {
-            "ok": True
+            "success": True
+        }
+
+    except Exception as e:
+
+        return {
+            "success": False,
+            "error": str(e)
         }
 
 # ================= ROOT =================
 
 @app.get("/")
 def home():
+
     return {
-        "message": "Dolphin Trends Backend Running"
-        }
+        "status": "Dolphin Trends Backend Live"
+            }
+                        
