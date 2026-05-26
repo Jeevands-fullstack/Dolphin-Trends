@@ -180,7 +180,8 @@ def update_booking_status(booking_id: str, action: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ─── ⚡ PRODUCTS FETCH FOR WEBSITE ───
-@app.get("/api/products")
+# 🟢 1. ರಿಯಾಕ್ಟ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ತರಹ ಲಿಂಕ್ ಅನ್ನು ಬರೀ "/products" ಗೆ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ ಜೀವನ್
+@app.get("/products")
 def get_products():
     if products_table is None:
         return []
