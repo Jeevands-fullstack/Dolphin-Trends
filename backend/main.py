@@ -22,8 +22,7 @@ app.add_middleware(
 # ================= MONGODB ATLAS SETUP =================
 MONGO_URL = os.environ.get("MONGO_URL", "")
 if MONGO_URL:
-    if MONGO_URL:
-    # 🛡️ SSL/TLS ಎರರ್ ಫಿಕ್ಸ್ ಮಾಡಲು tlsAllowInvalidCertificates ಆಡ್ ಮಾಡಿದ್ದೀವಿ
+    # 🛡️ Render Python 3.14 ನಲ್ಲಿ ಬರ್ತಿದ್ದ SSL ಹ್ಯಾಂಡ್‌ಶೇಕ್ ಎರರ್ ಅನ್ನು ಇಲ್ಲಿ ಫಿಕ್ಸ್ ಮಾಡಲಾಗಿದೆ
     client = MongoClient(MONGO_URL, tlsAllowInvalidCertificates=True)
     db = client["dolphin_trends_db"]
     products_table = db["products"]
@@ -40,7 +39,6 @@ if GOOGLE_API_KEY:
     print("✅ Google Gemini AI Configured for Category Detection!")
 
 # ================= ENV VARIABLES =================
-# ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಕೀಗಳನ್ನು ಮುಂದೆ ಇಲ್ಲಿ ಆಡ್ ಮಾಡಬಹುದು ಜೀವನ್
 INSTAGRAM_ACCOUNT_ID = os.environ.get("INSTAGRAM_ACCOUNT_ID", "")
 INSTAGRAM_ACCESS_TOKEN = os.environ.get("INSTAGRAM_ACCESS_TOKEN", "")
 
@@ -83,7 +81,6 @@ def send_whatsapp(image_url, display_name):
 
 # 📸 INSTAGRAM AUTOMATIC UPLOAD (FUTURE USE - ಸದ್ಯಕ್ಕೆ ಇನ್-ಆಕ್ಟಿವ್ ಆಗಿದೆ)
 def upload_to_instagram(image_url, caption_text):
-    # ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಅಕೌಂಟ್ ರೆಡಿಯಾದಾಗ ಈ ಕೋಡ್ ಯೂಸ್ ಆಗುತ್ತೆ ಜೀವನ್
     if not INSTAGRAM_ACCOUNT_ID or not INSTAGRAM_ACCESS_TOKEN:
         return False
     try:
@@ -121,53 +118,68 @@ async def telegram_webhook(request: Request):
         lines = [line.strip() for line in caption.split('\n') if line.strip()]
         clean_lines = [l for l in lines if "#edit" not in l.lower()]
 
-        # ಟೆಲಿಗ್ರಾಮ್ ಇಮೇಜ್ ಲಿಂಕ್ ತಗೊಳೋದು (ನೀವು ಎಡಿಟ್ ಮಾಡಿ ಕಳಿಸೋ ಫೋಟೋ)
+        # ಟೆಲಿಗ್ರಾಮ್ ಇಮೇಜ್ ಲಿಂಕ್ ತಗೊಳೋದು
         file_id = message["photo"][-1]["file_id"]
         file_info = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile", params={"file_id": file_id}).json()
-        file_path = file_info["result"]["file_path"]
+        file_path = file_info.get("result", {}).get("file_path")
+        
+        if not file_path:
+            send_telegram(chat_id, "❌ Telegram image download failed!")
+            return {"ok": True}
+            
         final_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
 
         category = "Kurta Sets"
         input_price = None
         product_name = "Kurta Sets"
 
-        # 🤖 🎯 GOOGLE GEMINI AI - STRICT CATEGORY SCANNING ONLY
-        if is_edit_mode and GOOGLE_API_KEY:
-            try:
-                send_telegram(chat_id, "🤖 Google AI is scanning the dress category...")
-                image_bytes = requests.get(final_image_url).content
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                
-                category_prompt = (
-                    "You are a strict fashion inventory assistant. Identify the exact clothing type from this image. "
-                    "Classify it strictly into one of these: leggings, kurtha top, umbrella sets, kurta sets, jeans, jeans tops, frocks, 250 tops, 350 tops, gym pants, patiala pants. "
-                    "Return ONLY the category name in lowercase without any translation or extra text."
-                )
-                response = model.generate_content([category_prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
-                ai_detected = response.text.strip().lower()
-                
-                if ai_detected in DEFAULT_PRICES:
-                    category = ai_detected.title()
-                    product_name = category
-            except Exception as ai_err:
-                print("Google AI Scanning Error:", str(ai_err))
+        # 🤖 🎯 GOOGLE GEMINI AI - WITH SAFE FALLBACK
+        if is_edit_mode:
+            if GOOGLE_API_KEY:
+                try:
+                    send_telegram(chat_id, "🤖 Google AI is scanning the dress category...")
+                    image_bytes = requests.get(final_image_url).content
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    
+                    category_prompt = (
+                        "Identify the exact clothing type from this image. "
+                        "Classify strictly into: leggings, kurtha top, umbrella sets, kurta sets, jeans, jeans tops, frocks, 250 tops, 350 tops, gym pants, patiala pants. "
+                        "Return ONLY the category name in lowercase."
+                    )
+                    response = model.generate_content([category_prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
+                    ai_detected = response.text.strip().lower()
+                    
+                    if ai_detected in DEFAULT_PRICES:
+                        category = ai_detected.title()
+                        product_name = category
+                except Exception as ai_err:
+                    print("Google AI Error:", str(ai_err))
+                    send_telegram(chat_id, "⚠️ AI Scan failed, using default category.")
+            else:
+                send_telegram(chat_id, "⚠️ GOOGLE_API_KEY missing in Render! Using default category.")
 
         # ಮ್ಯಾನುಯಲ್ ಟೆಕ್ಸ್ಟ್ ಪ್ರಿಫರೆನ್ಸ್ ಚೆಕ್
         if clean_lines:
-            category = clean_lines[0].strip()
+            if 'price' not in clean_lines[0].lower():
+                category = clean_lines[0].strip()
+                
             for line in clean_lines:
                 if 'price' in line.lower():
                     match = re.search(r'price\s*:\s*(\d+)', line.lower())
                     if match: input_price = int(match.group(1))
-            name_parts = [line for line in clean_lines[1:] if 'price' not in line.lower()]
-            product_name = " ".join(name_parts) if name_parts else category
+            
+            name_parts = [line for line in clean_lines if 'price' not in line.lower() and line.strip() != category]
+            if name_parts:
+                product_name = " ".join(name_parts)
+            else:
+                product_name = category
 
         if input_price is None:
             input_price = DEFAULT_PRICES.get(category.lower().strip(), 1200)
 
         calculated_original = int(input_price * 1.40)
 
-        # ಮಂಗೋಡಿಬಿಗೆ ಪಕ್ಕಾ ಸೇವ್ ಆಗೋ ಡೇಟಾ
+        # ಮಂಗೋಡಿಬಿಗೆ ಸೇವ್ ಮಾಡೋದು
         new_id = str(uuid.uuid4())
         product = {
             "id": new_id,
@@ -180,15 +192,20 @@ async def telegram_webhook(request: Request):
             "available": True
         }
         
-        if MONGO_URL:
-            products_table.insert_one(product)
-        else:
-            products_table.insert(product)
+        try:
+            if MONGO_URL:
+                products_table.insert_one(product)
+            else:
+                products_table.insert(product)
+        except Exception as db_err:
+            print("Database Error:", str(db_err))
+            send_telegram(chat_id, "❌ MongoDB Save Failed! Check your MONGO_URL.")
+            return {"ok": True}
 
-        # ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಸೆಂಡ್ (ಬೆಲೆ ಇಲ್ಲದೆ ಬರೀ ಲಿಂಕ್)
+        # ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಸೆಂಡ್
         send_whatsapp(final_image_url, product_name)
         
-        # ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಪ್ರಿಪ್ರೇಷನ್ (ಸದ್ಯಕ್ಕೆ ಕೀ ಇಲ್ಲದಿರುವುದರಿಂದ ಬ್ಯಾಕೆಂಡ್‌ನಲ್ಲಿ ಮಾತ್ರ ಲಾಗ್ ಆಗುತ್ತೆ, ಪೋಸ್ಟ್ ಆಗಲ್ಲ)
+        # ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಪ್ರಿಪ್ರೇಷನ್
         insta_caption = f"🔥 New Arrival: {product_name}\n💃 Check it out on our website!\n🌐 {FRONTEND_URL}"
         upload_to_instagram(final_image_url, insta_caption)
         
@@ -217,4 +234,3 @@ def delete_product(product_id: str):
         Product = Query()
         products_table.remove(Product.id == product_id)
     return {"success": True}
-            
