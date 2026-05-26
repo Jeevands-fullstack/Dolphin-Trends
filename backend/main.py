@@ -22,16 +22,15 @@ app.add_middleware(
 # ================= MONGODB ATLAS SETUP =================
 MONGO_URL = os.environ.get("MONGO_URL", "")
 if MONGO_URL:
-    # 🔥 ಸ್ಟ್ರಾಂಗ್ SSL/TLS ಬೈಪಾಸ್ ಸೆಟ್ಟಿಂಗ್ಸ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ
+    # 🛡️ ಬರೀ tlsInsecure=True ಮಾತ್ರ ಇಟ್ಟಿದ್ದೀವಿ, ಇದರಿಂದ ಯಾವುದೇ ಕಾನ್ಫ್ಲಿಕ್ಟ್ ಬರಲ್ಲ!
     client = MongoClient(
         MONGO_URL, 
-        tls=True,
-        tlsAllowInvalidCertificates=True,
         tlsInsecure=True
     )
     db = client["dolphin_trends_db"]
     products_table = db["products"]
     print("✅ Connected to MongoDB Atlas Successfully!")
+
 else:
     from tinydb import TinyDB
     local_db = TinyDB("database.json")
