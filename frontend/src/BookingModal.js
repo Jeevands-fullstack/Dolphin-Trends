@@ -5,47 +5,54 @@ function BookingModal({ product, onClose }) {
   const [phone, setPhone] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  // Price ಇಂದ ನಂಬರ್ ಮಾತ್ರ ತಗೆದು 50% ಅಡ್ವಾನ್ಸ್ ಲೆಕ್ಕ ಹಾಕುವ ಲಾಜಿಕ್
   const advanceAmount = Math.ceil(parseInt(product.price.replace(/[^\d]/g, '')) * 0.5) || 0;
 
   const handleBooking = async () => {
     if (!customerName || !phone || !selectedSize) {
-      alert('⚠️ Name, Phone ಮತ್ತು Size select ಮಾಡಿ!');
+      alert('⚠️ Please enter your Name, Phone and select a Size!');
       return;
     }
 
+    setLoading(true);
+
+    // 🟢 ಬ್ಯಾಕೆಂಡ್‌ನ Pydantic Model (BookingPayload) ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ತರಹ ಡೇಟಾ ರೆಡಿ ಮಾಡಲಾಗಿದೆ
     const bookingData = {
       customer_name: customerName,
-      customer_phone: phone,
-      size: selectedSize,
-      product_name: product.name,
-      product_price: product.price,
-      advance_amount: advanceAmount,
-      status: "Pending"
+      customer_phone: phone, // ಇದು Green-API ಗೆ ಹೋಗುತ್ತೆ
+      product_name: `${product.name} (Size: ${selectedSize})`, // ಸೈಜ್ ಅನ್ನು ಹೆಸರಿನ ಜೊತೆ ಸೇರಿಸಲಾಗಿದೆ
+      image_url: product.image || ""
     };
 
     try {
-      await fetch('https://dolphin-trends-3.onrender.com/bookings', {
+      // 🔗 ನಿಮ್ಮ ಒರಿಜಿನಲ್ Render ಬ್ಯಾಕೆಂಡ್ ಲಿಂಕ್‌ಗೆ ಕನೆಕ್ಟ್ ಮಾಡಲಾಗಿದೆ ಜೀವನ್
+      const response = await fetch('https://dolphin-trends.onrender.com/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
       });
+
+      if (response.ok) {
+        // ಬುಕಿಂಗ್ ಸಕ್ಸಸ್ ಆದ್ರೆ ಸ್ಟೆಪ್ 2 (ಪಾಪ್-ಅಪ್ ಮೆಸೇಜ್) ತೋರಿಸುತ್ತೆ
+        setStep(2);
+      } else {
+        alert('❌ Booking failed. Please try again later.');
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Booking Error:", err);
+      alert('❌ Server connection error! Please check your internet.');
+    } finally {
+      setLoading(false);
     }
-
-    const ownerPhone = "919353344035";
-    const ownerMsg = "🛍 New Booking Request!\n\nProduct: " + product.name + "\nSize: " + selectedSize + "\nPrice: " + product.price + "\nAdvance: Rs." + advanceAmount + "\nCustomer: " + customerName + "\nPhone: " + phone + "\n\nPlease check Admin panel!";
-    window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
-
-    setStep(2);
   };
 
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <button className="modal-close" onClick={onClose}>✕</button>
+        <button className="modal-close" onClick={onClose} disabled={loading}>✕</button>
 
         {step === 1 && (
           <>
@@ -89,31 +96,40 @@ function BookingModal({ product, onClose }) {
             </div>
 
             <div className="form-group">
-              <label>📱 Phone Number</label>
+              <label>📱 WhatsApp Number</label>
               <input
                 type="number"
-                placeholder="Enter phone number"
+                placeholder="Enter WhatsApp number (eg: 91...)"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
               />
             </div>
 
-            <button className="submit-btn" onClick={handleBooking}>
-              📲 Send Booking Request
+            <button className="submit-btn" onClick={handleBooking} disabled={loading}>
+              {loading ? "Processing..." : "📲 Confirm & Send Request"}
             </button>
           </>
         )}
 
         {step === 2 && (
           <>
-            <h2>⏳ Waiting for Confirmation</h2>
-            <div className="waiting-box">
-              <p>🎉 Your booking request has been sent!</p>
-              <p>We will confirm shortly via WhatsApp.</p>
+            <h2>⏳ Request Submitted!</h2>
+            <div className="waiting-box" style={{ textAlign: 'center', padding: '20px 10px' }}>
+              <p style={{ fontSize: '18px', color: '#28a745', fontWeight: 'bold' }}>
+                🎉 Thank you, {customerName}!
+              </p>
+              <p style={{ marginTop: '10px', fontSize: '15px', color: '#333' }}>
+                Your booking request has been successfully registered.
+              </p>
+              <p style={{ marginTop: '5px', fontSize: '14px', fontWeight: '500', color: '#007bff' }}>
+                📱 Please check your WhatsApp! We have sent a waiting confirmation message to your number.
+              </p>
               <br/>
-              <p>📱 Check your WhatsApp for updates!</p>
+              <p style={{ fontSize: '13px', color: '#666' }}>
+                Our team will verify the store stock and update you with the final payment link within 5 minutes.
+              </p>
             </div>
-            <button className="confirm-btn" onClick={onClose}>
+            <button className="confirm-btn" onClick={onClose} style={{ width: '100%', padding: '12px', background: '#007bff', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
               OK, Got it! 👍
             </button>
           </>
