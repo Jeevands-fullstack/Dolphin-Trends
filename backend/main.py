@@ -1,18 +1,15 @@
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pymongo import MongoClient
-from tinydb import TinyDB, Query
 import os
 import uuid
 import requests
-import shutil
+import json
 import re
-import certifi
+import asyncio  # ⏱️ 30 ಸೆಕೆಂಡ್ ವೇಟಿಂಗ್ ಟೈಮಿಂಗ್ಸ್‌ಗಾಗಿ
 import google.generativeai as genai
 
-# ================= FASTAPI =================
-
+# ================= FASTAPI SETUP =================
 app = FastAPI()
 
 app.add_middleware(
@@ -23,331 +20,203 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= UPLOADS =================
-
-os.makedirs("uploads", exist_ok=True)
-
-app.mount(
-    "/uploads",
-    StaticFiles(directory="uploads"),
-    name="uploads"
-)
-
-# ================= ENV =================
-
+# ================= MONGODB ATLAS SETUP =================
 MONGO_URL = os.environ.get("MONGO_URL", "")
-
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
-
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-
-GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
-
-GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
-
-WHATSAPP_NUMBER = os.environ.get(
-    "WHATSAPP_NUMBER",
-    "917411255628@c.us"
-)
-
-FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
-
-BACKEND_URL = "https://dolphin-trends-3.onrender.com"
-
-# ================= GOOGLE GEMINI =================
-
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    print("✅ Gemini Configured")
-
-# ================= DATABASE =================
-
 if MONGO_URL:
-
-    client = MongoClient(
-        MONGO_URL,
-        tls=True,
-        tlsCAFile=certifi.where()
-    )
-
+    client = MongoClient(MONGO_URL)
     db = client["dolphin_trends_db"]
-
     products_table = db["products"]
-
-    mongodb_mode = True
-
-    print("✅ MongoDB Connected")
-
+    print("✅ Connected to MongoDB Atlas Successfully!")
 else:
-
+    from tinydb import TinyDB
     local_db = TinyDB("database.json")
-
     products_table = local_db.table("products")
 
-    mongodb_mode = False
+# ================= GOOGLE GEMINI AI SETUP =================
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    print("✅ Google Gemini AI Configured for Category Detection!")
 
-    print("⚠️ TinyDB Mode")
+# ================= ENV VARIABLES =================
+# ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಕೀಗಳನ್ನು ಮುಂದೆ ಇಲ್ಲಿ ಆಡ್ ಮಾಡಬಹುದು ಜೀವನ್
+INSTAGRAM_ACCOUNT_ID = os.environ.get("INSTAGRAM_ACCOUNT_ID", "")
+INSTAGRAM_ACCESS_TOKEN = os.environ.get("INSTAGRAM_ACCESS_TOKEN", "")
 
-# ================= HELPERS =================
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
+GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
+WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
+FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 DEFAULT_PRICES = {
-    "leggings": 200,
-    "kurtha top": 250,
-    "umbrella sets": 1000,
-    "kurta sets": 1200,
-    "jeans": 550,
-    "jeans tops": 350,
-    "frocks": 850,
-    "250 tops": 250,
-    "350 tops": 350,
-    "gym pants": 300,
-    "patiala pants": 250
+    "leggings": 200, "kurtha top": 200, "umbrella sets": 1000,
+    "kurta sets": 1200, "jeans": 550, "jeans tops": 300,
+    "frocks": 850, "250 tops": 250, "350 tops": 350,
+    "gym pants": 300, "patiala pants": 200
 }
 
-def send_whatsapp(image_url, product_name):
+# ================= HELPERS =================
+def send_telegram(chat_id, text):
+    requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage", json={"chat_id": chat_id, "text": text})
 
+# 🔔 ವಾಟ್ಸಾಪ್ ಫಂಕ್ಷನ್ - ಪ್ರೈಸ್ ಇಲ್ಲದೆ ಲಿಂಕ್ ಮಾತ್ರ ಹೋಗುತ್ತೆ
+def send_whatsapp(image_url, display_name):
     try:
-
-        url = (
-            f"https://api.green-api.com/waInstance"
-            f"{GREEN_API_ID}/sendFileByUrl/"
-            f"{GREEN_API_TOKEN}"
-        )
+        clean_name = re.sub(r'\d+', '', display_name).replace('Rs.', '').strip()
+        clean_name = " ".join(clean_name.split()).title()
 
         caption = (
-            f"🛍️ Dolphin Trends\n\n"
-            f"✨ {product_name}\n\n"
-            f"🌐 Shop Now:\n"
-            f"{FRONTEND_URL}"
+            f"🔥 *New Arrival: Premium {clean_name}*\n"
+            f"💃 *Check out this beautiful trend! Grab yours before it's gone.*\n\n"
+            f"👇 *Click here to see full details & Shop Now:*\n{FRONTEND_URL}"
         )
 
-        payload = {
-            "chatId": WHATSAPP_NUMBER,
-            "urlFile": image_url,
-            "fileName": "product.jpg",
-            "caption": caption
-        }
-
-        response = requests.post(
-            url,
-            json=payload,
-            timeout=60
-        )
-
-        print("WhatsApp:", response.text)
-
+        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByUrl/{GREEN_API_TOKEN}"
+        payload = {"chatId": WHATSAPP_NUMBER, "urlFile": image_url, "fileName": "product.jpg", "caption": caption}
+        requests.post(url, json=payload, timeout=60)
+        return True
     except Exception as e:
         print("WhatsApp Error:", str(e))
+        return False
 
-# ================= PRODUCTS =================
-
-@app.get("/products")
-def get_products():
-
-    if mongodb_mode:
-
-        products = list(
-            products_table.find({}, {"_id": 0})
-        )
-
-        return products
-
-    return products_table.all()
-
-# ================= ADD PRODUCT =================
-
-@app.post("/upload-from-bot")
-async def upload_from_bot(
-
-    file: UploadFile = File(...),
-
-    category: str = Form("Kurta Sets"),
-
-    name: str = Form("Fashion Product"),
-
-    price: str = Form("499"),
-
-    original_price: str = Form("799"),
-
-    description: str = Form("Premium Fashion")
-):
-
+# 📸 INSTAGRAM AUTOMATIC UPLOAD (FUTURE USE - ಸದ್ಯಕ್ಕೆ ಇನ್-ಆಕ್ಟಿವ್ ಆಗಿದೆ)
+def upload_to_instagram(image_url, caption_text):
+    # ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಅಕೌಂಟ್ ರೆಡಿಯಾದಾಗ ಈ ಕೋಡ್ ಯೂಸ್ ಆಗುತ್ತೆ ಜೀವನ್
+    if not INSTAGRAM_ACCOUNT_ID or not INSTAGRAM_ACCESS_TOKEN:
+        return False
     try:
+        url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ACCOUNT_ID}/media"
+        payload = {"image_url": image_url, "caption": caption_text, "access_token": INSTAGRAM_ACCESS_TOKEN}
+        response = requests.post(url, data=payload).json()
+        creation_id = response.get("id")
 
-        # ================= SAVE ORIGINAL =================
+        if creation_id:
+            publish_url = f"https://graph.facebook.com/v19.0/{INSTAGRAM_ACCOUNT_ID}/media_publish"
+            publish_payload = {"creation_id": creation_id, "access_token": INSTAGRAM_ACCESS_TOKEN}
+            requests.post(publish_url, data=publish_payload)
+            return True
+        return False
+    except Exception as e:
+        print("Instagram Error:", str(e))
+        return False
 
-        ext = file.filename.split(".")[-1]
+# ================= TELEGRAM WEBHOOK =================
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    try:
+        update = await request.json()
+        message = update.get("message", {})
+        chat_id = message.get("chat", {}).get("id")
+        
+        if not chat_id or "photo" not in message:
+            return {"ok": True}
 
-        filename = str(uuid.uuid4()) + "." + ext
+        caption = message.get("caption", "").strip()
+        is_edit_mode = "#edit" in caption.lower()
 
-        filepath = "uploads/" + filename
+        send_telegram(chat_id, "📥 Photo received, starting processing...")
 
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # ⏱️ ನಿಮ್ಮ ಫೇವರಿಟ್ ಟೈಮಿಂಗ್ಸ್ ಲಾಜಿಕ್ - ಫೋಟೋ ಕಂಪ್ಲೀಟ್ ಲೋಡ್ ಆಗಲು 30 ಸೆಕೆಂಡ್ ವೇಟ್ ಮಾಡುತ್ತೆ
+        await asyncio.sleep(30)
 
-        image_url = BACKEND_URL + "/uploads/" + filename
+        lines = [line.strip() for line in caption.split('\n') if line.strip()]
+        clean_lines = [l for l in lines if "#edit" not in l.lower()]
 
-        final_image_url = image_url
+        # ಟೆಲಿಗ್ರಾಮ್ ಇಮೇಜ್ ಲಿಂಕ್ ತಗೊಳೋದು (ನೀವು ಎಡಿಟ್ ಮಾಡಿ ಕಳಿಸೋ ಫೋಟೋ)
+        file_id = message["photo"][-1]["file_id"]
+        file_info = requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile", params={"file_id": file_id}).json()
+        file_path = file_info["result"]["file_path"]
+        final_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
 
-        # ================= AI IMAGE GENERATION =================
+        category = "Kurta Sets"
+        input_price = None
+        product_name = "Kurta Sets"
 
-        try:
-
-            hf_url = (
-                "https://api-inference.huggingface.co/models/"
-                "stabilityai/stable-diffusion-xl-base-1.0"
-            )
-
-            headers = {
-                "Authorization": f"Bearer {HF_TOKEN}"
-            }
-
-            prompt = (
-                f"A beautiful stylish Indian female model "
-                f"wearing the exact same {category}, "
-                f"same cloth design, same color, "
-                f"same pattern, full body, "
-                f"2 stylish poses side by side, "
-                f"white studio background, "
-                f"professional fashion photography"
-            )
-
-            payload = {
-                "inputs": prompt
-            }
-
-            ai_response = requests.post(
-                hf_url,
-                headers=headers,
-                json=payload,
-                timeout=120
-            )
-
-            if ai_response.status_code == 200:
-
-                ai_filename = (
-                    str(uuid.uuid4()) + ".jpg"
+        # 🤖 🎯 GOOGLE GEMINI AI - STRICT CATEGORY SCANNING ONLY
+        if is_edit_mode and GOOGLE_API_KEY:
+            try:
+                send_telegram(chat_id, "🤖 Google AI is scanning the dress category...")
+                image_bytes = requests.get(final_image_url).content
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                
+                category_prompt = (
+                    "You are a strict fashion inventory assistant. Identify the exact clothing type from this image. "
+                    "Classify it strictly into one of these: leggings, kurtha top, umbrella sets, kurta sets, jeans, jeans tops, frocks, 250 tops, 350 tops, gym pants, patiala pants. "
+                    "Return ONLY the category name in lowercase without any translation or extra text."
                 )
+                response = model.generate_content([category_prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
+                ai_detected = response.text.strip().lower()
+                
+                if ai_detected in DEFAULT_PRICES:
+                    category = ai_detected.title()
+                    product_name = category
+            except Exception as ai_err:
+                print("Google AI Scanning Error:", str(ai_err))
 
-                ai_filepath = (
-                    "uploads/" + ai_filename
-                )
+        # ಮ್ಯಾನುಯಲ್ ಟೆಕ್ಸ್ಟ್ ಪ್ರಿಫರೆನ್ಸ್ ಚೆಕ್
+        if clean_lines:
+            category = clean_lines[0].strip()
+            for line in clean_lines:
+                if 'price' in line.lower():
+                    match = re.search(r'price\s*:\s*(\d+)', line.lower())
+                    if match: input_price = int(match.group(1))
+            name_parts = [line for line in clean_lines[1:] if 'price' not in line.lower()]
+            product_name = " ".join(name_parts) if name_parts else category
 
-                with open(ai_filepath, "wb") as f:
-                    f.write(ai_response.content)
+        if input_price is None:
+            input_price = DEFAULT_PRICES.get(category.lower().strip(), 1200)
 
-                final_image_url = (
-                    BACKEND_URL +
-                    "/uploads/" +
-                    ai_filename
-                )
+        calculated_original = int(input_price * 1.40)
 
-                print("✅ AI IMAGE CREATED")
-
-            else:
-
-                print("HF ERROR:", ai_response.text)
-
-        except Exception as e:
-
-            print("AI IMAGE ERROR:", str(e))
-
-        # ================= CATEGORY PRICE =================
-
-        cat_lower = category.lower().strip()
-
-        auto_price = DEFAULT_PRICES.get(
-            cat_lower,
-            500
-        )
-
-        if price == "499":
-            price = str(auto_price)
-
-        original_price = str(
-            int(float(price) * 1.4)
-        )
-
-        # ================= PRODUCT =================
-
+        # ಮಂಗೋಡಿಬಿಗೆ ಪಕ್ಕಾ ಸೇವ್ ಆಗೋ ಡೇಟಾ
+        new_id = str(uuid.uuid4())
         product = {
-            "id": str(uuid.uuid4()),
-            "name": name,
-            "price": "Rs." + price,
-            "original_price": "Rs." + original_price,
-            "description": description,
+            "id": new_id,
+            "name": product_name,
+            "price": "Rs." + str(input_price),
+            "original_price": "Rs." + str(calculated_original),
+            "description": f"Premium {product_name} from Dolphin Trends Catalog.",
             "category": category,
             "image": final_image_url,
             "available": True
         }
-
-        # ================= SAVE DB =================
-
-        if mongodb_mode:
-
+        
+        if MONGO_URL:
             products_table.insert_one(product)
-
         else:
-
             products_table.insert(product)
 
-        # ================= WHATSAPP =================
-
-        send_whatsapp(
-            final_image_url,
-            name
-        )
-
-        return {
-            "success": True,
-            "product": product
-        }
-
+        # ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಸೆಂಡ್ (ಬೆಲೆ ಇಲ್ಲದೆ ಬರೀ ಲಿಂಕ್)
+        send_whatsapp(final_image_url, product_name)
+        
+        # ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಪ್ರಿಪ್ರೇಷನ್ (ಸದ್ಯಕ್ಕೆ ಕೀ ಇಲ್ಲದಿರುವುದರಿಂದ ಬ್ಯಾಕೆಂಡ್‌ನಲ್ಲಿ ಮಾತ್ರ ಲಾಗ್ ಆಗುತ್ತೆ, ಪೋಸ್ಟ್ ಆಗಲ್ಲ)
+        insta_caption = f"🔥 New Arrival: {product_name}\n💃 Check it out on our website!\n🌐 {FRONTEND_URL}"
+        upload_to_instagram(final_image_url, insta_caption)
+        
+        mode_text = "🤖 Google AI Scanner" if is_edit_mode else "Normal"
+        send_telegram(chat_id, f"✅ Live on Website & Sent to WhatsApp!\n⚙️ Mode: {mode_text}\n📂 Category: {category}\n🌐 {FRONTEND_URL}")
+            
+        return {"ok": True}
+        
     except Exception as e:
+        print("Webhook Error:", str(e))
+        return {"ok": True}
 
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-# ================= DELETE =================
+# ================= PRODUCTS ENDPOINTS =================
+@app.get("/products")
+def get_products():
+    if MONGO_URL:
+        return list(products_table.find({}, {"_id": 0}))
+    return products_table.all()
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: str):
-
-    try:
-
-        if mongodb_mode:
-
-            products_table.delete_one({
-                "id": product_id
-            })
-
-        else:
-
-            Product = Query()
-
-            products_table.remove(
-                Product.id == product_id
-            )
-
-        return {
-            "success": True
-        }
-
-    except Exception as e:
-
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-# ================= ROOT =================
-
-@app.get("/")
-def home():
-
-    return {
-        "status": "Dolphin Trends Backend Live"
-            }
-                        
+    if MONGO_URL:
+        products_table.delete_one({"id": product_id})
+    else:
+        from tinydb import Query
+        Product = Query()
+        products_table.remove(Product.id == product_id)
+    return {"success": True}
+            
