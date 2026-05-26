@@ -39,29 +39,52 @@ function Admin({ onProductAdded }) {
   };
 
   // ⚡ Agree / Disagree ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ರನ್ ಆಗೋ ಡಬಲ್ ಕನ್‌ಫರ್ಮ್ ಮ್ಯಾಜಿಕ್
-  const handleBookingAction = async (bookingId, action, customerName) => {
-    let actionText = action === 'agree' ? "AGREE (50% ಅಡ್ವಾನ್ಸ್ ಲಿಂಕ್ ಕಳಿಸಬೇಕಾ?)" : "DISAGREE (ಔಟ್ ಆಫ್‌ ಸ್ಟಾಕ್ ಮೆಸೇಜ್ ಕಳಿಸಬೇಕಾ?)";
-    
-    // 🚨 ನಿಮಗೋಸ್ಕರ ಡಬಲ್ ಕನ್‌ಫರ್ಮ್ ಪಾಪ್-ಅಪ್
-    const confirmFirst = window.confirm(`ನಿಜವಾಗಲೂ ಈ ಆರ್ಡರ್ ಅನ್ನು ${actionText} ಮಾಡಬೇಕಾ ಜೀವನ್?`);
-    
-    if (!confirmFirst) return; // ಕ್ಯಾನ್ಸಲ್ ಒತ್ತಿದರೆ ಇಲ್ಲೇ ಸ್ಟಾಪ್ ಆಗುತ್ತೆ
+const handleBookingAction = async (bookingId, action, customerName, customerPhone, productName, productPrice) => {
+  let actionText = action === 'agree' ? "AGREE" : "DISAGREE";
+  if (!window.confirm(`Jeevan, do you want to ${actionText} this order?`)) return;
 
-    try {
-      const response = await fetch(`https://dolphin-trends-3.onrender.com/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, {
-        method: 'POST',
-      });
+  try {
+    // Backend update row
+    const response = await fetch(`https://dolphin-trends.onrender.com/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, {
+      method: 'POST',
+    });
 
-      if (response.ok) {
-        alert(`✅ ಯಶಸ್ವಿ! ${customerName} ಅವರ ವಾಟ್ಸಾಪ್‌ಗೆ ಮೆಸೇಜ್ ಕಳುಹಿಸಲಾಗಿದೆ.`);
-        fetchBookings(); // ಟೇಬಲ್ ಡೇಟಾ ಆಟೋಮ್ಯಾಟಿಕ್ ರಿಫ್ರೆಶ್ ಆಗುತ್ತೆ!
-      } else {
-        alert("❌ ಅಪ್ಡೇಟ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಬ್ಯಾಕೆಂಡ್ ಚೆಕ್ ಮಾಡಿ.");
+    if (response.ok) {
+      // ✅ 'Agree' kottaga Green-API moolaka Customer ge message hogutthe
+      if (action === 'agree') {
+        const messageToSend = 
+          `Hello ${customerName},\n\n` +
+          `Great news! The product you selected (*${productName}*) is AVAILABLE! 🎉\n\n` +
+          `💰 *Price:* ${productPrice}\n\n` +
+          `📍 *Shop Location:* https://maps.google.com/?q=Dolphin+Trends+Laggere\n` +
+          `🏪 *Main Branch Address:* Anikethana Kishore Kendra Laggere, Bangalore - 560058\n\n` +
+          `✨ *Next Steps:*\n` +
+          `• If you really love this product, you can pay a small advance amount to secure and confirm your order book.\n` +
+          `• Otherwise, you can just ignore this message and directly visit our shop to explore more designs!\n\n` +
+          `We look forward to serving you!\n` +
+          `Best regards,\n` +
+          `Dolphin Trends 🐬`;
+
+        // Green-API request to send WhatsApp to customer
+        await fetch(`https://api.green-api.com/waInstanceYOUR_INSTANCE_ID/sendMessage/YOUR_API_TOKEN`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatId: `${customerPhone}@c.us`,
+            message: messageToSend
+          })
+        });
       }
-    } catch (error) {
-      alert("❌ ಸರ್ವರ್ ಎರರ್! ಪೇಮೆಂಟ್ ಲಿಂಕ್ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.");
+
+      alert(`✅ Action successful! Notification processed.`);
+      fetchBookings();
+    } else {
+      alert("❌ Failed to update backend.");
     }
-  };
+  } catch (error) {
+    alert("❌ Server Error!");
+  }
+};
 
   // ಇಮೇಜ್ ಪ್ರಿವ್ಯೂ ಚೇಂಜ್ ಹ್ಯಾಂಡ್ಲರ್
   const handleImageChange = (e) => {
