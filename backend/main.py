@@ -22,7 +22,9 @@ app.add_middleware(
 # ================= MONGODB ATLAS SETUP =================
 MONGO_URL = os.environ.get("MONGO_URL", "")
 if MONGO_URL:
-    client = MongoClient(MONGO_URL)
+    if MONGO_URL:
+    # 🛡️ SSL/TLS ಎರರ್ ಫಿಕ್ಸ್ ಮಾಡಲು tlsAllowInvalidCertificates ಆಡ್ ಮಾಡಿದ್ದೀವಿ
+    client = MongoClient(MONGO_URL, tlsAllowInvalidCertificates=True)
     db = client["dolphin_trends_db"]
     products_table = db["products"]
     print("✅ Connected to MongoDB Atlas Successfully!")
