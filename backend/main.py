@@ -22,8 +22,13 @@ app.add_middleware(
 # ================= MONGODB ATLAS SETUP =================
 MONGO_URL = os.environ.get("MONGO_URL", "")
 if MONGO_URL:
-    # 🛡️ Render Python 3.14 ನಲ್ಲಿ ಬರ್ತಿದ್ದ SSL ಹ್ಯಾಂಡ್‌ಶೇಕ್ ಎರರ್ ಅನ್ನು ಇಲ್ಲಿ ಫಿಕ್ಸ್ ಮಾಡಲಾಗಿದೆ
-    client = MongoClient(MONGO_URL, tlsAllowInvalidCertificates=True)
+    # 🔥 ಸ್ಟ್ರಾಂಗ್ SSL/TLS ಬೈಪಾಸ್ ಸೆಟ್ಟಿಂಗ್ಸ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ
+    client = MongoClient(
+        MONGO_URL, 
+        tls=True,
+        tlsAllowInvalidCertificates=True,
+        tlsInsecure=True
+    )
     db = client["dolphin_trends_db"]
     products_table = db["products"]
     print("✅ Connected to MongoDB Atlas Successfully!")
