@@ -11,7 +11,7 @@ from PIL import Image
 
 app = FastAPI()
 
-# CORS Setting - ವೆಬ್‌ಸೈಟ್ ಕನೆಕ್ಟ್ ಮಾಡೋಕೆ
+# CORS Setting - Website connect madoke
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,32 +20,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── ⚙️ ಕಾನ್ಫಿಗರೇಶನ್ ಮತ್ತು ಕನೆಕ್ಷನ್ಸ್ ───
+# ─── ⚙️ CONFIGURATION & CONNECTIONS ───
 MONGO_URL = os.getenv("MONGO_URL")
 GREEN_API_INSTANCE = os.getenv("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
 
-# 📱 ಜೀವನ್ ನಿಮ್ಮ ಪರ್ಸನಲ್ ವಾಟ್ಸಾಪ್ ನಂಬರ್ (ಅಲರ್ಟ್ ಬರಲು)
+# 📱 Jeevan nimma personal WhatsApp number (Alerts baroke)
 YOUR_PERSONAL_PHONE = "917411255628"
+# 💳 Nimma asli UPI ID illi haaki (Dynamic payment link ge)
+YOUR_UPI_ID = "7411255628@ybl"  
 
 ca = certifi.where()
 db = None
 bookings_table = None
+products_table = None
 
 if MONGO_URL:
-    # ⚡ ಕನೆಕ್ಷನ್ ಟೈಮ್‌ಔಟ್ 2 ಸೆಕೆಂಡ್‌ಗೆ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ (ವೆಬ್‌ಸೈಟ್ ಸ್ಲೋ ಆಗಲ್ಲ!)
     client = MongoClient(MONGO_URL, tlsCAFile=ca, connectTimeoutMS=2000, serverSelectionTimeoutMS=2000)
     db = client["dolphin_trends_db"]
     products_table = db["products"]
-    bookings_table = db["bookings"] # ಹೊಸ ಬುಕಿಂಗ್ ಟೇಬಲ್
+    bookings_table = db["bookings"]
 
-# ─── 📨 ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಕಳುಹಿಸುವ ಫಂಕ್ಷನ್ (GREEN API) ───
+# ─── 📨 WHATSAPP MESSAGE FUNCTION (GREEN API) ───
 def send_whatsapp(phone, message):
     if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
         print("❌ Green API Credentials Missing!")
         return False
     
-    # ನಂಬರ್ ಕ್ಲೀನ್ ಮಾಡೋದು (ಸ್ಪೇಸ್ ಅಥವಾ + ಇದ್ದರೆ ರಿಮೂವ್ ಮಾಡುತ್ತೆ)
     phone = str(phone).replace("+", "").replace(" ", "")
     if not phone.endswith("@c.us"):
         chat_id = f"{phone}@c.us"
@@ -71,21 +72,21 @@ def send_whatsapp(phone, message):
         print(f"❌ WhatsApp Send Exception: {str(e)}")
         return False
 
-# ─── 👗 ಕಸ್ಟಮರ್ ಆರ್ಡರ್ ಬುಕಿಂಗ್ ಮಾಡೆಲ್ ───
+# ─── 👗 DATA MODELS ───
 class BookingPayload(BaseModel):
     customer_name: str
     customer_phone: str
     product_name: str
     image_url: str
 
-# 1. 📥 ಕಸ್ಟಮರ್ ವೆಬ್‌ಸೈಟ್‌ನಲ್ಲಿ "Buy Now" ಸಬ್ಮಿಟ್ ಮಾಡಿದಾಗ ರನ್ ಆಗುವ ಏಪಿಐ
+# ─── 🚀 1. CUSTOMER "BUY NOW" SUBMIT API ───
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
     
     try:
-        booking_id = str(uuid.uuid4())[:8] # ಯುನಿಕ್ 8 ಅಕ್ಷರದ ಬುಕಿಂಗ್ ಐಡಿ
+        booking_id = str(uuid.uuid4())[:8] # Unique 8 letter ID
         
         booking_data = {
             "booking_id": booking_id,
@@ -97,15 +98,24 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
         
-        # 🚨 ಜೀವನ್ ನಿಮ್ಮ ವಾಟ್ಸಾಪ್‌ಗೆ ಬರುವ ಸಿಂಪಲ್ ಅಲರ್ಟ್ ಮೆಸೇಜ್
-        admin_message = f"🚨 *Dolphin Trends Alert!*\n\nಹೊಸ Booking ಬಂದಿದೆ, ದಯವಿಟ್ಟು ವೆಬ್‌ಸೈಟ್ ಅಪ್ಡೇಟ್ ಮಾಡಿ!"
+        # 🚨 Jeevan nimma personal WhatsApp ge baro simple alert message
+        admin_message = f"🚨 *Dolphin Trends Alert!*\n\nHosa Booking bandide, dayavittu website check madi update madi!"
         send_whatsapp(YOUR_PERSONAL_PHONE, admin_message)
+        
+        # 💬 Customer ge thaxna hogo Instant Waiting Message
+        customer_waiting_message = (
+            f"Hello {payload.customer_name} ma'am! ✨\n\n"
+            f"Nimma order booking successfully register aagide. 👗\n"
+            f"Dayavittu 5 minutes wait madi, naavu namma shopalli (Dolphin Trends) "
+            f"stock check madi thaxna idhe WhatsApp number ge confirm message kalsthivi. 🙏"
+        )
+        send_whatsapp(payload.customer_phone, customer_waiting_message)
         
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 2. 📋 ವೆಬ್‌ಸೈಟ್ ಅಡ್ಮಿನ್ ಪ್ಯಾನೆಲ್‌ಗೆ ಎಲ್ಲಾ ಬುಕಿಂಗ್ ಡೇಟಾ ಕಳುಹಿಸುವ ಏಪಿಐ
+# ─── 📋 2. ADMIN PANEL GE DATA DISPLAY MADO API ───
 @app.get("/api/admin/bookings")
 def get_all_bookings():
     if bookings_table is None:
@@ -116,10 +126,10 @@ def get_all_bookings():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 3. 🟢 🔴 ವೆಬ್‌ಸೈಟ್‌ನಲ್ಲಿ ನೀವು Agree / Disagree ಕನ್‌ಫರ್ಮ್ ಮಾಡಿದಾಗ ರನ್ ಆಗುವ ಏಪಿಐ
+# ─── 🟢 🔴 3. ADMIN PANEL IND AGREE / DISAGREE MADO API ───
 @app.post("/api/admin/update-booking")
 def update_booking_status(booking_id: str, action: str):
-    if bookings_table is None:
+    if bookings_table is None or products_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
         
     try:
@@ -129,25 +139,47 @@ def update_booking_status(booking_id: str, action: str):
             
         c_name = booking["customer_name"]
         c_phone = booking["customer_phone"]
+        p_name = booking["product_name"]
         
         if action == "agree":
-            # 🟢 ಸ್ಟಾಕ್ ಇದೆ - ಕಸ್ಟಮರ್ ವಾಟ್ಸಾಪ್‌ಗೆ ಮೆಸೇಜ್
-            cust_msg = f"ಹಲೋ {c_name} ಮಾಮ್, ನೀವು ಬುಕ್ ಮಾಡಿದ ಡ್ರೆಸ್ ನಮ್ಮ Dolphin Trends ಶಾಪಲ್ಲಿ ರೆಡಿ ಇದೆ. ದಯವಿಟ್ಟು ಬೇಗ ಶಾಪ್‌ಗೆ ಬಂದು ಕಲೆಕ್ಟ್ ಮಾಡಿಕೊಳ್ಳಿ. ಧನ್ಯವಾದಗಳು! 👗✨"
+            # Database ind product price huduki 50% calculate mado logic ⚡
+            product = products_table.find_one({"name": p_name})
+            full_price = float(product.get("price", 0)) if product else 0
+            
+            advance_amount = full_price / 2
+            remaining_amount = full_price - advance_amount
+            
+            # 🛡️ Fake Screenshot stop madoke Exact Amount Lock mado Dynamic UPI Intent URL
+            merchant_name = "Dolphin%20Trends"
+            payment_link = f"upi://pay?pa={YOUR_UPI_ID}&pn={merchant_name}&am={advance_amount:.2f}&cu=INR"
+            
+            # 🟢 Stock ide - WhatsApp message with 50% price detail & QR-Link
+            cust_msg = (
+                f"ಹಲೋ {c_name} ಮಾಮ್, ನೀವು ಬುಕ್ ಮಾಡಿದ ಡ್ರೆಸ್ (*{p_name}*) ನಮ್ಮ Dolphin Trends ಶಾಪಲ್ಲಿ ರೆಡಿ ಇದೆ! 👗✨\n\n"
+                f"💰 *Price Details:*\n"
+                f"• Total Price: ₹{full_price:.2f}\n"
+                f"• *Advance to Pay (50%): ₹{advance_amount:.2f}*\n"
+                f"• Balance at Shop: ₹{remaining_amount:.2f}\n\n"
+                f"📢 *Note:* Nimige product confirm beku ansidre, kelagina link click madi exact ₹{advance_amount:.2f} advance payment madi order confirm madkoli. "
+                f"Aavaga shop ge baro vasthige ee batte bere yarigoo sale aagalla!\n\n"
+                f"🔗 *Pay via GPay/PhonePe Link:* {payment_link}\n\n"
+                f"Illa andre just ignore it and visit our shop. Thank you! 🙏"
+            )
             send_whatsapp(c_phone, cust_msg)
-            bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
-            return {"status": "success", "message": "Approved & WhatsApp Sent"}
+            bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved-WaitingPayment"}})
+            return {"status": "success", "message": "Approved & 50% payment link sent!"}
             
         elif action == "disagree":
-            # 🔴 ಔಟ್ ಆಫ್ ಸ್ಟಾಕ್ - ಕಸ್ಟಮರ್ ವಾಟ್ಸಾಪ್‌ಗೆ ಮೆಸೇಜ್
-            cust_msg = f"Sorry {c_name} ಮಾಮ್, ನೀವು ಕೇಳಿದ ಡ್ರೆಸ್ ಸದ್ಯಕ್ಕೆ Out of Stock ಆಗಿದೆ. ಸ್ವಲ್ಪ ದಿನದಲ್ಲೇ ಮತ್ತೆ ತರಿಸ್ತೀವಿ. ನಮ್ಮ ವೆಬ್‌ಸೈಟ್‌ಗೆ ವیسیಟ್ ಮಾಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು! 🙏"
+            # 🔴 Out of Stock Message
+            cust_msg = f"Sorry {c_name} ಮಾಮ್, ನೀವು ಕೇಳಿದ ಡ್ರೆಸ್ ಸದ್ಯಕ್ಕೆ Out of Stock ಆಗಿದೆ. ಸ್ವಲ್ಪ ದಿನದಲ್ಲೇ ಮತ್ತೆ ತರಿಸ್ತೀವಿ. Dolphin Trends ಗೆ ಭೇಟಿ ನೀಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು! 🙏"
             send_whatsapp(c_phone, cust_msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
-            return {"status": "success", "message": "Disapproved & WhatsApp Sent"}
+            return {"status": "success", "message": "Disapproved & Out of stock message sent"}
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ─── ⚡ ಒರಿಜಿನಲ್ ವೆಬ್‌ಸೈಟ್ ಪ್ರಾಡಕ್ಟ್ಸ್ ಏಪಿಐ ───
+# ─── ⚡ PRODUCTS FETCH FOR WEBSITE ───
 @app.get("/api/products")
 def get_products():
     if products_table is None:
@@ -161,4 +193,4 @@ def get_products():
 
 @app.get("/")
 def home():
-    return {"status": "Dolphin Trends API is Running Super Fast!"}
+    return {"status": "Dolphin Trends Super Automated Backend is Running!"}
