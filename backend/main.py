@@ -98,16 +98,23 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
         
-        # 🚨 Jeevan nimma personal WhatsApp ge baro simple alert message
-        admin_message = f"🚨 *Dolphin Trends Alert!*\n\nHosa Booking bandide, dayavittu website check madi update madi!"
+        # 🚨 1. NIMGE (ADMIN) BARO AUTOMATIC MESSAGE WITH WEBSITE LINK
+        admin_message = (
+            f"🔔 *New Booking Alert!* 🔔\n\n"
+            f"Hi Jeevan, a customer has just placed an order request on the website. Please review it in the admin panel.\n\n"
+            f"👤 *Customer:* {payload.customer_name}\n"
+            f"👗 *Product:* {payload.product_name}\n\n"
+            f"🔗 *Admin Dashboard:* https://dolphin-trends-two.vercel.app"
+        )
         send_whatsapp(YOUR_PERSONAL_PHONE, admin_message)
         
-        # 💬 Customer ge thaxna hogo Instant Waiting Message
+        # 💬 2. CUSTOMER GE TAXNA HOGO PROFESSIONAL WAITING MESSAGE
         customer_waiting_message = (
-            f"Hello {payload.customer_name} ma'am! ✨\n\n"
-            f"Nimma order booking successfully register aagide. 👗\n"
-            f"Dayavittu 5 minutes wait madi, naavu namma shopalli (Dolphin Trends) "
-            f"stock check madi thaxna idhe WhatsApp number ge confirm message kalsthivi. 🙏"
+            f"Hi {payload.customer_name},\n\n"
+            f"Thank you for visiting Dolphin Trends! 🐬✨\n\n"
+            f"Your booking request for *{payload.product_name}* has been successfully registered. "
+            f"Our team is currently verifying the stock availability at our store.\n\n"
+            f"Please give us about 5 minutes. We will send you a confirmation message right here shortly. Thank you for your patience! 🙏"
         )
         send_whatsapp(payload.customer_phone, customer_waiting_message)
         
@@ -144,7 +151,15 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             # Database ind product price huduki 50% calculate mado logic ⚡
             product = products_table.find_one({"name": p_name})
-            full_price = float(product.get("price", 0)) if product else 0
+            
+            # Cleaning price string (eg: "₹350" -> 350.0)
+            full_price = 0.0
+            if product and "price" in product:
+                try:
+                    price_str = str(product["price"]).replace("₹", "").replace(",", "").strip()
+                    full_price = float(price_str)
+                except:
+                    full_price = 0.0
             
             advance_amount = full_price / 2
             remaining_amount = full_price - advance_amount
@@ -153,25 +168,37 @@ def update_booking_status(booking_id: str, action: str):
             merchant_name = "Dolphin%20Trends"
             payment_link = f"upi://pay?pa={YOUR_UPI_ID}&pn={merchant_name}&am={advance_amount:.2f}&cu=INR"
             
-            # 🟢 Stock ide - WhatsApp message with 50% price detail & QR-Link
+            # 🟢 1. CUSTOMER GE HOGO PROFESSIONAL AGREE MESSAGE WITH LOCATION & DETAILS
             cust_msg = (
-                f"ಹಲೋ {c_name} ಮಾಮ್, ನೀವು ಬುಕ್ ಮಾಡಿದ ಡ್ರೆಸ್ (*{p_name}*) ನಮ್ಮ Dolphin Trends ಶಾಪಲ್ಲಿ ರೆಡಿ ಇದೆ! 👗✨\n\n"
-                f"💰 *Price Details:*\n"
+                f"Hello {c_name},\n\n"
+                f"Great news! The item you selected (*{p_name}*) is AVAILABLE and reserved for you at Dolphin Trends! 🎉👗\n\n"
+                f"💰 *Price & Order Details:*\n"
                 f"• Total Price: ₹{full_price:.2f}\n"
-                f"• *Advance to Pay (50%): ₹{advance_amount:.2f}*\n"
-                f"• Balance at Shop: ₹{remaining_amount:.2f}\n\n"
-                f"📢 *Note:* Nimige product confirm beku ansidre, kelagina link click madi exact ₹{advance_amount:.2f} advance payment madi order confirm madkoli. "
-                f"Aavaga shop ge baro vasthige ee batte bere yarigoo sale aagalla!\n\n"
-                f"🔗 *Pay via GPay/PhonePe Link:* {payment_link}\n\n"
-                f"Illa andre just ignore it and visit our shop. Thank you! 🙏"
+                f"• *Advance to Secure (50%): ₹{advance_amount:.2f}*\n"
+                f"• Balance to Pay at Shop: ₹{remaining_amount:.2f}\n\n"
+                f"✨ *How to Confirm Your Order:*\n"
+                f"If you absolutely love this product and want to secure it, please click the secure link below to pay the 50% advance amount. Once paid, this item will be completely locked for you and won't be sold to anyone else!\n"
+                f"🔗 *Pay Securely via GPay/PhonePe:* {payment_link}\n\n"
+                f"📌 *Prefer to check it out first?*\n"
+                f"If you prefer not to pay online, please feel free to ignore the payment link and directly visit our store to explore and buy!\n\n"
+                f"🏪 *Store Location:* https://maps.app.goo.gl/vYm66S8mGz7K7uCH7 (Laggere Main Road, Bangalore)\n\n"
+                f"Thank you for choosing Dolphin Trends! We look forward to seeing you. 🐬"
             )
             send_whatsapp(c_phone, cust_msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved-WaitingPayment"}})
-            return {"status": "success", "message": "Approved & 50% payment link sent!"}
+            return {"status": "success", "message": "Approved & Professional WhatsApp message sent!"}
             
         elif action == "disagree":
-            # 🔴 Out of Stock Message
-            cust_msg = f"Sorry {c_name} ಮಾಮ್, ನೀವು ಕೇಳಿದ ಡ್ರೆಸ್ ಸದ್ಯಕ್ಕೆ Out of Stock ಆಗಿದೆ. ಸ್ವಲ್ಪ ದಿನದಲ್ಲೇ ಮತ್ತೆ ತರಿಸ್ತೀವಿ. Dolphin Trends ಗೆ ಭೇಟಿ ನೀಡಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು! 🙏"
+            # 🔴 2. CUSTOMER GE HOGO PROFESSIONAL OUT OF STOCK MESSAGE
+            cust_msg = (
+                f"Hello {c_name},\n\n"
+                f"Thank you for your interest in Dolphin Trends. 🌸\n\n"
+                f"We are very sorry, but the product you requested (*{p_name}*) is currently *Out of Stock* due to high demand. "
+                f"We expect to restock this collection very soon!\n\n"
+                f"We highly appreciate your visit to our website and hope to welcome you to our physical store soon to explore other fresh designs.\n\n"
+                f"Warm regards,\n"
+                f"Team Dolphin Trends, Bangalore. 🙏"
+            )
             send_whatsapp(c_phone, cust_msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
             return {"status": "success", "message": "Disapproved & Out of stock message sent"}
@@ -180,7 +207,6 @@ def update_booking_status(booking_id: str, action: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ─── ⚡ PRODUCTS FETCH FOR WEBSITE ───
-# 🟢 1. ರಿಯಾಕ್ಟ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ತರಹ ಲಿಂಕ್ ಅನ್ನು ಬರೀ "/products" ಗೆ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ ಜೀವನ್
 @app.get("/products")
 def get_products():
     if products_table is None:
