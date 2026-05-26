@@ -30,7 +30,7 @@ function App() {
     setLoading(true);
     fetch('https://dolphin-trends-3.onrender.com/products')
       .then(r => r.json())
-      .then(d => { setProducts(d); setLoading(false); })
+      .then(d => { setProducts(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
   };
 
