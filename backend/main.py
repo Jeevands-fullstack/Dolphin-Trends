@@ -6,7 +6,6 @@ import uuid
 import requests
 import json
 import re
-import asyncio  # ⏱️ 30 ಸೆಕೆಂಡ್ ವೇಟಿಂಗ್ ಟೈಮಿಂಗ್ಸ್‌ಗಾಗಿ
 import google.generativeai as genai
 
 # ================= FASTAPI SETUP =================
@@ -116,9 +115,6 @@ async def telegram_webhook(request: Request):
         is_edit_mode = "#edit" in caption.lower()
 
         send_telegram(chat_id, "📥 Photo received, starting processing...")
-
-        # ⏱️ ನಿಮ್ಮ ಫೇವರಿಟ್ ಟೈಮಿಂಗ್ಸ್ ಲಾಜಿಕ್ - ಫೋಟೋ ಕಂಪ್ಲೀಟ್ ಲೋಡ್ ಆಗಲು 30 ಸೆಕೆಂಡ್ ವೇಟ್ ಮಾಡುತ್ತೆ
-        await asyncio.sleep(30)
 
         lines = [line.strip() for line in caption.split('\n') if line.strip()]
         clean_lines = [l for l in lines if "#edit" not in l.lower()]
