@@ -145,7 +145,7 @@ async def telegram_webhook(request: Request):
                 try:
                     send_telegram(chat_id, "🤖 Google AI is scanning the dress category...")
                     image_bytes = requests.get(final_image_url).content
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    model = genai.GenerativeModel('gemini-2.5-flash')
                     
                     category_prompt = (
                         "Identify the exact clothing type from this image. "
