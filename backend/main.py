@@ -20,22 +20,24 @@ app.add_middleware(
 )
 
 # ================= MONGODB ATLAS SETUP =================
+import certifi # 🛡️ ಸೆಕ್ಯೂರಿಟಿ ಸರ್ಟಿಫಿಕೇಟ್ ಮ್ಯಾಚ್ ಮಾಡಲು ಇದನ್ನು ಇಂಪೋರ್ಟ್ ಮಾಡಬೇಕು
+
+ca = certifi.where() # ಪಕ್ಕಾ ಸರ್ಟಿಫಿಕೇಟ್ ಪಾತ್ ತಗೊಳ್ಳುತ್ತೆ
+
 MONGO_URL = os.environ.get("MONGO_URL", "")
 if MONGO_URL:
-    # 🛡️ ಬರೀ tlsInsecure=True ಮಾತ್ರ ಇಟ್ಟಿದ್ದೀವಿ, ಇದರಿಂದ ಯಾವುದೇ ಕಾನ್ಫ್ಲಿಕ್ಟ್ ಬರಲ್ಲ!
+    # 🔥 ಇಲ್ಲಿ tlsCAFile=ca ಆಡ್ ಮಾಡಿದ್ದೀವಿ, ಇದು SSL ಎರರ್ ಅನ್ನು 100% ಸಾಲ್ವ್ ಮಾಡುತ್ತೆ!
     client = MongoClient(
         MONGO_URL, 
-        tlsInsecure=True
+        tlsCAFile=ca
     )
     db = client["dolphin_trends_db"]
     products_table = db["products"]
     print("✅ Connected to MongoDB Atlas Successfully!")
-
 else:
     from tinydb import TinyDB
     local_db = TinyDB("database.json")
     products_table = local_db.table("products")
-
 # ================= GOOGLE GEMINI AI SETUP =================
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 if GOOGLE_API_KEY:
