@@ -7,7 +7,7 @@ function BookingModal({ product, onClose }) {
   const [step, setStep] = useState(1);
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  const advanceAmount = Math.ceil(parseInt(product.price.replace('₹', '')) * 0.5);
+  const advanceAmount = Math.ceil(parseInt(product.price.replace(/[^\d]/g, '')) * 0.5) || 0;
 
   const handleBooking = async () => {
     if (!customerName || !phone || !selectedSize) {
