@@ -164,8 +164,15 @@ async def telegram_webhook(request: Request):
 
                 file_info_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile?file_id={file_id}"
                 file_info = requests.get(file_info_url).json()
-                file_path = file_info["result"]["file_path"]
-                public_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
+result = file_info.get("result", {})
+file_path = result.get("file_path")
+
+if not file_path:
+    send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    requests.post(send_url, json={"chat_id": chat_id, "text": "❌ Image download failed!"})
+    return {"status": "ok"}
+
+public_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
                 
                 # 1️⃣ WEBSITE PRODUCT ADD (MongoDB)
                 new_product_id = str(uuid.uuid4())[:6]
