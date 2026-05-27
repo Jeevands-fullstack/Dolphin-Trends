@@ -1,7 +1,7 @@
 import os
 import io
 import uuid
-import time  # ⏳ 3 Seconds gap kodoke time module add madiroodu
+import time  # ⏳ 3 Seconds gap kodoke time module
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,13 +28,16 @@ GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
 
 # 🤖 TELEGRAM CONFIGURATION
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "YOUR_TELEGRAM_BOT_TOKEN"
-"chatId": f"{YOUR_PERSONAL_PHONE}@c.us"
 
-# 🔒 SECURITY: Nimma personal Telegram Chat ID ಹಾಕಿ ಜೀವನ್
+# 🔒 SECURITY: Nimma personal Telegram Chat ID (Fixed & Active)
 JEEVAN_TELEGRAM_CHAT_ID = 2113728041
 
 # 📱 Jeevan nimma personal WhatsApp number (Alerts baroke)
 YOUR_PERSONAL_PHONE = "917411255628"
+
+# 👥 WhatsApp Group ID (Put your actual Green API group ID in environment variable or here)
+WHATSAPP_GROUP_ID = os.getenv("WHATSAPP_GROUP_ID") or "YOUR_WHATSAPP_GROUP_ID@g.us"
+
 # 💳 Nimma asli UPI ID illi haaki (Dynamic payment link ge)
 YOUR_UPI_ID = "7411255628@ybl"  
 
@@ -273,7 +276,6 @@ def update_booking_status(booking_id: str, action: str):
                 f"🏪 *Our Store Location:* https://maps.app.goo.gl/vYm66S8mGz7K7uCH7 (Laggere Main Road, Bangalore)\n\n"
                 f"Please visit our store to explore more collections! 🐬"
             )
-            # Modala message send agutthe
             send_whatsapp(c_phone, first_msg)
             
             # ⏳ EXACT 3 SECONDS WAIT
@@ -287,7 +289,6 @@ def update_booking_status(booking_id: str, action: str):
                 f"🔗 *Pay Securely via UPI:* {payment_link}\n\n"
                 f"📌 *Note:* If you prefer to check the item directly at our store before buying, please *JUST IGNORE* this payment link and visit us directly! 🙏"
             )
-            # Eradane message auto-send agutthe 3 seconds nantara
             send_whatsapp(c_phone, second_msg)
             
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved-WaitingPayment"}})
@@ -354,9 +355,10 @@ def get_products():
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Super Automated Backend is Running!"}
-    # ─── 🔌 ADD THIS AT THE VERY BOTTOM OF YOUR main.py ───
+
+# ─── 🔌 MAIN SERVER RUN LOGIC ───
 if __name__ == "__main__":
     import uvicorn
-    # Render ತಾನಾಗಿಯೇ PORT ಎನ್ವಿರಾನ್‌ಮೆಂಟ್ ವೇರಿಯೇಬಲ್ ಕೊಡುತ್ತೆ, ಇಲ್ಲದಿದ್ರೆ 8000 ತಗೊಳ್ಳುತ್ತೆ
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+            
