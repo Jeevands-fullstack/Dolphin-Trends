@@ -484,6 +484,71 @@ def get_products():
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Pure Smart AI Backend is Running!"}
+    # ✅ FIX: Frontend ಕರೆಯೋ routes add ಮಾಡಿದೆ
+@app.delete("/products/{product_id}")
+def delete_product_direct(product_id: str):
+    if products_table is None:
+        raise HTTPException(status_code=500, detail="DB missing")
+    try:
+        # id ಮತ್ತು product_id ಎರಡನ್ನೂ search ಮಾಡಿ
+        result = products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Not found")
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/products/{product_id}")
+def update_product_direct(product_id: str, payload: dict):
+    if products_table is None:
+        raise HTTPException(status_code=500, detail="DB missing")
+    try:
+        result = products_table.update_one(
+            {"$or": [{"product_id": product_id}, {"id": product_id}]},
+            {"$set": payload}
+        )
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Not found")
+        updated = products_table.find_one(
+            {"$or": [{"product_id": product_id}, {"id": product_id}]},
+            {"_id": 0}
+        )
+        return updated
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/reviews/{product_id}")
+def get_reviews(product_id: str):
+    if db is None:
+        return []
+    reviews_table = db["reviews"]
+    return list(reviews_table.find({"product_id": product_id}, {"_id": 0}))
+
+@app.post("/reviews")
+def add_review(review: dict):
+    if db is None:
+        raise HTTPException(status_code=500, detail="DB missing")
+    reviews_table = db["reviews"]
+    review["id"] = str(uuid.uuid4())
+    reviews_table.insert_one(review)
+    review.pop("_id", None)
+    return review
+
+@app.post("/bookings")
+def add_booking(booking: dict):
+    if bookings_table is None:
+        raise HTTPException(status_code=500, detail="DB missing")
+    booking["id"] = str(uuid.uuid4())
+    booking["status"] = "Pending"
+    bookings_table.insert_one(booking)
+    booking.pop("_id", None)
+    return booking
+
+@app.get("/bookings")
+def get_bookings():
+    if bookings_table is None:
+        return []
+    return list(bookings_table.find({}, {"_id": 0}))
 
 if __name__ == "__main__":
     import uvicorn
