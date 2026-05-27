@@ -81,7 +81,7 @@ def send_whatsapp(phone, message):
         print(f"❌ WhatsApp Send Exception: {str(e)}")
         return False
 
-# ─── 🧠 SMART GEMINI AI FUNCTION (NAME, CATEGORY & DESCRIPTION GENERATOR) ───
+# ─── 🧠 SMART GEMINI AI FUNCTION (UPDATED TO GEMINI-2.5-FLASH) ───
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
@@ -90,6 +90,7 @@ def generate_product_details_via_ai(image_url):
         response = requests.get(image_url)
         image_bytes = response.content
         
+        # 🎯 Updated to latest model version
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = (
@@ -124,8 +125,10 @@ class BookingPayload(BaseModel):
     customer_phone: str
     product_name: str
     image_url: str
+    size: str = "M"        # Fallback default
+    price: str = "₹1299"   # Fallback default
 
-# ─── 🚀 1. CUSTOMER "BUY NOW" SUBMIT API ───
+# ─── 🚀 1. CUSTOMER "BUY NOW" SUBMIT API (UPDATED FORMAT & WEBSITE LINK) ───
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -138,19 +141,27 @@ def create_booking(payload: BookingPayload):
             "customer_phone": payload.customer_phone,
             "product_name": payload.product_name,
             "image_url": payload.image_url,
+            "size": payload.size,
+            "price": payload.price,
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
         
+        # 🔔 🎯 CLEAN ADMIN WHATSAPP MESSAGE FORMAT WITH WEBSITE LINK
         admin_message = (
-            f"🔔 *New Booking Alert!* 🔔\n\n"
-            f"Hi, a customer has just placed an order request on the website.\n\n"
-            f"👤 *Customer:* {payload.customer_name}\n"
-            f"👗 *Product:* {payload.product_name}\n\n"
+            f"🛍️ *New Buy Request!*\n\n"
+            f"👗 *Product:* {payload.product_name}\n"
+            f"📏 *Size:* {payload.size}\n"
+            f"💰 *Price:* {payload.price}\n"
+            f"👤 *Name:* {payload.customer_name}\n"
+            f"📞 *Phone:* {payload.customer_phone}\n\n"
+            f"📢 *Action Required:*\n"
+            f"Check the product in the shop and update the website! 🏬👇\n\n"
             f"🔗 *Admin Dashboard:* https://dolphin-trends-two.vercel.app"
         )
         send_whatsapp(YOUR_PERSONAL_PHONE, admin_message)
         
+        # Customer Message
         customer_waiting_message = (
             f"Hi {payload.customer_name},\n\n"
             f"Thank you for visiting Dolphin Trends! 🐬✨\n\n"
@@ -162,7 +173,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (FIXED CAPTION LOGIC) ───
+# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (TELEGRAM UPLOAD LOGIC) ───
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -192,22 +203,18 @@ async def telegram_webhook(request: Request):
 
                 public_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
                 
-                # Default fallback configs
                 product_name = "Dolphin Trends Premium Suit"
                 product_price = "₹1500"
                 product_category = "Suit Set"
                 product_description = "Exclusively curated premium collection at Dolphin Trends."
                 
-                # ─── 🎯 ADVANCED CAPTION PARSING LOGIC ───
                 if caption:
                     lines = [l.strip() for l in caption.split("\n") if l.strip()]
                     clean_text = " ".join(lines)
                     
-                    # Check Scenario: Custom Name with Price below or side (e.g., Umbrella Sets \n ₹ 1300)
                     import re
                     price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_text)
                     
-                    # Parse standard layout with '-' splits
                     if "-" in caption:
                         parts = caption.split("-")
                         if len(parts) >= 3:
@@ -221,17 +228,13 @@ async def telegram_webhook(request: Request):
                             product_price = parts[1].strip()
                             _, product_category, product_description = generate_product_details_via_ai(public_image_url)
                     
-                    # Parse multiline or direct spaces format (e.g. "Umbrella Sets ₹ 1300")
                     elif price_match:
                         extracted_price = price_match.group(1)
                         product_price = f"₹{extracted_price}"
-                        
-                        # Remove the price part to extract the clean name text
                         name_part = clean_text.replace(price_match.group(0), "").replace("₹", "").strip()
                         if name_part:
                             product_name = name_part
                         
-                        # Fetch category and description safely via AI, don't overwrite manual name
                         _, ai_cat, ai_desc = generate_product_details_via_ai(public_image_url)
                         product_category = ai_cat
                         product_description = ai_desc
@@ -242,10 +245,9 @@ async def telegram_webhook(request: Request):
                     if not product_price.startswith("₹"):
                         product_price = f"₹{product_price}"
                 else:
-                    # Pure AI execution if no caption at all
                     product_name, product_category, product_description = generate_product_details_via_ai(public_image_url)
 
-                # 🌐 A. WEBSITE CATALOG UPLOAD 
+                # Website catalog upload
                 new_product_id = str(uuid.uuid4())[:6]
                 product_data = {
                     "product_id": new_product_id,
@@ -257,7 +259,7 @@ async def telegram_webhook(request: Request):
                 }
                 products_table.insert_one(product_data)
 
-                # 📱 B. SIMPLE & ATTRACTIVE ENGLISH WHATSAPP TEMPLATE
+                # Simple English WhatsApp Template
                 whatsapp_personal_msg = (
                     f"🐬 *Dolphin Trends New Collections* 🛍️\n\n"
                     f"Our boutique's latest arrivals are now live! 😍\n\n"
@@ -274,7 +276,7 @@ async def telegram_webhook(request: Request):
                 }
                 requests.post(wa_url, json=wa_payload, timeout=10)
 
-                # 📸 C. INSTAGRAM POSTING
+                # Instagram Posting
                 if INSTAGRAM_ACCOUNT_ID and INSTAGRAM_ACCESS_TOKEN:
                     try:
                         ig_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_ACCOUNT_ID}/media"
@@ -283,35 +285,70 @@ async def telegram_webhook(request: Request):
                             "caption": f"✨ Dolphin Trends New Collections ✨\n\nOur latest boutique collection is officially available! 🥰\n\n🛍️ For more amazing collections and price details, head over to our website right away. Link in bio! 👆✨\n\n#dolphintrends #boutiquecollection #bangalorefashion",
                             "access_token": INSTAGRAM_ACCESS_TOKEN
                         }
-                        ig_res = requests.post(ig_url, data=ig_payload).json()
-                        creation_id = ig_res.get("id")
-                        if creation_id:
-                            publish_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_ACCOUNT_ID}/media_publish"
-                            requests.post(publish_url, data={"creation_id": creation_id, "access_token": INSTAGRAM_ACCESS_TOKEN})
-                    except Exception as ig_err:
-                        print("❌ Instagram Post Error:", str(ig_err))
+                        requests.post(ig_url, data=ig_payload)
+                    except:
+                        pass
 
-                # 💬 D. TELEGRAM NOTIFICATION
+                # Telegram notification
                 reply_text = (
                     f"✅ *Hi! Product successfully uploaded!*\n\n"
-                    f"• Name on Website: {product_name}\n"
-                    f"• Price on Website: {product_price}\n"
-                    f"• Category: {product_category}\n\n"
+                    f"• Name: {product_name}\n"
+                    f"• Price: {product_price}\n\n"
                     f"🔗 *Live Website:* https://dolphin-trends-two.vercel.app"
                 )
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                requests.post(send_url, json={
-                    "chat_id": chat_id, 
-                    "text": reply_text,
-                    "parse_mode": "Markdown"
-                })
+                requests.post(send_url, json={"chat_id": chat_id, "text": reply_text, "parse_mode": "Markdown"})
 
         return {"status": "success"}
     except Exception as e:
         print("Webhook Master Error:", str(e))
         return {"status": "error"}
 
-# ─── 🟢 🔴 🔵 3. ADMIN PANEL CODES ───
+# ─── 🟢 🔴 🔵 3. ADMIN PANEL CODES (UPDATED WITH EDIT AND DELETE SAFE ROUTE) ───
+@app.put("/api/products/{product_id}")
+def update_product(product_id: str, payload: dict):
+    if products_table is None:
+        raise HTTPException(status_code=500, detail="Database connection missing")
+    
+    # Safe protection against front-end string 'undefined'
+    if product_id == "undefined" or not product_id:
+        raise HTTPException(status_code=400, detail="Invalid Product ID passed from frontend admin panel")
+        
+    try:
+        existing = products_table.find_one({"product_id": product_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Product not found")
+            
+        products_table.update_one(
+            {"product_id": product_id},
+            {"$set": {
+                "name": payload.get("name", existing["name"]),
+                "price": payload.get("price", existing["price"]),
+                "category": payload.get("category", existing["category"]),
+                "image": payload.get("image", existing["image"]), 
+                "description": payload.get("description", existing["description"])
+            }}
+        )
+        return {"status": "success", "message": "Product updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/products/{product_id}")
+def delete_product(product_id: str):
+    if products_table is None:
+        raise HTTPException(status_code=500, detail="Database connection missing")
+        
+    if product_id == "undefined" or not product_id:
+        raise HTTPException(status_code=400, detail="Invalid Product ID passed from frontend admin panel")
+        
+    try:
+        result = products_table.delete_one({"product_id": product_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Product not found in Database")
+        return {"status": "success", "message": "Product deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/admin/update-booking")
 def update_booking_status(booking_id: str, action: str):
     if bookings_table is None or products_table is None:
@@ -389,7 +426,6 @@ def get_products():
 def home():
     return {"status": "Dolphin Trends Pure Smart AI Backend is Running!"}
 
-# ─── 🔌 MAIN SERVER RUN LOGIC ───
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
