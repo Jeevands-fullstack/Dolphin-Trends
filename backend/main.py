@@ -347,3 +347,9 @@ def get_products():
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Super Automated Backend is Running!"}
+    # ─── 🔌 ADD THIS AT THE VERY BOTTOM OF YOUR main.py ───
+if __name__ == "__main__":
+    import uvicorn
+    # Render ತಾನಾಗಿಯೇ PORT ಎನ್ವಿರಾನ್‌ಮೆಂಟ್ ವೇರಿಯೇಬಲ್ ಕೊಡುತ್ತೆ, ಇಲ್ಲದಿದ್ರೆ 8000 ತಗೊಳ್ಳುತ್ತೆ
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
