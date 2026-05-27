@@ -188,11 +188,9 @@ async def add_or_update_product_via_panel(
         raise HTTPException(status_code=500, detail="Database connection missing")
         
     try:
-        # 🎯 1. ಮೊದಲಿಗೆ ಈ ಹೆಸರಿನ ಪ್ರಾಡಕ್ಟ್ ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ಇದೆಯೇ ಎಂದು ಹುಡುಕೋಣ
         existing_product = products_table.find_one({"name": name})
         
         if existing_product:
-            # 🔄 ಹಳೇ ಪ್ರಾಡಕ್ಟ್ ಸಿಕ್ಕರೆ: ವಿವರಗಳನ್ನು ಅಪ್ಡೇಟ್ (EDIT) ಮಾಡೋಣ ಜೀವನ್
             update_data = {
                 "price": price,
                 "category": category,
@@ -203,21 +201,15 @@ async def add_or_update_product_via_panel(
             else:
                 update_data["original_price"] = ""
 
-            # ಎಡಿಟ್ ಮಾಡುವಾಗ ಹೊಸ ಇಮೇಜ್ ಅಪ್ಲೋಡ್ ಮಾಡಿದ್ದರೆ ಮಾತ್ರ ಬದಲಾಯಿಸು, ಇಲ್ಲದಿದ್ದರೆ ಹಳೇ ಇಮೇಜ್ ಹಾಗೇ ಇರಲಿ
             if file:
-                # (ಇಲ್ಲಿ ಇಮೇಜ್ ಅಪ್ಲೋಡ್ ಲಾಜಿಕ್ ಬರೆಯಬಹುದು, ಸದ್ಯಕ್ಕೆ ಫ್ರಂಟ್ಎಂಡ್ ಪ್ರಿವ್ಯೂ URL ಅಥವಾ ಹೊಸ ಫೈಲ್ ಹ್ಯಾಂಡಲ್ ಮಾಡಬಹುದು)
-                # ಉದಾಹರಣೆಗೆ ಒಂದು ಇಮೇಜ್ ಪಾತ್ ಸೇವ್ ಮಾಡೋಣ:
                 update_data["image"] = f"https://via.placeholder.com/150?text={name}"
 
             products_table.update_one({"name": name}, {"$set": update_data})
             return {"status": "success", "action": "updated", "product_id": existing_product["product_id"]}
             
         else:
-            # ➕ ಹಳೇ ಪ್ರಾಡಕ್ಟ್ ಇಲ್ಲದಿದ್ದರೆ: ಹೊಸದಾಗಿ ಕ್ರಿಯೇಟ್ (ADD) ಮಾಡೋಣ
-            # ಇಮೇಜ್ ಫೈಲ್ ಬಂದಿದೆಯೇ ಎಂದು ಚೆಕ್ ಮಾಡಿ, ಇಲ್ಲದಿದ್ದರೆ ಡಿಫಾಲ್ಟ್ ಪ್ಲೇಸ್‌ಹೋಲ್ಡರ್ ಹಾಕಿ
             public_url = f"https://via.placeholder.com/150?text={name}"
             if file:
-                # ನೀವು ಸರ್ವರ್‌ನಲ್ಲಿ ಅಥವಾ ಕ್ಲೌಡ್‌ನಲ್ಲಿ ಸೇವ್ ಮಾಡೋ ಹಳೇ ಲಾಜಿಕ್ ಇಲ್ಲಿದೆ ಅಂದುಕೊಳ್ಳೋಣ:
                 pass
 
             new_id = str(uuid.uuid4())[:6]
@@ -366,13 +358,13 @@ async def telegram_webhook(request: Request):
         print("Webhook Master Error:", str(e))
         return {"status": "error"}
 
-# ─── 🟢 🔴 🔵 4. ADMIN PANEL PUT/DELETE ROUTES (RETAINED FOR FALLBACK) ───
+# ─── 🟢 🔴 🔵 4. ADMIN PANEL PUT/DELETE ROUTES (WITH STRICTOR ID VALIDATIONS) ───
 @app.put("/api/products/{product_id}")
 def update_product(product_id: str, payload: dict):
     if products_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
-    if product_id == "undefined" or not product_id:
-        raise HTTPException(status_code=400, detail="Invalid Product ID")
+    if not product_id or product_id == "undefined" or product_id.strip() == "":
+        raise HTTPException(status_code=400, detail="Invalid Product ID: ID is undefined or missing")
         
     try:
         existing = products_table.find_one({"product_id": product_id})
@@ -397,8 +389,8 @@ def update_product(product_id: str, payload: dict):
 def delete_product(product_id: str):
     if products_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
-    if product_id == "undefined" or not product_id:
-        raise HTTPException(status_code=400, detail="Invalid Product ID")
+    if not product_id or product_id == "undefined" or product_id.strip() == "":
+        raise HTTPException(status_code=400, detail="Invalid Product ID: ID is undefined or missing")
         
     try:
         result = products_table.delete_one({"product_id": product_id})
@@ -484,17 +476,21 @@ def get_products():
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Pure Smart AI Backend is Running!"}
-    # ✅ FIX: Frontend ಕರೆಯೋ routes add ಮಾಡಿದೆ
+
+# ✅ FIX: Frontend ಕರೆಯೋ ಡೈರೆಕ್ಟ್ routes ಗಳಿಗೆ 'undefined' ಚೆಕ್ ಹಾಕಲಾಗಿದೆ
 @app.delete("/products/{product_id}")
 def delete_product_direct(product_id: str):
     if products_table is None:
         raise HTTPException(status_code=500, detail="DB missing")
+    if not product_id or product_id == "undefined" or product_id.strip() == "":
+        raise HTTPException(status_code=400, detail="Invalid Product ID: ID is undefined or missing")
+        
     try:
-        # id ಮತ್ತು product_id ಎರಡನ್ನೂ search ಮಾಡಿ
+        # id ಮತ್ತು product_id ಎರಡನ್ನೂ search ಮಾಡಿ ಡಿಲೀಟ್ ಮಾಡು
         result = products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
         if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Not found")
-        return {"success": True}
+            raise HTTPException(status_code=404, detail="Product not found")
+        return {"success": True, "message": "Product deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -502,13 +498,16 @@ def delete_product_direct(product_id: str):
 def update_product_direct(product_id: str, payload: dict):
     if products_table is None:
         raise HTTPException(status_code=500, detail="DB missing")
+    if not product_id or product_id == "undefined" or product_id.strip() == "":
+        raise HTTPException(status_code=400, detail="Invalid Product ID: ID is undefined or missing")
+        
     try:
         result = products_table.update_one(
             {"$or": [{"product_id": product_id}, {"id": product_id}]},
             {"$set": payload}
         )
         if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Not found")
+            raise HTTPException(status_code=404, detail="Product not found")
         updated = products_table.find_one(
             {"$or": [{"product_id": product_id}, {"id": product_id}]},
             {"_id": 0}
@@ -520,6 +519,8 @@ def update_product_direct(product_id: str, payload: dict):
 @app.get("/reviews/{product_id}")
 def get_reviews(product_id: str):
     if db is None:
+        return []
+    if not product_id or product_id == "undefined":
         return []
     reviews_table = db["reviews"]
     return list(reviews_table.find({"product_id": product_id}, {"_id": 0}))
