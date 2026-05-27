@@ -37,10 +37,10 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "YOUR_TELEGRAM_BOT_TOKEN
 # 🔒 SECURITY: Nimma personal Telegram Chat ID
 JEEVAN_TELEGRAM_CHAT_ID = 2113728041
 
-# 📱 Jeevan nimma personal WhatsApp number (Ega idakkile chat test madthidivi)
+# 📱 Jeevan nimma personal WhatsApp number
 YOUR_PERSONAL_PHONE = "917411255628"
 
-# 👥 WhatsApp Group ID (Sadyakke idanna use madthilla, personal chat ge hogutthe)
+# 👥 WhatsApp Group ID (Sadyakke personal chat test madthidivi)
 WHATSAPP_GROUP_ID = os.getenv("WHATSAPP_GROUP_ID") or "YOUR_WHATSAPP_GROUP_ID@g.us"
 
 # 💳 UPI ID 
@@ -83,7 +83,6 @@ def send_whatsapp(phone, message):
 
 # ─── 🧠 SMART GEMINI AI FUNCTION (NAME, CATEGORY & DESCRIPTION GENERATOR) ───
 def generate_product_details_via_ai(image_url):
-    """Photo nodi automatic agi Name, Category mathu Description create madutthe"""
     try:
         if not GOOGLE_API_KEY:
             return "Trending Designer Wear", "Kurti", "Exclusively curated premium collection at Dolphin Trends."
@@ -145,7 +144,7 @@ def create_booking(payload: BookingPayload):
         
         admin_message = (
             f"🔔 *New Booking Alert!* 🔔\n\n"
-            f"Hi Jeevan, a customer has just placed an order request on the website.\n\n"
+            f"Hi, a customer has just placed an order request on the website.\n\n"
             f"👤 *Customer:* {payload.customer_name}\n"
             f"👗 *Product:* {payload.product_name}\n\n"
             f"🔗 *Admin Dashboard:* https://dolphin-trends-two.vercel.app"
@@ -163,7 +162,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (WITH CHAT ID & CUSTOM CATEGORY LOGIC) ───
+# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (NEW SIMPLE ENGLISH TEMPLATE) ───
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -193,23 +192,19 @@ async def telegram_webhook(request: Request):
 
                 public_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
                 
-                # Default variables set madೋಣ
+                # Default variables
                 product_name = "New Trendy Arrival"
                 product_price = "₹1500"
                 product_category = "Kurti"
                 product_description = "Exclusively curated collection at Dolphin Trends."
                 
-                # ─── 🗂️ CATEGORY, NAME & PRICE CONDITION CHECK ───
+                # Category, Name & Price Split Checking
                 if caption:
                     clean_caption = caption.replace("₹", "").replace(",", "").strip()
                     
-                    # Scenario A: User bari Price mathra kalsidre (e.g., 1200)
                     if clean_caption.isdigit():
                         product_price = f"₹{clean_caption}"
-                        print(f"💰 Custom price detected: {product_price}. Generating rest via AI...")
                         product_name, product_category, product_description = generate_product_details_via_ai(public_image_url)
-                        
-                    # Scenario B: User manually formatting kalsidre (Name - Price - Category)
                     elif "-" in caption:
                         parts = caption.split("-")
                         if len(parts) >= 3:
@@ -218,27 +213,20 @@ async def telegram_webhook(request: Request):
                             product_category = parts[2].strip()
                             if len(parts) > 3:
                                 product_description = parts[3].strip()
-                            print("📝 Custom Name, Price & Category detected manually.")
                         elif len(parts) == 2:
                             product_name = parts[0].strip()
                             product_price = parts[1].strip()
-                            # Category AI inda barutte
                             _, product_category, product_description = generate_product_details_via_ai(public_image_url)
                         
                         if not product_price.startswith("₹"):
                             product_price = f"₹{product_price}"
-                    
-                    # Scenario C: Text ide adre format illa andre adanna Name ankoni mikkiddu AI text generate mado logic
                     else:
                         product_name = caption
                         _, product_category, product_description = generate_product_details_via_ai(public_image_url)
-                
-                # Scenario D: Caption khali idre pūrthi AI generate mado logic
                 else:
-                    print("🔮 Photo only detected. Full AI Automation Mode Active...")
                     product_name, product_category, product_description = generate_product_details_via_ai(public_image_url)
 
-                # 🌐 A. WEBSITE PRODUCT ADD (MongoDB table updates with category)
+                # 🌐 A. WEBSITE CATALOG UPLOAD 
                 new_product_id = str(uuid.uuid4())[:6]
                 product_data = {
                     "product_id": new_product_id,
@@ -250,20 +238,15 @@ async def telegram_webhook(request: Request):
                 }
                 products_table.insert_one(product_data)
 
-                # 📱 B. DIRECT TO YOUR PERSONAL WHATSAPP CHAT ID (Testing purpose)
+                # 📱 B. NEW SIMPLE & ATTRACTIVE ENGLISH WHATSAPP TEMPLATE
                 whatsapp_personal_msg = (
-                    f"👗 *NEW ARRIVAL LIVE ON WEBSITE!* 👗\n\n"
-                    f"Hi Jeevan, your product setup details:\n\n"
-                    f"✨ *Name:* {product_name}\n"
-                    f"🗂️ *Category:* {product_category}\n"
-                    f"💰 *Price:* {product_price}\n"
-                    f"📝 *Description:* {product_description}\n\n"
-                    f"🔗 *Website URL:* https://dolphin-trends-two.vercel.app"
+                    f"🐬 *Dolphin Trends New Collections* 🛍️\n\n"
+                    f"Our boutique's latest arrivals are now live! 😍\n\n"
+                    f"✨ If you want to check out more *Collections* and find the exact *Price* details, please visit our official website right now! 👇\n\n"
+                    f"🔗 *Website Link:* https://dolphin-trends-two.vercel.app"
                 )
                 
                 wa_url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
-                
-                # 🎯 WhatsApp Chat ID setup: `YOUR_PERSONAL_PHONE` ge hogutthe
                 wa_payload = {
                     "chatId": f"{YOUR_PERSONAL_PHONE}@c.us", 
                     "urlFile": public_image_url,
@@ -272,13 +255,13 @@ async def telegram_webhook(request: Request):
                 }
                 requests.post(wa_url, json=wa_payload, timeout=10)
 
-                # 📸 C. INSTAGRAM POSTING
+                # 📸 C. INSTAGRAM POSTING (Clean English Look)
                 if INSTAGRAM_ACCOUNT_ID and INSTAGRAM_ACCESS_TOKEN:
                     try:
                         ig_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_ACCOUNT_ID}/media"
                         ig_payload = {
                             "image_url": public_image_url,
-                            "caption": f"✨ New Arrival: {product_name} ✨\n\nCategory: {product_category}\nPrice: {product_price}\n\n{product_description}\n\nAvailable now on our website! 🥰",
+                            "caption": f"✨ Dolphin Trends New Collections ✨\n\nOur latest boutique collection is officially available! 🥰\n\n🛍️ For more amazing collections and price details, head over to our website right away. Link in bio! 👆✨\n\n#dolphintrends #boutiquecollection #bangalorefashion",
                             "access_token": INSTAGRAM_ACCESS_TOKEN
                         }
                         ig_res = requests.post(ig_url, data=ig_payload).json()
@@ -289,12 +272,12 @@ async def telegram_webhook(request: Request):
                     except Exception as ig_err:
                         print("❌ Instagram Post Error:", str(ig_err))
 
-                # 💬 D. TELEGRAM RETURN MESSAGE WITH CLICKABLE BLUE LINK
+                # 💬 D. TELEGRAM NOTIFICATION
                 reply_text = (
-                    f"✅ *Hi Jeevan! Product successfully uploaded to:*\n\n"
-                    f"1. Website Catalog 🌐 (Category: {product_category})\n"
-                    f"2. Personal WhatsApp Chat 📱 (Chat ID Active)\n"
-                    f"3. Instagram Feed 📸\n\n"
+                    f"✅ *Hi! Product successfully uploaded!*\n\n"
+                    f"1. Website Catalog 🌐 (Updated)\n"
+                    f"2. Simple English WhatsApp Post Sent 📱\n"
+                    f"3. Instagram Post Shared 📸\n\n"
                     f"🔗 *Live Website:* https://dolphin-trends-two.vercel.app"
                 )
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -345,7 +328,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"💰 *Price Details:*\n"
                 f"• Total Price: ₹{full_price:.2f}\n"
                 f"• Balance to Pay at Shop: ₹{remaining_amount:.2f}\n\n"
-                f"🏪 *Our Store Location:* http://maps.google.com\n"
+                f"🏪 *Our Store Location:* http://googleusercontent.com/maps.google.com/4\n"
                 f"Please visit our store to explore more! 🐬"
             )
             send_whatsapp(c_phone, first_msg)
