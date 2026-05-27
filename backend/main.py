@@ -90,7 +90,7 @@ def generate_product_details_via_ai(image_url):
         response = requests.get(image_url)
         image_bytes = response.content
         
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = (
             "Analyze this fashion clothing image for an online boutique named Dolphin Trends. "
