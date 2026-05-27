@@ -85,7 +85,7 @@ def send_whatsapp(phone, message):
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
-            return "Trending Designer Wear", "Kurti", "Exclusively curated premium collection at Dolphin Trends."
+            return "Dolphin Trends Premium Suit", "Suit Set", "Exclusively curated premium collection at Dolphin Trends."
             
         response = requests.get(image_url)
         image_bytes = response.content
@@ -93,9 +93,9 @@ def generate_product_details_via_ai(image_url):
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = (
-            "Analyze this fashion clothing image for an online boutique named Dolphin Trends. "
-            "1. Provide a beautiful, trendy, and catchy product name (e.g., 'Elegant Floral Georgette Anarkali'). "
-            "2. Identify the category in one or two words maximum (e.g., 'Kurti', 'Saree', 'Lehenga', 'Gown', 'Western Wear'). "
+            "Analyze this boutique fashion clothing image for Dolphin Trends. "
+            "1. Provide a beautiful simple product name like 'Premium Umbrella Suit Set' or 'Designer Kurti Set'. Keep it elegant but descriptive. "
+            "2. Identify the category in one or two words maximum (e.g., 'Kurti', 'Saree', 'Anarkali Set', 'Gown', 'Western Wear'). "
             "3. Provide a short, attractive boutique description (1-2 sentences) praising the fabric and style. "
             "Strictly return the response in exactly this format without any other words: Name | Category | Description"
         )
@@ -113,10 +113,10 @@ def generate_product_details_via_ai(image_url):
             desc = parts[2].strip()
             return name, category, desc
             
-        return "Exclusive Boutique Wear", "Uncategorized", "Premium quality outfit specially selected for you."
+        return "Dolphin Trends Premium Suit", "Uncategorized", "Premium quality outfit specially selected for you."
     except Exception as e:
         print(f"❌ Gemini AI Error: {str(e)}")
-        return "New Fashion Arrival", "Kurti", "Beautiful design crafted with rich fabric and premium finishing."
+        return "Dolphin Trends Premium Suit", "Suit Set", "Beautiful design crafted with rich fabric and premium finishing."
 
 # ─── 👗 DATA MODELS ───
 class BookingPayload(BaseModel):
@@ -162,7 +162,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (NEW SIMPLE ENGLISH TEMPLATE) ───
+# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (FIXED CAPTION LOGIC) ───
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -192,20 +192,23 @@ async def telegram_webhook(request: Request):
 
                 public_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
                 
-                # Default variables
-                product_name = "New Trendy Arrival"
+                # Default fallback configs
+                product_name = "Dolphin Trends Premium Suit"
                 product_price = "₹1500"
-                product_category = "Kurti"
-                product_description = "Exclusively curated collection at Dolphin Trends."
+                product_category = "Suit Set"
+                product_description = "Exclusively curated premium collection at Dolphin Trends."
                 
-                # Category, Name & Price Split Checking
+                # ─── 🎯 ADVANCED CAPTION PARSING LOGIC ───
                 if caption:
-                    clean_caption = caption.replace("₹", "").replace(",", "").strip()
+                    lines = [l.strip() for l in caption.split("\n") if l.strip()]
+                    clean_text = " ".join(lines)
                     
-                    if clean_caption.isdigit():
-                        product_price = f"₹{clean_caption}"
-                        product_name, product_category, product_description = generate_product_details_via_ai(public_image_url)
-                    elif "-" in caption:
+                    # Check Scenario: Custom Name with Price below or side (e.g., Umbrella Sets \n ₹ 1300)
+                    import re
+                    price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_text)
+                    
+                    # Parse standard layout with '-' splits
+                    if "-" in caption:
                         parts = caption.split("-")
                         if len(parts) >= 3:
                             product_name = parts[0].strip()
@@ -217,13 +220,29 @@ async def telegram_webhook(request: Request):
                             product_name = parts[0].strip()
                             product_price = parts[1].strip()
                             _, product_category, product_description = generate_product_details_via_ai(public_image_url)
+                    
+                    # Parse multiline or direct spaces format (e.g. "Umbrella Sets ₹ 1300")
+                    elif price_match:
+                        extracted_price = price_match.group(1)
+                        product_price = f"₹{extracted_price}"
                         
-                        if not product_price.startswith("₹"):
-                            product_price = f"₹{product_price}"
+                        # Remove the price part to extract the clean name text
+                        name_part = clean_text.replace(price_match.group(0), "").replace("₹", "").strip()
+                        if name_part:
+                            product_name = name_part
+                        
+                        # Fetch category and description safely via AI, don't overwrite manual name
+                        _, ai_cat, ai_desc = generate_product_details_via_ai(public_image_url)
+                        product_category = ai_cat
+                        product_description = ai_desc
                     else:
                         product_name = caption
                         _, product_category, product_description = generate_product_details_via_ai(public_image_url)
+                        
+                    if not product_price.startswith("₹"):
+                        product_price = f"₹{product_price}"
                 else:
+                    # Pure AI execution if no caption at all
                     product_name, product_category, product_description = generate_product_details_via_ai(public_image_url)
 
                 # 🌐 A. WEBSITE CATALOG UPLOAD 
@@ -238,7 +257,7 @@ async def telegram_webhook(request: Request):
                 }
                 products_table.insert_one(product_data)
 
-                # 📱 B. NEW SIMPLE & ATTRACTIVE ENGLISH WHATSAPP TEMPLATE
+                # 📱 B. SIMPLE & ATTRACTIVE ENGLISH WHATSAPP TEMPLATE
                 whatsapp_personal_msg = (
                     f"🐬 *Dolphin Trends New Collections* 🛍️\n\n"
                     f"Our boutique's latest arrivals are now live! 😍\n\n"
@@ -255,7 +274,7 @@ async def telegram_webhook(request: Request):
                 }
                 requests.post(wa_url, json=wa_payload, timeout=10)
 
-                # 📸 C. INSTAGRAM POSTING (Clean English Look)
+                # 📸 C. INSTAGRAM POSTING
                 if INSTAGRAM_ACCOUNT_ID and INSTAGRAM_ACCESS_TOKEN:
                     try:
                         ig_url = f"https://graph.facebook.com/v18.0/{INSTAGRAM_ACCOUNT_ID}/media"
@@ -275,9 +294,9 @@ async def telegram_webhook(request: Request):
                 # 💬 D. TELEGRAM NOTIFICATION
                 reply_text = (
                     f"✅ *Hi! Product successfully uploaded!*\n\n"
-                    f"1. Website Catalog 🌐 (Updated)\n"
-                    f"2. Simple English WhatsApp Post Sent 📱\n"
-                    f"3. Instagram Post Shared 📸\n\n"
+                    f"• Name on Website: {product_name}\n"
+                    f"• Price on Website: {product_price}\n"
+                    f"• Category: {product_category}\n\n"
                     f"🔗 *Live Website:* https://dolphin-trends-two.vercel.app"
                 )
                 send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
