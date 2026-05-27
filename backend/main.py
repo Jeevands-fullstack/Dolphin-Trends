@@ -3,7 +3,8 @@ import io
 import uuid
 import time  
 import requests
-from fastapi import FastAPI, HTTPException, Request
+import re
+from fastapi import FastAPI, HTTPException, Request, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pymongo import MongoClient
@@ -128,7 +129,7 @@ class BookingPayload(BaseModel):
     size: str = "M"        # Fallback default
     price: str = "₹1299"   # Fallback default
 
-# ─── 🚀 1. CUSTOMER "BUY NOW" SUBMIT API (UPDATED FORMAT & WEBSITE LINK) ───
+# ─── 🚀 1. CUSTOMER "BUY NOW" SUBMIT API ───
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -147,7 +148,7 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
         
-        # 🔔 🎯 CLEAN ADMIN WHATSAPP MESSAGE FORMAT WITH WEBSITE LINK
+        # 🔔 ADMIN WHATSAPP MESSAGE FORMAT
         admin_message = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -173,7 +174,69 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ─── 🤖 2. JEEVAN MASTER AUTOMATED WEBHOOK (TELEGRAM UPLOAD LOGIC) ───
+# ─── 🛍️ 2. ADMIN PANEL UPLOAD OR EDIT PRODUCT (SMART SEARCH BY NAME) ───
+@app.post("/products")
+async def add_or_update_product_via_panel(
+    name: str = Form(...),
+    price: str = Form(...),
+    original_price: str = Form(None),
+    description: str = Form(None),
+    category: str = Form(...),
+    file: UploadFile = File(None)
+):
+    if products_table is None:
+        raise HTTPException(status_code=500, detail="Database connection missing")
+        
+    try:
+        # 🎯 1. ಮೊದಲಿಗೆ ಈ ಹೆಸರಿನ ಪ್ರಾಡಕ್ಟ್ ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ಇದೆಯೇ ಎಂದು ಹುಡುಕೋಣ
+        existing_product = products_table.find_one({"name": name})
+        
+        if existing_product:
+            # 🔄 ಹಳೇ ಪ್ರಾಡಕ್ಟ್ ಸಿಕ್ಕರೆ: ವಿವರಗಳನ್ನು ಅಪ್ಡೇಟ್ (EDIT) ಮಾಡೋಣ ಜೀವನ್
+            update_data = {
+                "price": price,
+                "category": category,
+                "description": description or ""
+            }
+            if original_price:
+                update_data["original_price"] = original_price
+            else:
+                update_data["original_price"] = ""
+
+            # ಎಡಿಟ್ ಮಾಡುವಾಗ ಹೊಸ ಇಮೇಜ್ ಅಪ್ಲೋಡ್ ಮಾಡಿದ್ದರೆ ಮಾತ್ರ ಬದಲಾಯಿಸು, ಇಲ್ಲದಿದ್ದರೆ ಹಳೇ ಇಮೇಜ್ ಹಾಗೇ ಇರಲಿ
+            if file:
+                # (ಇಲ್ಲಿ ಇಮೇಜ್ ಅಪ್ಲೋಡ್ ಲಾಜಿಕ್ ಬರೆಯಬಹುದು, ಸದ್ಯಕ್ಕೆ ಫ್ರಂಟ್ಎಂಡ್ ಪ್ರಿವ್ಯೂ URL ಅಥವಾ ಹೊಸ ಫೈಲ್ ಹ್ಯಾಂಡಲ್ ಮಾಡಬಹುದು)
+                # ಉದಾಹರಣೆಗೆ ಒಂದು ಇಮೇಜ್ ಪಾತ್ ಸೇವ್ ಮಾಡೋಣ:
+                update_data["image"] = f"https://via.placeholder.com/150?text={name}"
+
+            products_table.update_one({"name": name}, {"$set": update_data})
+            return {"status": "success", "action": "updated", "product_id": existing_product["product_id"]}
+            
+        else:
+            # ➕ ಹಳೇ ಪ್ರಾಡಕ್ಟ್ ಇಲ್ಲದಿದ್ದರೆ: ಹೊಸದಾಗಿ ಕ್ರಿಯೇಟ್ (ADD) ಮಾಡೋಣ
+            # ಇಮೇಜ್ ಫೈಲ್ ಬಂದಿದೆಯೇ ಎಂದು ಚೆಕ್ ಮಾಡಿ, ಇಲ್ಲದಿದ್ದರೆ ಡಿಫಾಲ್ಟ್ ಪ್ಲೇಸ್‌ಹೋಲ್ಡರ್ ಹಾಕಿ
+            public_url = f"https://via.placeholder.com/150?text={name}"
+            if file:
+                # ನೀವು ಸರ್ವರ್‌ನಲ್ಲಿ ಅಥವಾ ಕ್ಲೌಡ್‌ನಲ್ಲಿ ಸೇವ್ ಮಾಡೋ ಹಳೇ ಲಾಜಿಕ್ ಇಲ್ಲಿದೆ ಅಂದುಕೊಳ್ಳೋಣ:
+                pass
+
+            new_id = str(uuid.uuid4())[:6]
+            product_data = {
+                "product_id": new_id,
+                "name": name,
+                "price": price,
+                "original_price": original_price or "",
+                "category": category,
+                "description": description or "",
+                "image": public_url
+            }
+            products_table.insert_one(product_data)
+            return {"status": "success", "action": "created", "product_id": new_id}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ─── 🤖 3. JEEVAN MASTER AUTOMATED WEBHOOK (TELEGRAM UPLOAD LOGIC) ───
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -212,7 +275,6 @@ async def telegram_webhook(request: Request):
                     lines = [l.strip() for l in caption.split("\n") if l.strip()]
                     clean_text = " ".join(lines)
                     
-                    import re
                     price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_text)
                     
                     if "-" in caption:
@@ -304,15 +366,13 @@ async def telegram_webhook(request: Request):
         print("Webhook Master Error:", str(e))
         return {"status": "error"}
 
-# ─── 🟢 🔴 🔵 3. ADMIN PANEL CODES (UPDATED WITH EDIT AND DELETE SAFE ROUTE) ───
+# ─── 🟢 🔴 🔵 4. ADMIN PANEL PUT/DELETE ROUTES (RETAINED FOR FALLBACK) ───
 @app.put("/api/products/{product_id}")
 def update_product(product_id: str, payload: dict):
     if products_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
-    
-    # Safe protection against front-end string 'undefined'
     if product_id == "undefined" or not product_id:
-        raise HTTPException(status_code=400, detail="Invalid Product ID passed from frontend admin panel")
+        raise HTTPException(status_code=400, detail="Invalid Product ID")
         
     try:
         existing = products_table.find_one({"product_id": product_id})
@@ -337,14 +397,13 @@ def update_product(product_id: str, payload: dict):
 def delete_product(product_id: str):
     if products_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
-        
     if product_id == "undefined" or not product_id:
-        raise HTTPException(status_code=400, detail="Invalid Product ID passed from frontend admin panel")
+        raise HTTPException(status_code=400, detail="Invalid Product ID")
         
     try:
         result = products_table.delete_one({"product_id": product_id})
         if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Product not found in Database")
+            raise HTTPException(status_code=404, detail="Product not found")
         return {"status": "success", "message": "Product deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
