@@ -41,6 +41,7 @@ function Admin({ onProductAdded }) {
     if (!window.confirm(`Jeevan, do you want to ${actionText} this order?`)) return;
 
     try {
+      // ✅ ಕ್ವೆರಿ ಪ್ಯಾರಾಮೀಟರ್ಸ್ ಮೂಲಕ ಬ್ಯಾಕೆಂಡ್ ಎಂಡ್‌ಪಾಯಿಂಟ್‌ಗೆ ಕನೆಕ್ಟ್ ಮಾಡಲಾಗಿದೆ
       const response = await fetch(`https://dolphin-trends-3.onrender.com/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, {
         method: 'POST',
       });
@@ -62,7 +63,7 @@ function Admin({ onProductAdded }) {
     }
   };
 
-  // ⚡ 💾 SAVE / UPDATE PRODUCT FUNCTION (BY NAME MATCHING)
+  // ⚡ 💾 SAVE / UPDATE PRODUCT FUNCTION
   const handleAddOrUpdateProduct = async () => {
     if (!formData.name || !formData.price) {
       alert("⚠️ ದಯವಿಟ್ಟು ಪ್ರಾಡಕ್ಟ್ ಹೆಸರು ಮತ್ತು ಮಾರಾಟದ ಬೆಲೆಯನ್ನು ನಮೂದಿಸಿ!");
@@ -83,7 +84,6 @@ function Admin({ onProductAdded }) {
     }
 
     try {
-      // 🎯 We send everything to a smart upload-or-update endpoint
       const response = await fetch('https://dolphin-trends-3.onrender.com/products', {
         method: 'POST',
         body: dataToSend,
@@ -216,7 +216,7 @@ function Admin({ onProductAdded }) {
                         )}
                       </td>
                     </tr>
-                  ))
+                  ))}
                 )}
               </tbody>
             </table>
