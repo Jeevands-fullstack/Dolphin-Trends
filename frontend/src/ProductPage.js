@@ -9,13 +9,16 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [showBuyForm, setShowBuyForm] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const shopAddress = "Dolphin Trends, Rajagopala Nagar, Peenya 2nd Stage, Bangalore - 560058";
   const shopLocation = "https://maps.app.goo.gl/zQeV2fcEv2fY625Z7";
   const ownerPhone = "919353838835";
 
-  // ಪಾರ್ಸ್ ಮಾಡುವಾಗ ₹ ಸಿಂಬಲ್ ಜೊತೆಗೆ Rs. ಮತ್ತು ಖಾಲಿ ಸ್ಪೇಸ್ ಇದ್ದರೂ ಎರರ್ ಬರದಂತೆ ಸೇಫ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್
+  // Safe fallback for ID matching
+  const currentId = product.product_id || product.id;
+
   const cleanPrice = (priceStr) => {
     if (!priceStr) return 0;
     return parseInt(priceStr.replace(/[^\d]/g, '')) || 0;
@@ -26,39 +29,71 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
     : 0;
 
   const similarProducts = allProducts
-    ? allProducts.filter(p => p.category === product.category && p.id !== product.id)
+    ? allProducts.filter(p => p.category === product.category && (p.product_id || p.id) !== currentId)
     : [];
 
-  // 1. ಇಲ್ಲಿ ಆ ಸ್ಲ್ಯಾಶ್ (/) ಪ್ರಾಬ್ಲಮ್ ಮತ್ತು ಕ್ಲೋಸಿಂಗ್ ಬ್ರಾಕೆಟ್ ಎರಡನ್ನೂ ಪರ್ಫೆಕ್ಟ್ ಆಗಿ ಫಿಕ್ಸ್ ಮಾಡಿದ್ದೀನಿ ಜೀವನ್!
+  // Fetch reviews safely using currentId
   useEffect(() => {
-    fetch('https://dolphin-trends-3.onrender.com/reviews/' + product.id)
+    if (!currentId || currentId === "undefined") return;
+    fetch('https://dolphin-trends-3.onrender.com/reviews/' + currentId)
       .then(res => res.json())
       .then(data => {
         setReviews(Array.isArray(data) ? data : []);
       })
       .catch(err => {
         console.error("Reviews fetch error:", err);
-        setReviews([]); // ಎರರ್ ಬಂದ್ರೂ ಬ್ಲಾಕ್ ಸ್ಕ್ರೀನ್ ಬರದಂತೆ ತಡೆಯುತ್ತೆ
+        setReviews([]);
       });
-  }, [product.id]); 
+  }, [currentId]); 
 
-  const handleBuyNow = () => {
+  // ✅ ಹೊಸ ಅಪ್ಡೇಟ್: ಬುಕಿಂಗ್ ಡೇಟಾವನ್ನು ನೇರವಾಗಿ ಬ್ಯಾಕೆಂಡ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ ಮಾಡುತ್ತದೆ
+  const handleBuyNow = async () => {
     if (!selectedSize) { alert('⚠️ Please select a size!'); return; }
     if (!customerName || !customerPhone) { alert('⚠️ Name ಮತ್ತು Phone ಹಾಕಿ!'); return; }
 
-    const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + "!\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\nPlease visit our shop:\n📍 " + shopAddress + "\n🗺️ " + shopLocation + "\n\n⏰ Timings: 10AM - 9PM\n📞 Contact: 7411255628\n\nSee you soon! 😊🛍️";
-    window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
+    setBookingLoading(true);
 
-    const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone;
-    window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
+    const bookingPayload = {
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      product_name: product.name,
+      image_url: product.image,
+      size: selectedSize,
+      price: product.price
+    };
 
-    setShowBuyForm(false);
+    try {
+      const response = await fetch('https://dolphin-trends-3.onrender.com/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingPayload)
+      });
+
+      if (response.ok) {
+        // ಡೇಟಾಬೇಸ್‌ಗೆ ಯಶಸ್ವಿಯಾಗಿ ಸೇವ್ ಆದ ನಂತರ ಕಸ್ಟಮರ್ ಮತ್ತು ಅಡ್ಮಿನ್‌ಗೆ WhatsApp ಚಾಟ್ ಓಪನ್ ಆಗುತ್ತೆ
+        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + "!\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\nPlease visit our shop:\n📍 " + shopAddress + "\n🗺️ " + shopLocation + "\n\n⏰ Timings: 10AM - 9PM\n📞 Contact: 7411255628\n\nSee you soon! 😊🛍️";
+        window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
+
+        const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone;
+        window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
+
+        setShowBuyForm(false);
+        alert("✅ Booking Request Sent Successfully!");
+      } else {
+        alert("❌ Failed to register booking on server. Try again.");
+      }
+    } catch (err) {
+      console.error("Booking error:", err);
+      alert("❌ Server Error while booking.");
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const handleAddReview = async () => {
     if (!reviewName || !reviewText) { alert('⚠️ Name ಮತ್ತು Review ಹಾಕಿ!'); return; }
     try {
-      const review = { product_id: product.id, name: reviewName, text: reviewText, rating: reviewRating };
+      const review = { product_id: currentId, name: reviewName, text: reviewText, rating: reviewRating };
       const res = await fetch('https://dolphin-trends-3.onrender.com/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,7 +101,6 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
       const data = await res.json();
       
-      // ಡೇಟಾ ಸರಿಯಾಗಿ ಬಂದರೆ ಮಾತ್ರ ಲಿಸ್ಟ್‌ಗೆ ಆಡ್ ಮಾಡುತ್ತೆ ಜೀವನ್
       if (data && !data.error) {
         setReviews(prev => [...prev, data]);
       }
@@ -140,7 +174,9 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
                     <input type="number" placeholder="Enter phone number" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
                   </div>
                   <div className="buy-actions-row">
-                    <button className="confirm-buy-btn" onClick={handleBuyNow}>✅ Confirm</button>
+                    <button className="confirm-buy-btn" onClick={handleBuyNow} disabled={bookingLoading}>
+                      {bookingLoading ? "Booking..." : "✅ Confirm"}
+                    </button>
                     <button className="cancel-buy-btn" onClick={() => setShowBuyForm(false)}>Cancel</button>
                   </div>
                 </div>
@@ -204,16 +240,19 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
           <div style={{borderTop:'1px solid #1a4fff44', paddingTop:'25px', marginTop:'20px'}}>
             <h3 style={{color:'#4d9fff', marginBottom:'20px', fontFamily:'Playfair Display, serif'}}>👗 Similar Products</h3>
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'15px'}}>
-              {similarProducts.map(p => (
-                <div key={p.id}
-                  onClick={() => onBook(p)}
-                  style={{cursor:'pointer', background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'10px', textAlign:'center', transition:'all 0.2s'}}
-                >
-                  <img src={p.image} alt={p.name} style={{width:'100%', height:'110px', objectFit:'cover', borderRadius:'8px', marginBottom:'8px'}} />
-                  <p style={{color:'#f0f4ff', fontSize:'0.8rem', marginBottom:'4px'}}>{p.name}</p>
-                  <p style={{color:'#4d9fff', fontSize:'0.85rem', fontWeight:'bold'}}>{p.price}</p>
-                </div>
-              ))}
+              {similarProducts.map(p => {
+                const simId = p.product_id || p.id;
+                return (
+                  <div key={simId}
+                    onClick={() => onBook(p)}
+                    style={{cursor:'pointer', background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'10px', textAlign:'center', transition:'all 0.2s'}}
+                  >
+                    <img src={p.image} alt={p.name} style={{width:'100%', height:'110px', objectFit:'cover', borderRadius:'8px', marginBottom:'8px'}} />
+                    <p style={{color:'#f0f4ff', fontSize:'0.8rem', marginBottom:'4px'}}>{p.name}</p>
+                    <p style={{color:'#4d9fff', fontSize:'0.85rem', fontWeight:'bold'}}>{p.price}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
