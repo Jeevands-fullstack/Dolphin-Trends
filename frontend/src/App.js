@@ -51,44 +51,104 @@ function App() {
   };
 
   // ✅ FIX: Correct delete URL with /products/
-  const handleDelete = (e, id) => {
-    e.stopPropagation();
-    if (!window.confirm('ಈ product delete ಮಾಡಬೇಕಾ?')) return;
-    fetch('https://dolphin-trends-3.onrender.com/products/' + (product.product_id || product.id)
-      .then(r => { if (r.ok) setProducts(p => p.filter(x => x.id !== id)); });
-  };
+ const handleDelete = async (e, id) => {
 
-  const handleEditOpen = (e, product) => {
-    e.stopPropagation();
-    setEditProduct(product);
-    setEditForm({
-      name: product.name || '',
-      price: product.price || '',
-      original_price: product.original_price || '',
-      category: product.category || '',
-      available: product.available !== false,
-      image: product.image
-    });
-  };
+  e.stopPropagation();
 
+  if (!window.confirm('ಈ product delete ಮಾಡಬೇಕಾ?')) {
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      `https://dolphin-trends-3.onrender.com/products/${id}`,
+      {
+        method: 'DELETE'
+      }
+    );
+
+    if (response.ok) {
+
+      setProducts(prev =>
+        prev.filter(
+          p => (p.product_id || p.id) !== id
+        )
+      );
+
+      alert('✅ Product deleted');
+
+    } else {
+
+      alert('❌ Delete failed');
+
+    }
+
+  } catch (err) {
+
+    console.log(err);
+
+    alert('❌ Server error');
+
+  }
+
+};
   // ✅ FIX: Correct edit save URL with /products/
-  const handleEditSave = () => {
-    if (!editProduct) return;
-    setEditLoading(true);
-    (product.product_id || product.id)
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...editProduct, ...editForm }),
-    })
-      .then(r => r.json())
-      .then(updated => {
-        setProducts(p => p.map(x => x.id === updated.id ? updated : x));
-        setEditProduct(null);
-        setEditLoading(false);
-      })
-      .catch(() => { alert('Update ಆಗಲಿಲ್ಲ!'); setEditLoading(false); });
-  };
+  const handleEditSave = async () => {
 
+  if (!editProduct) return;
+
+  setEditLoading(true);
+
+  const productId =
+    editProduct.product_id || editProduct.id;
+
+  try {
+
+    const response = await fetch(
+      `https://dolphin-trends-3.onrender.com/products/${productId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editForm)
+      }
+    );
+
+    if (response.ok) {
+
+      setProducts(prev =>
+        prev.map(p =>
+          (p.product_id || p.id) === productId
+            ? { ...p, ...editForm }
+            : p
+        )
+      );
+
+      alert('✅ Product updated');
+
+      setEditProduct(null);
+
+    } else {
+
+      alert('❌ Update failed');
+
+    }
+
+  } catch (err) {
+
+    console.log(err);
+
+    alert('❌ Server error');
+
+  } finally {
+
+    setEditLoading(false);
+
+  }
+
+};
   return (
     <div className="App">
 
@@ -171,7 +231,7 @@ function App() {
                     {filtered.map(product => (
                       <div
                         className={product.available === false ? 'product-card not-available' : 'product-card'}
-                        key={product.id}
+                        key={product.product_id || product.id}
                         onClick={() => setViewProduct(product)}
                       >
                         {product.available === false && (
@@ -181,7 +241,7 @@ function App() {
                         {isAdminLoggedIn && (
                           <div style={{position:'absolute', top:'10px', right:'10px', display:'flex', gap:'6px', zIndex:10}}>
                             <button onClick={e => handleEditOpen(e, product)} style={editBtnStyle}>✏️</button>
-                            <button onClick={e => handleDelete(e, product.id)} style={deleteBtnStyle}>🗑️</button>
+                            <button onClick={e => handleDelete(e, product.product_id || product.id)} style={deleteBtnStyle}>🗑️</button>
                           </div>
                         )}
 
