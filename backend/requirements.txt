@@ -10,3 +10,4 @@ google-generativeai
 pillow
 python-dotenv
 dnspython
+cloudinary
