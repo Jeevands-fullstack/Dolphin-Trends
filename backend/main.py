@@ -191,6 +191,7 @@ async def add_or_update_product_via_panel(
             final_image = cloud_image_url if cloud_image_url else "https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?q=80&w=500"
             new_id = str(uuid.uuid4())[:6]
             product_data = {
+                "id": new_id,
                 "product_id": new_id,
                 "name": name,
                 "price": price,
@@ -199,10 +200,15 @@ async def add_or_update_product_via_panel(
                 "description": description or "",
                 "image": final_image
             }
-            products_table.insert_one(product_data)
-            return {"status": "success", "action": "created", "product_id": new_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+           products_table.insert_one({
+              "id": new_id,
+              "product_id": new_id,
+              "name": product_name,
+              "price": product_price,
+              "category": product_category,
+              "image": permanent_cloud_url,
+              "description": product_description
+        })
 
 # ─── 🤖 3. TELEGRAM BOT WEBHOOK (ಪರ್ಮನೆಂಟ್ ಇಮೇಜ್ ಹೋಸ್ಟಿಂಗ್ ಫಿಕ್ಸ್) ───
 @app.post("/webhook")
