@@ -200,15 +200,10 @@ async def add_or_update_product_via_panel(
                 "description": description or "",
                 "image": final_image
             }
-           products_table.insert_one({
-              "id": new_id,
-              "product_id": new_id,
-              "name": product_name,
-              "price": product_price,
-              "category": product_category,
-              "image": permanent_cloud_url,
-              "description": product_description
-        })
+            products_table.insert_one(product_data)
+            return {"status": "success", "action": "created", "product_id": new_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ─── 🤖 3. TELEGRAM BOT WEBHOOK (ಪರ್ಮನೆಂಟ್ ಇಮೇಜ್ ಹೋಸ್ಟಿಂಗ್ ಫಿಕ್ಸ್) ───
 @app.post("/webhook")
