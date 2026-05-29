@@ -7,6 +7,8 @@ import ProductPage from './ProductPage';
 import dolphin from './assets/dolphin.png';
 import heroVideo from './assets/hero-video.mp4';
 
+const API = 'https://dolphin-trends-3.onrender.com';
+
 function App() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activePage, setActivePage] = useState('shop');
@@ -28,7 +30,7 @@ function App() {
 
   const fetchProducts = () => {
     setLoading(true);
-    fetch('https://dolphin-trends-3.onrender.com/products')
+    fetch(`${API}/products`)
       .then(r => r.json())
       .then(d => { setProducts(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
@@ -50,108 +52,75 @@ function App() {
     }
   };
 
-  // ✅ FIX: Correct delete URL with /products/
- const handleDelete = async (e, id) => {
+  // ✅ FIX: handleEditOpen function added
+  const handleEditOpen = (e, product) => {
+    e.stopPropagation();
+    setEditProduct(product);
+    setEditForm({
+      name: product.name || '',
+      price: product.price || '',
+      original_price: product.original_price || '',
+      category: product.category || '',
+      available: product.available !== false,
+    });
+  };
 
-  e.stopPropagation();
-
-  if (!window.confirm('ಈ product delete ಮಾಡಬೇಕಾ?')) {
-    return;
-  }
-
-  try {
-
-    const response = await fetch(
-      `https://dolphin-trends-3.onrender.com/products/${id}`,
-      {
-        method: 'DELETE'
-      }
-    );
-
-    if (response.ok) {
-
-      setProducts(prev =>
-        prev.filter(
-          p => (p.product_id || p.id) !== id
-        )
-      );
-
-      alert('✅ Product deleted');
-
-    } else {
-
-      alert('❌ Delete failed');
-
+  // ✅ FIX: Delete with proper ID
+  const handleDelete = async (e, product) => {
+    e.stopPropagation();
+    const id = product.product_id || product.id;
+    if (!id || id === 'undefined') {
+      alert('❌ Product ID not found!');
+      return;
     }
+    if (!window.confirm('ಈ product delete ಮಾಡಬೇಕಾ?')) return;
+    try {
+      const response = await fetch(`${API}/products/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        setProducts(prev => prev.filter(p => (p.product_id || p.id) !== id));
+        alert('✅ Product deleted');
+      } else {
+        alert('❌ Delete failed');
+      }
+    } catch (err) {
+      alert('❌ Server error');
+    }
+  };
 
-  } catch (err) {
-
-    console.log(err);
-
-    alert('❌ Server error');
-
-  }
-
-};
-  // ✅ FIX: Correct edit save URL with /products/
+  // ✅ FIX: Edit save with proper ID
   const handleEditSave = async () => {
-
-  if (!editProduct) return;
-
-  setEditLoading(true);
-
-  const productId =
-    editProduct.product_id || editProduct.id;
-
-  try {
-
-    const response = await fetch(
-      `https://dolphin-trends-3.onrender.com/products/${productId}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editForm)
-      }
-    );
-
-    if (response.ok) {
-
-      setProducts(prev =>
-        prev.map(p =>
-          (p.product_id || p.id) === productId
-            ? { ...p, ...editForm }
-            : p
-        )
-      );
-
-      alert('✅ Product updated');
-
-      setEditProduct(null);
-
-    } else {
-
-      alert('❌ Update failed');
-
+    if (!editProduct) return;
+    setEditLoading(true);
+    const productId = editProduct.product_id || editProduct.id;
+    if (!productId || productId === 'undefined') {
+      alert('❌ Product ID not found!');
+      setEditLoading(false);
+      return;
     }
+    try {
+      const response = await fetch(`${API}/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      if (response.ok) {
+        setProducts(prev => prev.map(p =>
+          (p.product_id || p.id) === productId ? { ...p, ...editForm } : p
+        ));
+        alert('✅ Product updated');
+        setEditProduct(null);
+      } else {
+        alert('❌ Update failed');
+      }
+    } catch (err) {
+      alert('❌ Server error');
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
-  } catch (err) {
-
-    console.log(err);
-
-    alert('❌ Server error');
-
-  } finally {
-
-    setEditLoading(false);
-
-  }
-
-};
   return (
     <div className="App">
-
       {/* Navbar */}
       <nav className="navbar">
         <div className="navbar-logo" onClick={() => { setActivePage('shop'); setShowAdmin(false); }} style={{cursor:'pointer'}}>
@@ -161,14 +130,12 @@ function App() {
             <p>Women's Fashion · Bangalore</p>
           </div>
         </div>
-
         <ul className="navbar-links">
           <li><button className={activePage === 'shop' && !showAdmin ? 'active' : ''} onClick={() => { setActivePage('shop'); setShowAdmin(false); }}>🛍️ Shop</button></li>
           <li><button className={activePage === 'branches' ? 'active' : ''} onClick={() => { setActivePage('branches'); setShowAdmin(false); }}>🏪 Branches</button></li>
           <li><button className={activePage === 'contact' ? 'active' : ''} onClick={() => { setActivePage('contact'); setShowAdmin(false); }}>📞 Contact</button></li>
           <li><button className={activePage === 'location' ? 'active' : ''} onClick={() => { setActivePage('location'); setShowAdmin(false); }}>📍 Location</button></li>
         </ul>
-
         <div className="navbar-right">
           {isAdminLoggedIn && !showAdmin && (
             <button className="admin-btn" onClick={() => setShowAdmin(true)}>⚙️ Admin Panel</button>
@@ -179,24 +146,20 @@ function App() {
         </div>
       </nav>
 
-      {/* Admin Mode Badge */}
       {isAdminLoggedIn && (
         <div style={{textAlign:'center', padding:'6px', background:'rgba(26,108,255,0.1)', borderBottom:'1px solid rgba(26,108,255,0.2)', fontSize:'0.75rem'}}>
           <span className="admin-mode-badge">🔐 Admin Mode Active — Edit & Delete Enabled</span>
         </div>
       )}
 
-      {/* Main Content */}
       {showAdmin ? (
         isAdminLoggedIn
           ? <Admin onProductAdded={fetchProducts} />
           : <Login onLogin={() => setIsAdminLoggedIn(true)} />
       ) : (
         <>
-          {/* Shop Page */}
           {activePage === 'shop' && (
             <div>
-              {/* Hero Video */}
               <div className="hero">
                 <video autoPlay muted loop playsInline className="hero-video">
                   <source src={heroVideo} type="video/mp4" />
@@ -208,18 +171,12 @@ function App() {
                 </div>
               </div>
 
-              {/* Categories */}
               <div className="categories">
                 {categories.map(cat => (
-                  <button
-                    key={cat}
-                    className={cat === activeCategory ? 'cat-btn active' : 'cat-btn'}
-                    onClick={() => setActiveCategory(cat)}
-                  >{cat}</button>
+                  <button key={cat} className={cat === activeCategory ? 'cat-btn active' : 'cat-btn'} onClick={() => setActiveCategory(cat)}>{cat}</button>
                 ))}
               </div>
 
-              {/* Products */}
               <div className="products-section">
                 <h3>{activeCategory === 'All' ? 'All Products' : activeCategory}</h3>
                 {loading ? (
@@ -237,16 +194,14 @@ function App() {
                         {product.available === false && (
                           <span className="not-available-badge">❌ Not Available</span>
                         )}
-
                         {isAdminLoggedIn && (
                           <div style={{position:'absolute', top:'10px', right:'10px', display:'flex', gap:'6px', zIndex:10}}>
                             <button onClick={e => handleEditOpen(e, product)} style={editBtnStyle}>✏️</button>
-                            <button onClick={e => handleDelete(e, product.product_id || product.id)} style={deleteBtnStyle}>🗑️</button>
+                            <button onClick={e => handleDelete(e, product)} style={deleteBtnStyle}>🗑️</button>
                           </div>
                         )}
-
                         <div className="product-card-img-wrap">
-                          <img src={product.image} alt={product.name} />
+                          <img src={product.image} alt={product.name} onError={e => e.target.src='https://via.placeholder.com/300x400?text=No+Image'} />
                         </div>
                         <div className="product-info">
                           <span className="category-tag">{product.category}</span>
@@ -269,7 +224,6 @@ function App() {
             </div>
           )}
 
-          {/* Branches Page */}
           {activePage === 'branches' && (
             <div className="section-page">
               <div className="section-page-header">
@@ -293,7 +247,6 @@ function App() {
             </div>
           )}
 
-          {/* Contact Page */}
           {activePage === 'contact' && (
             <div className="section-page">
               <div className="section-page-header">
@@ -311,10 +264,7 @@ function App() {
                   ].map((row, i) => (
                     <div className="contact-row" key={i}>
                       <div className="c-icon">{row.icon}</div>
-                      <div>
-                        <strong>{row.label}</strong>
-                        <span>{row.value}</span>
-                      </div>
+                      <div><strong>{row.label}</strong><span>{row.value}</span></div>
                     </div>
                   ))}
                 </div>
@@ -328,10 +278,7 @@ function App() {
                   ].map((row, i) => (
                     <div className="contact-row" key={i}>
                       <div className="c-icon">{row.icon}</div>
-                      <div>
-                        <strong>{row.label}</strong>
-                        <span>{row.value}</span>
-                      </div>
+                      <div><strong>{row.label}</strong><span>{row.value}</span></div>
                     </div>
                   ))}
                 </div>
@@ -339,7 +286,6 @@ function App() {
             </div>
           )}
 
-          {/* Location Page */}
           {activePage === 'location' && (
             <div className="section-page">
               <div className="section-page-header">
@@ -350,43 +296,30 @@ function App() {
                 <iframe
                   title="Dolphin Trends Location"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.126425176161!2d77.5195431!3d13.0276313!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae3d90680f4f9f%3A0x608e06385a49b28a!2sPeenya%202nd%20Stage%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
                   style={{border:0, width:'100%', height:'400px', borderRadius:'15px'}}
                 />
-                <div className="map-label">
-                  📍 Rajagopala Nagar, Peenya 2nd Stage, Bangalore — 560091
-                </div>
+                <div className="map-label">📍 Rajagopala Nagar, Peenya 2nd Stage, Bangalore — 560091</div>
               </div>
             </div>
           )}
         </>
       )}
 
-      {/* Footer */}
       <footer>
         <p><strong>🐬 Dolphin Trends</strong> | Women's Fashion Store | Bangalore</p>
         <p>📍 Laggere Main Road, Bangalore — 560058</p>
         <p>📱 +91 7795800741 | 📸 Developer by Jeevan JD</p>
       </footer>
 
-      {/* Product Page */}
       {viewProduct && (
-        <ProductPage
-          product={viewProduct}
-          allProducts={products}
-          onClose={() => setViewProduct(null)}
-          onBook={p => setViewProduct(p)}
-        />
+        <ProductPage product={viewProduct} allProducts={products} onClose={() => setViewProduct(null)} onBook={p => setViewProduct(p)} />
       )}
 
-      {/* Booking Modal */}
       {selectedProduct && (
         <BookingModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
 
-      {/* Edit Modal */}
       {editProduct && (
         <div style={overlayStyle}>
           <div style={modalStyle}>
@@ -398,50 +331,26 @@ function App() {
             ].map(f => (
               <div key={f.key}>
                 <label style={labelStyle}>{f.label}</label>
-                <input
-                  value={editForm[f.key] || ''}
-                  onChange={e => setEditForm({...editForm, [f.key]: e.target.value})}
-                  style={inputStyle}
-                  placeholder={f.placeholder}
-                />
+                <input value={editForm[f.key] || ''} onChange={e => setEditForm({...editForm, [f.key]: e.target.value})} style={inputStyle} placeholder={f.placeholder} />
               </div>
             ))}
-
             <label style={labelStyle}>Category</label>
-            <select
-              value={editForm.category}
-              onChange={e => setEditForm({...editForm, category: e.target.value})}
-              style={inputStyle}
-            >
-              {categories.filter(c => c !== 'All').map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+            <select value={editForm.category || ''} onChange={e => setEditForm({...editForm, category: e.target.value})} style={inputStyle}>
+              {categories.filter(c => c !== 'All').map(c => (<option key={c} value={c}>{c}</option>))}
             </select>
-
             <label style={{...labelStyle, display:'flex', alignItems:'center', gap:'10px', marginTop:'8px', cursor:'pointer'}}>
-              <input
-                type="checkbox"
-                checked={editForm.available}
-                onChange={e => setEditForm({...editForm, available: e.target.checked})}
-                style={{width:'18px', height:'18px', accentColor:'#1a6cff'}}
-              />
+              <input type="checkbox" checked={editForm.available !== false} onChange={e => setEditForm({...editForm, available: e.target.checked})} style={{width:'18px', height:'18px', accentColor:'#1a6cff'}} />
               Available ✅
             </label>
-
             <div style={{display:'flex', gap:'10px', marginTop:'22px'}}>
-              <button onClick={handleEditSave} disabled={editLoading}
-                style={{flex:1, background:'#1a6cff', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontWeight:'700', fontSize:'0.9rem', cursor:'pointer'}}>
+              <button onClick={handleEditSave} disabled={editLoading} style={{flex:1, background:'#1a6cff', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontWeight:'700', fontSize:'0.9rem', cursor:'pointer'}}>
                 {editLoading ? 'Saving...' : '💾 Save'}
               </button>
-              <button onClick={() => setEditProduct(null)}
-                style={{flex:1, background:'#1a1a30', color:'#7a85a0', border:'1px solid #1a4fff44', borderRadius:'10px', padding:'12px', fontWeight:'600', fontSize:'0.9rem', cursor:'pointer'}}>
-                Cancel
-              </button>
+              <button onClick={() => setEditProduct(null)} style={{flex:1, background:'#1a1a30', color:'#7a85a0', border:'1px solid #1a4fff44', borderRadius:'10px', padding:'12px', fontWeight:'600', fontSize:'0.9rem', cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
