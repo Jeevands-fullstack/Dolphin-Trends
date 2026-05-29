@@ -28,8 +28,10 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
     ? Math.round((1 - cleanPrice(product.price) / cleanPrice(product.original_price)) * 100)
     : 0;
 
+  /* ⚡ ಜೀವಾ, ಇಲ್ಲಿದೆ ನೋಡಿ ಬದಲಾವಣೆ: Similar Products ಕೊನೆಯಲ್ಲಿ .reverse() ಮಾಡಲಾಗಿದೆ. 
+     ಇದರಿಂದ ಹೊಸದಾಗಿ ಬಂದ ಡ್ರೆಸ್‌ಗಳು ಇಲ್ಲೂ ಮೊದಲು ಕಾಣಿಸುತ್ತವೆ */
   const similarProducts = allProducts
-    ? allProducts.filter(p => p.category === product.category && (p.product_id || p.id) !== currentId)
+    ? allProducts.filter(p => p.category === product.category && (p.product_id || p.id) !== currentId).reverse()
     : [];
 
   // Fetch reviews safely using currentId
@@ -70,7 +72,6 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
 
       if (response.ok) {
-        // ಡೇಟಾಬೇಸ್‌ಗೆ ಯಶಸ್ವಿಯಾಗಿ ಸೇವ್ ಆದ ನಂತರ ಕಸ್ಟಮರ್ ಮತ್ತು ಅಡ್ಮಿನ್‌ಗೆ WhatsApp ಚಾಟ್ ಓಪನ್ ಆಗುತ್ತೆ
         const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + "!\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\nPlease visit our shop:\n📍 " + shopAddress + "\n🗺️ " + shopLocation + "\n\n⏰ Timings: 10AM - 9PM\n📞 Contact: 7411255628\n\nSee you soon! 😊🛍️";
         window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
 
