@@ -22,19 +22,20 @@ function App() {
   const [editForm, setEditForm] = useState({});
   const [editLoading, setEditLoading] = useState(false);
 
+  // ⚡ ಹೊಸ ಸ್ಟೇಟ್: ಕೇವಲ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಇಮೇಜ್ ನೋಡಲು
+  const [fullScreenImage, setFullScreenImage] = useState(null);
+
   const categories = [
     'All', 'Leggings', 'Kurta Sets', 'Jeans',
     'Patiala Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
     'Western Wear', 'Gym Pants','250 Tops','350 Tops','Jeans Tops',
   ];
 
-  // ⚡ ಜೀವಾ, ಇಲ್ಲಿದೆ ಮುಖ್ಯ ಬದಲಾವಣೆ: ಬ್ಯಾಕೆಂಡ್‌ನಿಂದ ಬರೋ ಡೇಟಾವನ್ನು .reverse() ಮಾಡಲಾಗಿದೆ!
   const fetchProducts = () => {
     setLoading(true);
     fetch(`${API}/products`)
       .then(r => r.json())
       .then(d => { 
-        // Array ಆಗಿದ್ದರೆ ಅದನ್ನು reverse() ಮಾಡಿ ಸೆಟ್ ಮಾಡುತ್ತದೆ, ಆಗ ಹೊಸ ಪ್ರಾಡಕ್ಟ್‌ಗಳು Top ನಲ್ಲಿ ಬರುತ್ತವೆ.
         setProducts(Array.isArray(d) ? d.reverse() : []); 
         setLoading(false); 
       })
@@ -191,7 +192,7 @@ function App() {
                       <div
                         className={product.available === false ? 'product-card not-available' : 'product-card'}
                         key={product.product_id || product.id}
-                        onClick={() => setViewProduct(product)}
+                        /* ⚡ ಕಾರ್ಡ್ ಮೇಲಿನ ಕ್ಲಿಕ್ ಇವೆಂಟ್ ತೆಗೆದಿದ್ದೇನೆ, ಈಗ ಕಾರ್ಡ್ ಕ್ಲಿಕ್ ಮಾಡಿದ್ರೆ ಬೈ ಆಪ್ಷನ್ ಓಪನ್ ಆಗಲ್ಲ */
                       >
                         {product.available === false && (
                           <span className="not-available-badge">❌ Not Available</span>
@@ -202,9 +203,12 @@ function App() {
                             <button onClick={e => handleDelete(e, product)} style={deleteBtnStyle}>🗑️</button>
                           </div>
                         )}
-                        <div className="product-card-img-wrap">
+                        
+                        {/* ⚡ ಫೋಟೋ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಓಪನ್ ಆಗುವ ಲಾಜಿಕ್ */}
+                        <div className="product-card-img-wrap" onClick={() => setFullScreenImage(product.image)} style={{cursor: 'zoom-in'}}>
                           <img src={product.image} alt={product.name} onError={e => e.target.src='https://via.placeholder.com/300x400?text=No+Image'} />
                         </div>
+                        
                         <div className="product-info">
                           <span className="category-tag">{product.category}</span>
                           <h4>{product.name}</h4>
@@ -213,7 +217,8 @@ function App() {
                             <p className="original-price-small"><s>{product.original_price}</s></p>
                           )}
                           {product.available !== false && (
-                            <button className="buy-btn" onClick={e => { e.stopPropagation(); setViewProduct(product); }}>
+                            /* ⚡ ಈಗ Buy Now ಬಟನ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿದ್ರೆ ಮಾತ್ರ ಪಕ್ಕಾ ಬುಕಿಂಗ್ ಫೇಜ್ ಓಪನ್ ಆಗುತ್ತೆ */
+                            <button className="buy-btn" onClick={() => setViewProduct(product)}>
                               🛍️ Buy Now
                             </button>
                           )}
@@ -313,6 +318,21 @@ function App() {
         <p>📍 Laggere Main Road, Bangalore — 560058</p>
         <p>📱 +91 7795800741 | 📸 Developer by Jeevan JD</p>
       </footer>
+
+      {/* ⚡ ಹೊಸ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಇಮೇಜ್ ಪಾಪ್-ಅಪ್ (ಯಾವಾಗ ಇಮೇಜ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡ್ತಾರೋ ಆಗ ಮಾತ್ರ ಇದು ಕಾಣುತ್ತೆ) */}
+      {fullScreenImage && (
+        <div 
+          onClick={() => setFullScreenImage(null)} 
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            zIndex: 9999, cursor: 'zoom-out'
+          }}
+        >
+          <span style={{ position: 'absolute', top: '20px', right: '30px', color: '#fff', fontSize: '30px', fontWeight: 'bold', cursor: 'pointer' }}>✕</span>
+          <img src={fullScreenImage} alt="Full Screen" style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px', boxShadow: '0 0 20px rgba(255,255,255,0.2)' }} />
+        </div>
+      )}
 
       {viewProduct && (
         <ProductPage product={viewProduct} allProducts={products} onClose={() => setViewProduct(null)} onBook={p => setViewProduct(p)} />
