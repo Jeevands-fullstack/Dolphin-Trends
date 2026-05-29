@@ -178,11 +178,26 @@ def create_booking(payload: BookingPayload):
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
-        admin_message = f"🛍️ *New Buy Request!*\n\n👗 *Product:* {payload.product_name}\n📏 Size: {payload.size}\n💰 Price: {payload.price}\n👤 Name: {payload.customer_name}\n📞 Phone: {payload.customer_phone}"
+        
+        # 🔥 ನಿಮಗೆ (Owner) ಬರುವ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಅಪ್ಡೇಟ್ ಮಾಡಲಾಗಿದೆ
+        admin_message = (
+            f"🛍️ *New Buy Request!*\n\n"
+            f"👗 *Product:* {payload.product_name}\n"
+            f"📏 Size: {payload.size}\n"
+            f"💰 Price: {payload.price}\n"
+            f"👤 Name: {payload.customer_name}\n"
+            f"📞 Phone: {payload.customer_phone}\n\n"
+            f"⚙️ *Please update them here:* 👇\n"
+            f"🔗 {FRONTEND_URL}"
+        )
+        
         send_whatsapp_msg(YOUR_PERSONAL_PHONE, admin_message)
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 @app.post("/products")
 async def add_or_update_product_via_panel(
