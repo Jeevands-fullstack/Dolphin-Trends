@@ -110,16 +110,14 @@ function Admin({ onProductAdded }) {
   };
 
   return (
-    /* ⚡ ಇಡೀ ಪೇಜ್ ಕಂಟೇನರ್ - ಮಿನಿಮಮ್ ಹೈಟ್ ಕೊಟ್ಟು ಫೂಟರ್ ಕೆಳಗೆ ತಳ್ಳಲು ಫ್ಲೆಕ್ಸ್ ಮಾಡಲಾಗಿದೆ */
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#0b1329' }}>
+    <div style={{ background: '#0b1329', padding: '10px 0' }}>
       
-      {/* ─── MAIN CONTENT AREA ─── */}
-      <div className="admin-container" style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', width: '100%', flex: '1' }}>
+      {/* ⚡ ಜೀವಾ, ಇಲ್ಲಿ maxWidth ಅನ್ನು 1100px ಗೆ ದೊಡ್ಡದು ಮಾಡಿದ್ದೇನೆ, ಇದರಿಂದ ಬಾಕ್ಸ್ ಅಗಲವಾಗಿ ಚೆನ್ನಾಗಿ ಕಾಣುತ್ತೆ */}
+      <div className="admin-container" style={{ padding: '15px', maxWidth: '1100px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
-        {/* ⚡ ಲೇಔಟ್ ಈಗ ಪಕ್ಕಾ Column ಆಗಿದೆ, ಹಾಗಾಗಿ ಬುಕಿಂಗ್ ಲಿಸ್ಟ್ ಯಾವಾಗಲೂ ಕೆಳಗಡೆನೇ ಬರುತ್ತೆ */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
           
-          {/* ─── 👗 1. ಅಡ್ಮಿನ್ ಫಾರ್ಮ್ ಕಾರ್ಡ್ (ಮೇಲ್ಭಾಗ) ─── */}
+          {/* ─── 👗 1. ಅಡ್ಮಿನ್ ಫಾರ್ಮ್ ಕಾರ್ಡ್ ─── */}
           <div className="admin-card" style={{ width: '100%', boxSizing: 'border-box' }}>
             <h2>🛠️ Admin Panel - Add / Edit Product</h2>
             <div className="form-section">
@@ -177,7 +175,7 @@ function Admin({ onProductAdded }) {
             </div>
           </div>
 
-          {/* ─── 📥 2. ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ಸ್ ಕಾರ್ಡ್ (ಕಾಲಂ ಆಗಿರುವುದರಿಂದ ಇದು ಪಕ್ಕಾ ಕೆಳಗೆ ಬರುತ್ತೆ) ─── */}
+          {/* ─── 📥 2. ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ಸ್ ಕಾರ್ಡ್ (ಇದು ಕೂಡ ಈಗ ದೊಡ್ಡದಾಗಿ ಹರಡಿಕೊಳ್ಳುತ್ತದೆ) ─── */}
           <div className="admin-card" style={{ width: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ color: '#fff', margin: 0 }}>📥 Customer Bookings List</h2>
@@ -230,15 +228,11 @@ function Admin({ onProductAdded }) {
         </div>
       </div>
 
-      {/* ─── 🗺️ 3. FOOTER SECTION (ಯಾವಾಗಲೂ ಇಡೀ ಸ್ಕ್ರೀನ್‌ನ ತೀರಾ ಕೆಳಗೆ ಇರುತ್ತದೆ) ─── */}
-      <footer style={{ background: '#020617', color: '#94a3b8', padding: '20px', textAlign: 'center', borderTop: '1px solid #1e293b', width: '100%', marginTop: 'auto' }}>
-        <p style={{ margin: '5px 0', color: '#38bdf8', fontWeight: 'bold' }}>🐬 Dolphin Trends | Women's Fashion Store | Bangalore</p>
-        <p style={{ margin: '5px 0', fontSize: '14px' }}>📍 Laggere Main Road, Bangalore — 560058</p>
-        <p style={{ margin: '5px 0', fontSize: '14px' }}>📞 +91 7411255628 | 💻 Developer by Jeevan JD</p>
-      </footer>
+      {/* ⚡ ಜೀವಾ, ಡಬಲ್ ಆಗ್ತಿದ್ದ ಫೂಟರ್ ಸೆಕ್ಷನ್ ಅನ್ನು ಇಲ್ಲಿಂದ ಕಂಪ್ಲೀಟ್ ಆಗಿ ತೆಗೆದುಹಾಕಲಾಗಿದೆ. 
+          ಈಗ ಮೇನ್ ಆಪ್‌ನಲ್ಲಿರೋ ಫೂಟರ್ ಮಾತ್ರ ಕೆಳಗಡೆ ನೀಟಾಗಿ ಒಂದೇ ಸಾರಿ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತೆ! */}
 
     </div>
   );
 }
 
-export default Admin;           
+export default Admin;            
