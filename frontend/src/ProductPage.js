@@ -49,9 +49,10 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   }, [currentId]); 
 
   // ✅ ಹೊಸ ಅಪ್ಡೇಟ್: ಬುಕಿಂಗ್ ಡೇಟಾವನ್ನು ನೇರವಾಗಿ ಬ್ಯಾಕೆಂಡ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ ಮಾಡುತ್ತದೆ
+  // 🔥 2ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: ಕಸ್ಟಮರ್ ಆರ್ಡರ್ ಮಾಡಿದಾಗ ಶಾಪ್ ಅಡ್ರೆಸ್ ಇಲ್ಲದೆ ಹೋಗುವ ಪ್ರೊಫೆಷನಲ್ ಮೆಸೇಜ್
   const handleBuyNow = async () => {
     if (!selectedSize) { alert('⚠️ Please select a size!'); return; }
-    if (!customerName || !customerPhone) { alert('⚠️ Name ಮತ್ತು Phone ಹಾಕಿ!'); return; }
+    if (!customerName || !customerPhone) { alert('⚠️ Name ಮತ್ತು Phoneಹಾಕಿ!'); return; }
 
     setBookingLoading(true);
 
@@ -72,10 +73,12 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
 
       if (response.ok) {
-        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + "!\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\nPlease visit our shop:\n📍 " + shopAddress + "\n🗺️ " + shopLocation + "\n\n⏰ Timings: 10AM - 9PM\n📞 Contact: 7411255628\n\nSee you soon! 😊🛍️";
+        // ✨ ಪಕ್ಕಾ ಪ್ರೊಫೆಷನಲ್ ಇಂಗ್ಲಿಷ್ ಮೆಸೇಜ್ (ಅಡ್ರೆಸ್ ತೆಗೆದು ಸ್ಟಾಕ್ ಚೆಕಿಂಗ್ ಲೈನ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ)
+        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + ",\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\n📝 *We are currently checking the stock availability for your order. Our team will contact you shortly with confirmation.* 🙏\n\n💥 *Meanwhile, explore our latest collections here:* 👇\n🔗 https://dolphin-trends-two.vercel.app\n\n📞 Contact: 7411255628\n\nThank you for choosing us! 😊\n*Team Dolphin Trends* 🐬";
         window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
 
-        const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone;
+        // ಅಡ್ಮಿನ್‌ಗೆ ಹೋಗುವ ಮೆಸೇಜ್
+        const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone + "\n\n⚙️ *Please update them here:* 👇\n🔗 https://dolphin-trends-two.vercel.app";
         window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
 
         setShowBuyForm(false);
@@ -90,6 +93,8 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       setBookingLoading(false);
     }
   };
+  
+  
 
   const handleAddReview = async () => {
     if (!reviewName || !reviewText) { alert('⚠️ Name ಮತ್ತು Review ಹಾಕಿ!'); return; }
