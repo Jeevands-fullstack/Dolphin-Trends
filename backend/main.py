@@ -30,7 +30,7 @@ GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
-FRONTEND_URL = "https://dolphin-frontend-mvke.onrender.com"
+FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "YOUR_CLOUD_NAME")
 CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "YOUR_API_KEY")
