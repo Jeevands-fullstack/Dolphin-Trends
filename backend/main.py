@@ -354,22 +354,35 @@ def update_booking_status(booking_id: str, action: str):
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
 
+        # 🔥 3ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: Agree ಕೊಟ್ಟಾಗ ಲಗ್ಗರೆ ಬದಲು ಪೀಣ್ಯ ರಾಜಗೋಪಾಲ ನಗರ ಅಡ್ರೆಸ್ ಹೋಗುತ್ತೆ
         if action == "agree":
-            msg = f"Hello {c_name}! ✅\n\n*{p_name}* is available at Dolphin Trends!\n\n🏪 Visit us:\nLaggere Main Road, Bangalore\n📍 https://maps.app.goo.gl/vYm66S8mGz7K7uCH7\n\n⏰ 11AM - 10PM"
+            msg = (
+                f"Hello {c_name}! ✅\n\n"
+                f"*{p_name}* is available at Dolphin Trends!\n\n"
+                f"🏪 *Visit our Store:*\n"
+                f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
+                f"📍 Map Location: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
+                f"⏰ Timings: 11AM - 10PM\n\n"
+                f"See you soon! 🛍️\n"
+                f"Team Dolphin Trends 🐬"
+            )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
+            
         elif action == "disagree":
             msg = f"Hello {c_name},\n\nSorry, *{p_name}* is currently out of stock. We'll notify you when it's back!\n\nTeam Dolphin Trends 🐬"
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
+            
         elif action == "size_unavail":
-            msg = f"Hello {c_name},\n\n*{p_name}* is available but your size is currently out of stock.\n\nPlease visit our store to check alternatives!\n📍 Laggere Main Road, Bangalore"
+            msg = f"Hello {c_name},\n\n*{p_name}* is available but your size is currently out of stock.\n\nPlease visit our store to check alternatives!\n📍 Peenya 2nd Stage, Bangalore"
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size Unavailable"}})
 
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/")
 def home():
