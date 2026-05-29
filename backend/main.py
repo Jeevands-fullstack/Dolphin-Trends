@@ -85,16 +85,21 @@ def upload_to_cloudinary(image_source, is_file=False):
         print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
+# ⚡ ಜೀವಾ, ಇಲ್ಲಿದೆ ನೋಡಿ ಮುಖ್ಯ ಬದಲಾವಣೆ! ವಾಟ್ಸಾಪ್‌ಗೆ ಹೋಗುವ ಮೆಸೇಜ್ ಫಾರ್ಮ್ಯಾಟ್ ಕಂಪ್ಲೀಟ್ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ.
 def send_whatsapp_image(image_url, product_name):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
             return False
+        
+        # ಸ್ಪೇಸ್ ಕಡಿಮೆ ಮಾಡಲಾಗಿದೆ + "Explore our latest collections..." ಕ್ಯಾಚಿ ಲೈನ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ
         caption = (
-            f"🔥 *New Arrival!*\n\n"
-            f"✨ {product_name}\n\n"
+            f"🔥 *New Arrival!*\n"
+            f"✨ Premium Dress: *{product_name}*\n"
             f"💃 Grab yours before it's gone!\n\n"
-            f"👇 Visit my website:\n{FRONTEND_URL}"
+            f"💥 *Explore our latest collections & exclusive offers here:* 👇\n"
+            f"🔗 {FRONTEND_URL}"
         )
+        
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": f"{YOUR_PERSONAL_PHONE}@c.us",
@@ -249,7 +254,6 @@ async def telegram_webhook(request: Request):
 
                 telegram_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
 
-                # Upload to Cloudinary for permanent URL
                 permanent_url = upload_to_cloudinary(telegram_image_url)
                 if not permanent_url:
                     permanent_url = telegram_image_url
@@ -275,7 +279,6 @@ async def telegram_webhook(request: Request):
                         product_price = f"₹{price_match.group(1)}"
                         product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
 
-                # AI mode if no caption or default name
                 if not caption or product_name == "Premium Dress":
                     ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
                     product_name = ai_name
@@ -290,7 +293,6 @@ async def telegram_webhook(request: Request):
                     "description": product_description, "available": True
                 })
 
-                # Send WhatsApp
                 send_whatsapp_image(permanent_url, product_name)
 
                 requests.post(
