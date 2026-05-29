@@ -28,11 +28,16 @@ function App() {
     'Western Wear', 'Gym Pants','250 Tops','350 Tops','Jeans Tops',
   ];
 
+  // ⚡ ಜೀವಾ, ಇಲ್ಲಿದೆ ಮುಖ್ಯ ಬದಲಾವಣೆ: ಬ್ಯಾಕೆಂಡ್‌ನಿಂದ ಬರೋ ಡೇಟಾವನ್ನು .reverse() ಮಾಡಲಾಗಿದೆ!
   const fetchProducts = () => {
     setLoading(true);
     fetch(`${API}/products`)
       .then(r => r.json())
-      .then(d => { setProducts(Array.isArray(d) ? d : []); setLoading(false); })
+      .then(d => { 
+        // Array ಆಗಿದ್ದರೆ ಅದನ್ನು reverse() ಮಾಡಿ ಸೆಟ್ ಮಾಡುತ್ತದೆ, ಆಗ ಹೊಸ ಪ್ರಾಡಕ್ಟ್‌ಗಳು Top ನಲ್ಲಿ ಬರುತ್ತವೆ.
+        setProducts(Array.isArray(d) ? d.reverse() : []); 
+        setLoading(false); 
+      })
       .catch(() => setLoading(false));
   };
 
@@ -52,7 +57,6 @@ function App() {
     }
   };
 
-  // ✅ FIX: handleEditOpen function added
   const handleEditOpen = (e, product) => {
     e.stopPropagation();
     setEditProduct(product);
@@ -65,7 +69,6 @@ function App() {
     });
   };
 
-  // ✅ FIX: Delete with proper ID
   const handleDelete = async (e, product) => {
     e.stopPropagation();
     const id = product.product_id || product.id;
@@ -87,7 +90,6 @@ function App() {
     }
   };
 
-  // ✅ FIX: Edit save with proper ID
   const handleEditSave = async () => {
     if (!editProduct) return;
     setEditLoading(true);
