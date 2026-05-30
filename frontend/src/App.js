@@ -123,18 +123,57 @@ function App() {
             </div>
           )}
 
-          {activePage === 'location' && (
-            <div className="section-page">
-              <iframe title="Dolphin Trends Main" src="https://maps.google.com/maps/contrib/107476321428816551160" allowFullScreen="" loading="lazy" style={{ border: 0, width: '100%', height: '350px', borderRadius: '15px', marginBottom: '20px' }} />
-              <div className="shop-slider-container" style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '380px', margin: '0 auto', overflow: 'hidden', borderRadius: '12px' }}>
-                <img src={shopImages[currentImgIndex]} alt="Shop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <button onClick={prevShopImage} style={{ position: 'absolute', top: '50%', left: '10px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer' }}>‹</button>
-                <button onClick={nextShopImage} style={{ position: 'absolute', top: '50%', right: '10px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer' }}>›</button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+            {activePage === 'location' && (
+  <div className="section-page">
+    <div className="section-page-header">
+      <h2>📍 Our Locations</h2>
+      <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p>
+    </div>
+
+    {/* Main Branch */}
+    <div className="map-embed" style={{ marginBottom: '40px' }}>
+      <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Rajgopalnagar</h3>
+      
+      <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px', marginBottom: '15px' }}>
+        <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058</p>
+        <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
+        <a href="https://maps.app.goo.gl/tJQ47jqAsoLRQ1Ua7" target="_blank" rel="noreferrer"
+          style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>
+          🗺️ Open in Google Maps
+        </a>
+      </div>
+
+      {/* Shop Photos */}
+      <h4 style={{ color: '#7a85a0', marginBottom: '10px', textAlign: 'center' }}>📸 Our Shop</h4>
+      <div style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '380px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(26,108,255,0.2)' }}>
+        <img src={shopImages[currentImgIndex]} alt="Shop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <button onClick={prevShopImage} style={{ position: 'absolute', top: '50%', left: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px' }}>‹</button>
+        <button onClick={nextShopImage} style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px' }}>›</button>
+        <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '6px' }}>
+          {shopImages.map((_, idx) => (
+            <span key={idx} onClick={() => setCurrentImgIndex(idx)}
+              style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentImgIndex === idx ? '#1a6cff' : 'rgba(255,255,255,0.5)', cursor: 'pointer' }} />
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Branch 2 */}
+    <div className="map-embed">
+      <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>🏪 Branch 2 — Laggere</h3>
+      <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px' }}>
+        <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍 Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
+        <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
+        <a href="https://maps.app.goo.gl/amrkmppGsdgprtx27" target="_blank" rel="noreferrer"
+          style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>
+          🗺️ Open in Google Maps
+        </a>
+      </div>
+    </div>
+  </div>
+)}
+
+         
 
       <footer><p><strong>🐬 Dolphin Trends</strong> | Developed by Jeevan JD</p></footer>
 
