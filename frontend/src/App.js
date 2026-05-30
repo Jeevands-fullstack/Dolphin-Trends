@@ -67,7 +67,7 @@ function App() {
     }
   };
 
-  // 🗑️ Shop ಪೇಜ್‌ನಿಂದಲೇ ಡಿಲೀಟ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+  // 🗑️ Shop ಪೇಜ್‌ನಿಂದಲೇ ಪ್ರಾಡಕ್ಟ್ ಡಿಲೀಟ್ ಮಾಡುವ ಫಂಕ್ಷನ್
   const handleDeleteProduct = async (productId) => {
     if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಪ್ರಾಡಕ್ಟ್ ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
     try {
@@ -122,39 +122,78 @@ function App() {
             onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); }}
           />
         ) : (
-          <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <form onSubmit={handleAdminLoginSubmit} style={{ background: '#1a233d', padding: '35px 30px', borderRadius: '15px', width: '100%', maxWidth: '380px', textAlign: 'center', border: '1px solid rgba(26,108,255,0.25)', boxShadow: '0 10px 25px rgba(0,0,0,0.4)' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔐</div>
-              <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.5rem' }}>Admin Control</h2>
-              <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginBottom: '25px' }}>ದಯವಿಟ್ಟು ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ</p>
+          /* 🔐 Animated Deep Dark Blue Admin Login Form */
+          <div style={{ background: '#070b19', padding: '60px 20px', minHeight: '75vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+            
+            {/* ಅನಿಮೇಷನ್ ಮತ್ತು ಸ್ಟೈಲ್ ಎಫೆಕ್ಟ್‌ಗಳು */}
+            <style>{`
+              @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(40px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              .login-box {
+                animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                background: #0d162d !important; /* ಪ್ರೀಮಿಯಂ ಡಾರ್ಕ್ ಬ್ಲೂ ಕಲರ್ */
+                border: 1px solid rgba(26, 108, 255, 0.35) !important;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(26, 108, 255, 0.1) !important;
+                transition: all 0.3s ease;
+              }
+              .login-box:hover {
+                border-color: rgba(26, 108, 255, 0.6) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(26, 108, 255, 0.2) !important;
+              }
+              .login-btn {
+                background: linear-gradient(135deg, #1a6cff, #004ecc) !important;
+                transition: all 0.25s ease !important;
+              }
+              .login-btn:hover {
+                transform: scale(1.03);
+                box-shadow: 0 5px 15px rgba(26,108,255,0.4);
+              }
+              .input-field:focus {
+                border-color: #1a6cff !important;
+                box-shadow: 0 0 8px rgba(26,108,255,0.3) !important;
+              }
+            `}</style>
+
+            <form onSubmit={handleAdminLoginSubmit} className="login-box" style={{ padding: '40px 35px', borderRadius: '20px', width: '100%', maxWidth: '390px', textAlign: 'center' }}>
+              <div style={{ fontSize: '2.8rem', marginBottom: '12px', display: 'inline-block' }}>🔐</div>
+              <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.6rem', fontWeight: '700', letterSpacing: '0.5px' }}>Admin Control</h2>
+              <p style={{ color: '#6b7c96', fontSize: '0.85rem', marginBottom: '30px' }}>ದಯವಿಟ್ಟು ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ</p>
               
-              <div style={{ textAlign: 'left', marginBottom: '15px' }}>
-                <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Username</label>
+              <div style={{ textAlign: 'left', marginBottom: '18px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#8fa0b7', display: 'block', marginBottom: '6px', fontWeight: '500' }}>Username</label>
                 <input 
                   type="text" 
                   placeholder="Enter Username" 
                   value={adminUsername}
                   onChange={(e) => setAdminUsername(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.2)', background: '#0f172a', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                  className="input-field"
+                  style={{ width: '100%', padding: '13px 15px', borderRadius: '10px', border: '1px solid rgba(26,108,255,0.2)', background: '#060a15', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', transition: 'all 0.2s' }}
                   required
                 />
               </div>
 
-              <div style={{ textAlign: 'left', marginBottom: '20px' }}>
-                <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Password</label>
+              <div style={{ textAlign: 'left', marginBottom: '22px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#8fa0b7', display: 'block', marginBottom: '6px', fontWeight: '500' }}>Password</label>
                 <input 
                   type="password" 
                   placeholder="Enter Admin Password" 
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.2)', background: '#0f172a', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                  className="input-field"
+                  style={{ width: '100%', padding: '13px 15px', borderRadius: '10px', border: '1px solid rgba(26,108,255,0.2)', background: '#060a15', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', transition: 'all 0.2s' }}
                   required
                 />
               </div>
 
-              {loginError && <p style={{ color: '#ff4d4d', fontSize: '0.85rem', marginBottom: '15px', fontWeight: 'bold' }}>{loginError}</p>}
+              {loginError && (
+                <p style={{ color: '#ff4d4d', fontSize: '0.85rem', marginBottom: '18px', fontWeight: 'bold', background: 'rgba(255,77,77,0.1)', padding: '8px', borderRadius: '6px', border: '1px solid rgba(255,77,77,0.2)' }}>
+                  {loginError}
+                </p>
+              )}
 
-              <button type="submit" style={{ background: '#1a6cff', color: 'white', border: 'none', padding: '12px 25px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', width: '100%', fontSize: '0.95rem', transition: '0.2s' }}>
+              <button type="submit" className="login-btn" style={{ color: 'white', border: 'none', padding: '14px 25px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', width: '100%', fontSize: '1rem', marginTop: '5px' }}>
                 Verify & Enter Dashboard
               </button>
             </form>
@@ -173,7 +212,7 @@ function App() {
                     {filtered.map(product => (
                       <div className={product.available === false ? 'product-card not-available' : 'product-card'} key={product.product_id || product.id} style={{ position: 'relative' }}>
                         
-                        {/* 🛠️ ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಫೋಟೋ ಮೇಲ್ಗಡೆ ಎಡಿಟ್ ಮತ್ತು ಡಿಲೀಟ್ ಬಟನ್ ತೋರಿಸಲು */}
+                        {/* 🛠️ ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಫೋಟೋ ಮೇಲ್ಗಡೆ ಎಡಿಟ್ ಮತ್ತು ಡಿಲೀಟ್ ಬಟನ್ */}
                         {isAdminLoggedIn && (
                           <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px', zIndex: 10, background: 'rgba(11,19,41,0.85)', padding: '6px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
                             <button onClick={() => handleEditClick(product)} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>✏️ Edit</button>
