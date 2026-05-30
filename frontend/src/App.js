@@ -6,12 +6,11 @@ import dolphin from './assets/dolphin.png';
 import heroVideo from './assets/hero-video.mp4';
 
 // 🏪 ಜೀವನ್, ಇಲ್ಲಿ ನಿಮ್ಮ ಫೋಟೋಗಳ ಎಕ್ಸ್‌ಟೆನ್ಶನ್ ಅನ್ನು .jpeg ಗೆ ಪಕ್ಕಾ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ!
-// 🏪 ಜೀವನ್, ನಿಮ್ಮ ಗಿಟ್‌ಹಬ್ ಫೋಲ್ಡರ್‌ಗೆ ಪರ್ಫೆಕ್ಟ್ ಆಗಿ ಮ್ಯಾಚ್ ಮಾಡಲಾದ ಕೋಡ್ ಲೈನ್‌ಗಳು:
-import shop1 from './assets/shop-1..jpeg';  // ಡಬಲ್ ಡಾಟ್ (..jpeg)
-import shop2 from './assets/shop-2..jpeg';  // ಡಬಲ್ ಡಾಟ್ (..jpeg)
-import shop3 from './assets/shop-3.jpeg';   // ಸಿಂಗಲ್ ಡಾಟ್ (.jpeg)
-import shop4 from './assets/shop-4.jpeg';   // ಸಿಂಗಲ್ ಡಾಟ್ (.jpeg) -> ಇಲ್ನೋಡಿ ಜೀವನ್, ಇಲ್ಲಿ ಸಿಂಗಲ್ ಡಾಟ್ ಇರಬೇಕು!
-import shop5 from './assets/shop-5..jpeg';  // ಡಬಲ್ ಡಾಟ್ (..jpeg)
+import shop1 from './assets/shop-1..jpeg';
+import shop2 from './assets/shop-2..jpeg';
+import shop3 from './assets/shop-3.jpeg';
+import shop4 from './assets/shop-4.jpeg';
+import shop5 from './assets/shop-5..jpeg';
 
 const API = 'https://dolphin-trends-3.onrender.com';
 
