@@ -9,8 +9,8 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   const fileInputRef = useRef(null);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [adminFullScreenImg, setAdminFullScreenImg] = useState(null); // 🖼️ Booking Image Full Screen ಗಾಗಿ ಹೊಸ ಸ್ಟೇಟ್
 
-  // ✏️ Shop ಪೇಜ್‌ನಿಂದ ಎಡಿಟ್ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫಾರ್ಮ್ ತುಂಬಲು
   useEffect(() => {
     if (editData) {
       setFormData({
@@ -44,12 +44,32 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     } catch { alert('❌ Server Error'); }
   };
 
+  // 🗑️ Customer Booking ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡುವ ಹೊಸ ಫಂಕ್ಷನ್
+  const handleDeleteBooking = async (bookingId) => {
+    if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ ಅನ್ನು ಲಿಸ್ಟ್‌ನಿಂದ ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
+    try {
+      // ಬ್ಯಾಕೆಂಡ್‌ನ ಹಾಲಿ ಡಿಲೀಟ್ ರೂಲ್ಸ್ ಪ್ರಕಾರ ವಿನಂತಿ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ
+      const r = await fetch(`https://dolphin-trends-3.onrender.com/bookings/${bookingId}`, { method: 'DELETE' });
+      
+      // ಒಂದು ವೇಳೆ ಮೇಲಿನ ಯುಆರ್‌ಎಲ್ ಕೆಲಸ ಮಾಡದಿದ್ದರೆ ಬ್ಯಾಕೆಂಡ್ ಎಂಡ್‌ಪಾಯಿಂಟ್ ಹೀಗಿರಬಹುದು, ಇದನ್ನು ಟ್ರೈ ಮಾಡಿ:
+      // const r = await fetch(`https://dolphin-trends-3.onrender.com/api/admin/bookings/${bookingId}`, { method: 'DELETE' });
+
+      if (r.ok || r.status === 200) {
+        alert('🗑️ Booking Deleted Successfully!');
+        fetchBookings(); // ಲಿಸ್ಟ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ
+      } else {
+        alert('❌ Booking delete failed!');
+      }
+    } catch {
+      alert('❌ Server Error while deleting booking!');
+    }
+  };
+
   const handleAddOrUpdateProduct = async () => {
     if (!formData.name || !formData.price) { alert('⚠️ Name ಮತ್ತು Price ಹಾಕಿ!'); return; }
     setLoading(true);
     const file = fileInputRef.current?.files[0];
     
-    // 🚀 422 ಎರರ್ ಬರದೇ ಇರಲು ಮಲ್ಟಿಪಾರ್ಟ್ ಫಾರ್ಮ್ ಡೇಟಾ ರೆಡಿ ಮಾಡಲಾಗ್ತಿದೆ
     const dataToSend = new FormData();
     dataToSend.append('name', formData.name);
     dataToSend.append('price', formData.price.startsWith('₹') ? formData.price : `₹${formData.price}`);
@@ -58,12 +78,10 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     dataToSend.append('category', formData.category);
     if (file) dataToSend.append('file', file);
 
-    // 💡 ನಿಮ್ಮ ಬ್ಯಾಕೆಂಡ್‌ನ @app.post("/products") ಫಂಕ್ಷನ್ ಹೆಸರುಗಳು 'existing_product = products_table.find_one({"name": name})' ಎಂದು ಹುಡುಕುತ್ತದೆ.
-    // ಆದ್ದರಿಂದ ಎಡಿಟ್ ಮಾಡುವಾಗಲೂ ಅದೇ ಹೆಸರಿನೊಂದಿಗೆ ಕಳುಹಿಸಿದರೆ ಬ್ಯಾಕೆಂಡ್ ತಾನಾಗಿಯೇ ಅಪ್ಡೇಟ್ ಮಾಡಿಕೊಳ್ಳುತ್ತದೆ!
     let url = 'https://dolphin-trends-3.onrender.com/products';
 
     try {
-      const r = await fetch(url, { method: 'POST', body: dataToSend }); // 422 ಎರರ್ ತಡೆಯಲು ಪೋಸ್ಟ್ ಮೆಥಡ್
+      const r = await fetch(url, { method: 'POST', body: dataToSend });
       if (r.ok) {
         alert(editData ? '🔄 Product Updated Successfully!' : '✅ Product saved!');
         setFormData({ name: '', description: '', price: '', original_price: '', category: 'Tops' });
@@ -132,7 +150,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
 
         {/* Bookings Table */}
         <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justify_content: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ color: '#4d9fff', margin: 0 }}>📥 Customer Bookings</h2>
             <button onClick={fetchBookings} style={{ padding: '8px 16px', background: '#1a6cff', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>🔄 Refresh</button>
           </div>
@@ -153,7 +171,16 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                   ) : bookings.map(b => (
                     <tr key={b.booking_id} style={{ borderBottom: '1px solid rgba(26,108,255,0.1)' }}>
                       <td style={{ padding: '12px' }}>
-                        {b.image_url && <img src={b.image_url} alt="product" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} onError={e => e.target.style.display='none'} />}
+                        {/* 🖼️ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಓಪನ್ ಆಗುವ ಹಾಗೆ ಮಾಡಲಾಗಿದೆ */}
+                        {b.image_url && (
+                          <img 
+                            src={b.image_url} 
+                            alt="product" 
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in' }} 
+                            onClick={() => setAdminFullScreenImg(b.image_url)} 
+                            onError={e => e.target.style.display='none'} 
+                          />
+                        )}
                       </td>
                       <td style={{ padding: '12px' }}>
                         <div style={{ color: '#f0f4ff', fontWeight: 'bold' }}>{b.product_name}</div>
@@ -164,17 +191,27 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                         <div style={{ color: '#7a85a0', fontSize: '0.8rem' }}>📞 {b.customer_phone}</div>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)', color: b.status === 'Pending' ? '#f59e0b' : '#10b981' }}>
+                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : b.status === 'Approved' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: b.status === 'Pending' ? '#f59e0b' : b.status === 'Approved' ? '#10b981' : '#ef4444' }}>
                           {b.status}
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        {b.status === 'Pending' && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleBookingAction(b.booking_id, 'agree')} style={{ padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Agree</button>
-                            <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '6px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>No Stock</button>
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          {b.status === 'Pending' && (
+                            <>
+                              <button onClick={() => handleBookingAction(b.booking_id, 'agree')} style={{ padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>Agree</button>
+                              <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '6px 14px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>No Stock</button>
+                            </>
+                          )}
+                          {/* 🗑️ ಪ್ರತಿ ರೋ ಗೂ ಡಿಲೀಟ್ ಬಟನ್ ಸೇರಿಸಲಾಗಿದೆ */}
+                          <button 
+                            onClick={() => handleDeleteBooking(b.booking_id || b.id)} 
+                            style={{ padding: '6px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                            title="Delete Booking"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -184,6 +221,17 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
           )}
         </div>
       </div>
+
+      {/* 🖼️ Full Screen Image Modal for Admin Bookings */}
+      {adminFullScreenImg && (
+        <div 
+          onClick={() => setAdminFullScreenImg(null)} 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, cursor: 'zoom-out' }}
+        >
+          <img src={adminFullScreenImg} alt="Full View" style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} />
+        </div>
+      )}
+
     </div>
   );
 }
