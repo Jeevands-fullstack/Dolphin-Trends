@@ -93,7 +93,7 @@ function App() {
 
       {showAdmin ? (
         isAdminLoggedIn ? (
-          <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
+          <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} products={products} />
         ) : (
           /* 🔐 Admin Login Form */
           <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
