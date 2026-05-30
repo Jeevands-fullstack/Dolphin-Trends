@@ -85,13 +85,11 @@ def upload_to_cloudinary(image_source, is_file=False):
         print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
-# ⚡ ಜೀವಾ, ಇಲ್ಲಿದೆ ನೋಡಿ ಮುಖ್ಯ ಬದಲಾವಣೆ! ವಾಟ್ಸಾಪ್‌ಗೆ ಹೋಗುವ ಮೆಸೇಜ್ ಫಾರ್ಮ್ಯಾಟ್ ಕಂಪ್ಲೀಟ್ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ.
 def send_whatsapp_image(image_url, product_name):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
             return False
         
-        # ⚡ ಪ್ರೊಫೆಷನಲ್ ಕ್ಯಾಪ್ಶನ್ - ಯಾವುದೇ ಲಿಂಕ್ ಪ್ರಿವ್ಯೂ ಕನ್ಫ್ಯೂಷನ್ ಇಲ್ಲದೆ ನೇರ ಮಾಹಿತಿ
         caption = (
             f"🔥 *New Arrival at Dolphin Trends!* 🐬\n\n"
             f"👗 *Product:* {product_name}\n"
@@ -113,6 +111,7 @@ def send_whatsapp_image(image_url, product_name):
     except Exception as e:
         print("WhatsApp Error:", str(e))
         return False
+
 def send_whatsapp_msg(phone, message):
     if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
         return False
@@ -133,7 +132,10 @@ def generate_product_details_via_ai(image_url):
             return "Premium Dress", "Suit Set", "Curated boutique wear."
         response = requests.get(image_url)
         image_bytes = response.content
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # ⚡ 404 Error ಬರದಂತೆ ತಡೆಯಲು 'models/' ಆಡ್ ಮಾಡಲಾಗಿದೆ
+        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        
         prompt = (
             "Analyze this boutique fashion clothing image. "
             "1. Provide a simple product name. "
@@ -178,7 +180,6 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
         
-        # 🔥 ನಿಮಗೆ (Owner) ಬರುವ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಅಪ್ಡೇಟ್ ಮಾಡಲಾಗಿದೆ
         admin_message = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -194,9 +195,6 @@ def create_booking(payload: BookingPayload):
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
 
 @app.post("/products")
 async def add_or_update_product_via_panel(
@@ -335,6 +333,22 @@ def delete_product_direct(product_id: str):
     products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
     return {"success": True}
 
+# 🗑️ ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡುವ ಹೊಸ ಬ್ಯಾಕೆಂಡ್ ರೌಟ್ (ADDED NEW)
+@app.delete("/api/admin/bookings/{booking_id}")
+@app.delete("/bookings/{booking_id}")
+def delete_booking_direct(booking_id: str):
+    if not booking_id or booking_id == "undefined":
+        raise HTTPException(status_code=400, detail="Invalid Booking ID")
+    if bookings_table is None:
+        raise HTTPException(status_code=500, detail="Database connection missing")
+    
+    result = bookings_table.delete_one({"booking_id": booking_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Booking not found")
+        
+    return {"success": True, "message": "Booking deleted successfully"}
+
 @app.get("/products")
 def get_products():
     return list(products_table.find({}, {"_id": 0})) if products_table is not None else []
@@ -368,7 +382,6 @@ def update_booking_status(booking_id: str, action: str):
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
 
-        # 🔥 3ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: Agree ಕೊಟ್ಟಾಗ ಲಗ್ಗರೆ ಬದಲು ಪೀಣ್ಯ ರಾಜಗೋಪಾಲ ನಗರ ಅಡ್ರೆಸ್ ಹೋಗುತ್ತೆ
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
@@ -396,7 +409,6 @@ def update_booking_status(booking_id: str, action: str):
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/")
 def home():
