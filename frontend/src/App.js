@@ -303,71 +303,62 @@ function App() {
             </div>
           )}
 
-          {activePage === 'location' && (
-            <div className="section-page">
-              <div className="section-page-header">
-                <h2>📍 Our Locations</h2>
-                <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ ಮತ್ತು ಗೂಗಲ್ ಮ್ಯಾಪ್ ಲಿಂಕ್ಸ್</p>
-              </div>
+{activePage === 'location' && (
+  <div className="section-page">
+    <div className="section-page-header">
+      <h2>📍 Our Locations</h2>
+      <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p>
+    </div>
 
-              {/* 1. Our Main Branch */}
-              <div className="map-embed" style={{ marginBottom: '40px' }}>
-                <h3 style={{ color: '#4d9fff', marginBottom: '15px', textAlign: 'left', fontSize: '1.4rem' }}>⭐ Our Main Branch</h3>
-                <iframe
-                  title="Dolphin Trends Main Branch"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.0371946399066!2d77.5186103!3d13.0333333!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae3daf708e9b45%3A0x1ba4bb9909c7191f!2sDOLPHIN%20Trends!5e0!3m2!1sen!2sin!4v1717050000000!5m2!1sen!2sin"
-                  allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                  style={{ border: 0, width: '100%', height: '350px', borderRadius: '15px' }}
-                />
-                <div className="map-label" style={{ marginBottom: '20px' }}>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058</div>
-                
-                {/* 📸 ಮಲ್ಟಿಪಲ್ ಇಮೇಜ್ ಕರೌಸೆಲ್ / ಸ್ಲೈಡರ್ ಬಾಕ್ಸ್ */}
-                <h4 style={{ color: '#7a85a0', marginBottom: '10px', fontSize: '1rem', textAlign: 'center' }}>📸 Inside & Outside Our Shop Glance</h4>
-                <div className="shop-slider-container" style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '380px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(26,108,255,0.2)' }}>
-                  
-                  <img 
-                    src={shopImages[currentImgIndex]} 
-                    alt={`Dolphin Trends Shop ${currentImgIndex + 1}`} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
-                  />
+    {/* Branch 1 */}
+    <div className="map-embed" style={{marginBottom:'40px'}}>
+      <h3 style={{color:'#4d9fff', marginBottom:'15px', fontSize:'1.4rem'}}>⭐ Main Branch — Rajgopalnagar</h3>
+      <iframe
+        title="Main Branch"
+        src="https://maps.google.com/maps?q=12.997,77.5186&z=16&output=embed"
+        allowFullScreen="" loading="lazy"
+        style={{border:0, width:'100%', height:'350px', borderRadius:'15px'}}
+      />
+      <div className="map-label">📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058</div>
+      <a href="https://maps.app.goo.gl/tJQ47jqAsoLRQ1Ua7" target="_blank" rel="noreferrer"
+        style={{display:'block', marginTop:'10px', color:'#4d9fff', fontWeight:'bold', textDecoration:'none'}}>
+        🗺️ Open in Google Maps
+      </a>
 
-                  <button onClick={prevShopImage} style={{ position: 'absolute', top: '50%', left: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', zIndex: 10 }}>
-                    ‹
-                  </button>
+      {/* Shop Photos Slider */}
+      <h4 style={{color:'#7a85a0', marginTop:'20px', marginBottom:'10px', textAlign:'center'}}>📸 Our Shop</h4>
+      <div className="shop-slider-container" style={{position:'relative', width:'100%', maxWidth:'500px', height:'380px', margin:'0 auto', borderRadius:'12px', overflow:'hidden', border:'1px solid rgba(26,108,255,0.2)'}}>
+        <img src={shopImages[currentImgIndex]} alt="Shop" style={{width:'100%', height:'100%', objectFit:'cover'}} />
+        <button onClick={prevShopImage} style={{position:'absolute', top:'50%', left:'10px', transform:'translateY(-50%)', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', width:'36px', height:'36px', borderRadius:'50%', cursor:'pointer', fontSize:'18px'}}>‹</button>
+        <button onClick={nextShopImage} style={{position:'absolute', top:'50%', right:'10px', transform:'translateY(-50%)', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', width:'36px', height:'36px', borderRadius:'50%', cursor:'pointer', fontSize:'18px'}}>›</button>
+        <div style={{position:'absolute', bottom:'12px', left:'50%', transform:'translateX(-50%)', display:'flex', gap:'6px'}}>
+          {shopImages.map((_, idx) => (
+            <span key={idx} onClick={() => setCurrentImgIndex(idx)}
+              style={{width:'8px', height:'8px', borderRadius:'50%', background: currentImgIndex===idx ? '#1a6cff' : 'rgba(255,255,255,0.5)', cursor:'pointer'}} />
+          ))}
+        </div>
+      </div>
+    </div>
 
-                  <button onClick={nextShopImage} style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', zIndex: 10 }}>
-                    ›
-                  </button>
-
-                  <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '6px', zIndex: 10 }}>
-                    {shopImages.map((_, idx) => (
-                      <span 
-                        key={idx} 
-                        onClick={() => setCurrentImgIndex(idx)}
-                        style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentImgIndex === idx ? '#1a6cff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.3s' }} 
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Branch 2 (Laggere) */}
-              <div className="map-embed">
-                <h3 style={{ color: '#4d9fff', marginBottom: '15px', textAlign: 'left', fontSize: '1.4rem' }}>🏪 Branch 2</h3>
-                <iframe
-                  title="Dolphin Trends Branch 2"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.218749168936!2d77.5218731!3d13.0218742!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae3d999d3d3a6d%3A0x7c041fde2422ab67!2sDolphin%20trends!5e0!3m2!1sen!2sin!4v1717050000001!5m2!1sen!2sin"
-                  allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                  style={{ border: 0, width: '100%', height: '350px', borderRadius: '15px' }}
-                />
-                <div className="map-label">📍 Anikethana Kishore Kendra Laggere, Bangalore — 560058</div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      <footer>
+    {/* Branch 2 */}
+    <div className="map-embed">
+      <h3 style={{color:'#4d9fff', marginBottom:'15px', fontSize:'1.4rem'}}>🏪 Branch 2 — Laggere</h3>
+      <iframe
+        title="Branch 2"
+        src="https://maps.google.com/maps?q=13.021,77.5218&z=16&output=embed"
+        allowFullScreen="" loading="lazy"
+        style={{border:0, width:'100%', height:'350px', borderRadius:'15px'}}
+      />
+      <div className="map-label">📍 Anikethana Kishore Kendra Laggere, Bangalore — 560058</div>
+      <a href="https://maps.app.goo.gl/amrkmppGsdgprtx27" target="_blank" rel="noreferrer"
+        style={{display:'block', marginTop:'10px', color:'#4d9fff', fontWeight:'bold', textDecoration:'none'}}>
+        🗺️ Open in Google Maps
+      </a>
+    </div>
+  </div>
+)}
+  
+<footer>
         <p><strong>🐬 Dolphin Trends</strong> | Women's Fashion Store | Bangalore</p>
         <p>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore</p>
         <p>📱 +91 7795800741 | 📸 Developed by Jeevan JD</p>
