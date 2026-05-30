@@ -5,7 +5,6 @@ import ProductPage from './ProductPage';
 import dolphin from './assets/dolphin.png';
 import heroVideo from './assets/hero-video.mp4';
 
-// 🏪 ಜೀವನ್, ಇಲ್ಲಿ ನಿಮ್ಮ ಫೋಟೋಗಳ ಎಕ್ಸ್‌ಟೆನ್ಶನ್ ಅನ್ನು .jpeg ಗೆ ಪಕ್ಕಾ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ!
 import shop1 from './assets/shop-1..jpeg';
 import shop2 from './assets/shop-2..jpeg';
 import shop3 from './assets/shop-3..jpeg';
@@ -74,7 +73,6 @@ function App() {
         </div>
       </nav>
 
-      {/* ─── 🔥 ಅಡ್ಮಿನ್ ಸೆಕ್ಷನ್ ಫಿಕ್ಸ್ ─── */}
       {showAdmin ? (
         isAdminLoggedIn ? (
           <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
@@ -115,9 +113,31 @@ function App() {
               <div className="section-page-header"><h2>🏪 Our Branches</h2><p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮ ಅಂಗಡಿಗಳು</p></div>
               <div className="branch-grid">
                 {[
-                  { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 7795800741' },
-                  { tag:'Branch 2', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 9353838835' },
+                  { tag:'Branch 2', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 9353838835' },
+                  { tag:'Main Branch ', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 7795800741' },
                 ].map((b, i) => <div className="branch-card" key={i}><span className="branch-tag">{b.tag}</span><h3>{b.name}</h3><p>{b.addr}</p><p className="branch-phone">{b.phone}</p></div>)}
+              </div>
+            </div>
+          )}
+
+          {/* ─── 📞 ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ ಫಿಕ್ಸ್ (ಇಲ್ಲಿ ಆಡ್ ಮಾಡಲಾಗಿದೆ ಜೀವಾ!) ─── */}
+          {activePage === 'contact' && (
+            <div className="section-page" style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto' }}>
+              <div className="section-page-header" style={{ textAlign: 'center', marginBottom: '30px' }}>
+                <h2>📞 Contact Us</h2>
+                <p>ಯಾವುದೇ ಆರ್ಡರ್ ಅಥವಾ ವಿಚಾರಣೆಗಾಗಿ ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ</p>
+              </div>
+              <div style={{ background: '#1a233d', padding: '30px', borderRadius: '12px', color: '#fff', border: '1px solid rgba(26,108,255,0.2)' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ color: '#4d9fff', marginBottom: '5px' }}>📱 Phone Numbers:</h4>
+                  <p style={{ fontSize: '1.1rem', margin: '5px 0' }}>🟢 Main Branch: <strong>+91 7795800741</strong></p>
+                  <p style={{ fontSize: '1.1rem', margin: '5px 0' }}>🟢 Branch 2 (Laggere): <strong>+91 93538 38835</strong></p>
+                </div>
+                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '20px 0' }} />
+                <div>
+                  <h4 style={{ color: '#4d9fff', marginBottom: '5px' }}>📍 Address:</h4>
+                  <p style={{ color: '#b4c6ef' }}>Rajgopal Nagar Main Road, Peenya 2nd Stage, Bengaluru, Karnataka 560058</p>
+                </div>
               </div>
             </div>
           )}
