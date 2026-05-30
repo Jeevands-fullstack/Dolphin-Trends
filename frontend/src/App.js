@@ -23,6 +23,11 @@ function App() {
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
 
+  // 🔐 ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಕ್ರೆಡೆನ್ಶಿಯಲ್ಸ್ ಮತ್ತು ಕಂಟ್ರೋಲ್ ಸ್ಟೇಟ್‌ಗಳು
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   const shopImages = [shop1, shop2, shop3, shop4, shop5];
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
@@ -47,6 +52,19 @@ function App() {
   };
 
   useEffect(() => { fetchProducts(); }, []);
+
+  // 🔐 ಅಡ್ಮಿನ್ ವೆರಿಫಿಕೇಶನ್ ಸಬ್ಮಿಟ್ ಫಂಕ್ಷನ್
+  const handleAdminLoginSubmit = (e) => {
+    e.preventDefault();
+    if (adminUsername === 'dolphin_admin' && adminPassword === 'dolphin@2024') {
+      setIsAdminLoggedIn(true);
+      setLoginError('');
+      setAdminUsername('');
+      setAdminPassword('');
+    } else {
+      setLoginError('❌ ತಪ್ಪು Username ಅಥವಾ Password! ಸರಿಯಾಗಿ ನಮೂದಿಸಿ.');
+    }
+  };
 
   const filtered = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
 
@@ -77,13 +95,45 @@ function App() {
         isAdminLoggedIn ? (
           <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
         ) : (
-          <div style={{ background: '#0b1329', padding: '40px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ background: '#1a233d', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-              <h2 style={{ color: '#fff', marginBottom: '20px' }}>🔐 Admin Login</h2>
-              <button onClick={() => setIsAdminLoggedIn(true)} style={{ background: '#007bff', color: 'white', border: 'none', padding: '12px 25px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>
-                Enter Dashboard
+          /* 🔐 ಸೆಕ್ಯೂರ್ಡ್ ಮತ್ತು ಸುಂದರವಾದ ಯೂಸರ್ ನೇಮ್ + ಪಾಸ್‌ವರ್ಡ್ ಲಾಗಿನ್ ಬಾಕ್ಸ್ ಡಿಸೈನ್ */
+          <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <form onSubmit={handleAdminLoginSubmit} style={{ background: '#1a233d', padding: '35px 30px', borderRadius: '15px', width: '100%', maxWidth: '380px', textAlign: 'center', border: '1px solid rgba(26,108,255,0.25)', boxShadow: '0 10px 25px rgba(0,0,0,0.4)' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔐</div>
+              <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.5rem' }}>Admin Control</h2>
+              <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginBottom: '25px' }}>ದಯವಿಟ್ಟು ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ</p>
+              
+              {/* Username Input */}
+              <div style={{ textAlign: 'left', marginBottom: '15px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Username</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter Username" 
+                  value={adminUsername}
+                  onChange={(e) => setAdminUsername(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.2)', background: '#0f172a', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                  required
+                />
+              </div>
+
+              {/* Password Input */}
+              <div style={{ textAlign: 'left', marginBottom: '20px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Password</label>
+                <input 
+                  type="password" 
+                  placeholder="Enter Admin Password" 
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.2)', background: '#0f172a', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                  required
+                />
+              </div>
+
+              {loginError && <p style={{ color: '#ff4d4d', fontSize: '0.85rem', marginBottom: '15px', fontWeight: 'bold' }}>{loginError}</p>}
+
+              <button type="submit" style={{ background: '#1a6cff', color: 'white', border: 'none', padding: '12px 25px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', width: '100%', fontSize: '0.95rem', transition: '0.2s' }}>
+                Verify & Enter Dashboard
               </button>
-            </div>
+            </form>
           </div>
         )
       ) : (
@@ -120,7 +170,6 @@ function App() {
             </div>
           )}
 
-          {/* ─── 📞 ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ — ನಿಮ್ಮ ಹಳೇ ಸೂಪರ್ ಬಾಕ್ಸ್ ಲೇಔಟ್ ಡಿಸೈನ್ ವಾಪಸ್ ತರಲಾಗಿದೆ! ─── */}
           {activePage === 'contact' && (
             <div className="section-page" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto' }}>
               <div className="section-page-header" style={{ textAlign: 'center', marginBottom: '40px' }}>
@@ -128,10 +177,7 @@ function App() {
                 <p>Dolphin Trends — ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು ಕೆಳಗಿನ ಮಾಧ್ಯಮಗಳನ್ನು ಬಳಸಿ</p>
               </div>
               
-              {/* ಮಾಡ್ರನ್ ಗ್ರಿಡ್ ಬಾಕ್ಸ್ ಲೇಔಟ್ */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '25px', marginBottom: '40px' }}>
-                
-                {/* ಬಾಕ್ಸ್ 1: ಫೋನ್ ಕಾಲ್ */}
                 <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>📞</div>
                   <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Call Us</h3>
@@ -139,7 +185,6 @@ function App() {
                   <p style={{ color: '#b4c6ef', fontSize: '0.95rem', margin: '8px 0' }}>Branch 2 : <br/><strong style={{color: '#fff'}}>+91 93538 38835</strong></p>
                 </div>
 
-                {/* ಬಾಕ್ಸ್ 2: ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ */}
                 <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>📸</div>
                   <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Instagram</h3>
@@ -150,7 +195,6 @@ function App() {
                   </a>
                 </div>
 
-                {/* ಬಾಕ್ಸ್ 3: ಇಮೇಲ್ ಮತ್ತು ವಿಳಾಸ */}
                 <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>✉️</div>
                   <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Email & Support</h3>
@@ -160,7 +204,6 @@ function App() {
                   </a>
                   <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginTop: '15px' }}>📍 Bangalore, India</p>
                 </div>
-
               </div>
             </div>
           )}
@@ -172,10 +215,8 @@ function App() {
                 <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p>
               </div>
 
-              {/* Main Branch */}
               <div className="map-embed" style={{ marginBottom: '40px' }}>
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Laggere</h3>
-                
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px', marginBottom: '15px' }}>
                   <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍  Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
                   <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
@@ -185,7 +226,6 @@ function App() {
                   </a>
                 </div>
 
-                {/* Shop Photos */}
                 <h4 style={{ color: '#7a85a0', marginBottom: '10px', textAlign: 'center' }}>📸 Our Shop</h4>
                 <div style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '380px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(26,108,255,0.2)' }}>
                   <img src={shopImages[currentImgIndex]} alt="Shop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -200,7 +240,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Branch 2 */}
               <div className="map-embed">
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>🏪 Branch 2 — Rajgopal nagar</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px' }}>
