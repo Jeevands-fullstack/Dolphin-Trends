@@ -21,9 +21,10 @@ function App() {
   const [editProduct, setEditProduct] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editLoading, setEditLoading] = useState(false);
-
-  // ⚡ ಹೊಸ ಸ್ಟೇಟ್: ಕೇವಲ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಇಮೇಜ್ ನೋಡಲು
   const [fullScreenImage, setFullScreenImage] = useState(null);
+  
+  // ಬುಕಿಂಗ್ ಡೇಟಾ ಸ್ಟೋರ್ ಮಾಡಲು ಸ್ಟೇಟ್
+  const [bookings, setBookings] = useState([]);
 
   const categories = [
     'All', 'Leggings', 'Kurta Sets', 'Jeans',
@@ -42,7 +43,17 @@ function App() {
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  const fetchBookings = () => {
+    fetch(`${API}/bookings`)
+      .then(r => r.json())
+      .then(d => setBookings(Array.isArray(d) ? d.reverse() : []))
+      .catch(err => console.error(err));
+  };
+
+  useEffect(() => { 
+    fetchProducts(); 
+    fetchBookings();
+  }, []);
 
   const filtered = activeCategory === 'All'
     ? products
@@ -122,6 +133,22 @@ function App() {
     }
   };
 
+  const handleStatusUpdate = async (bookingId, action) => {
+    try {
+      const response = await fetch(`${API}/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        alert(`✅ Status updated to ${action}`);
+        fetchBookings(); // ರಿಫ್ರೆಶ್ ಲಿಸ್ಟ್
+      } else {
+        alert('❌ Status update failed');
+      }
+    } catch (err) {
+      alert('❌ Server error');
+    }
+  };
+
   return (
     <div className="App">
       {/* Navbar */}
@@ -157,8 +184,57 @@ function App() {
 
       {showAdmin ? (
         isAdminLoggedIn
-          ? <Admin onProductAdded={fetchProducts} />
-          : <Login onLogin={() => setIsAdminLoggedIn(true)} />
+          ? (
+            <div>
+              <Admin onProductAdded={fetchProducts} />
+              
+              {/* ⚡ 3ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: ಬುಕಿಂಗ್ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಪ್ರಾಡಕ್ಟ್ ಇಮೇಜ್ ಕಾಣಿಸುವ ಟೇಬಲ್ */}
+              <div className="admin-bookings-section" style={{padding:'20px', maxWidth:'1000px', margin:'0 auto', color:'#fff'}}>
+                <h3 style={{marginBottom:'15px', borderBottom:'1px solid #333', paddingBottom:'10px'}}>📦 Customer Bookings List</h3>
+                <div style={{overflowX:'auto'}}>
+                  <table style={{width:'100%', borderCollapse:'collapse', textAlign:'left', background:'#0f0f1e', borderRadius:'8px'}}>
+                    <thead>
+                      <tr style={{background:'#1a1a30', color:'#4d9fff'}}>
+                        <th style={{padding:'12px'}}>Image</th>
+                        <th style={{padding:'12px'}}>Product Info</th>
+                        <th style={{padding:'12px'}}>Customer</th>
+                        <th style={{padding:'12px'}}>Status</th>
+                        <th style={{padding:'12px'}}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.map(b => (
+                        <tr key={b.booking_id} style={{borderBottom:'1px solid #222'}}>
+                          <td style={{padding:'12px'}}>
+                            <img src={b.image_url} alt={b.product_name} style={{width:'50px', height:'65px', objectFit:'cover', borderRadius:'4px', cursor:'pointer'}} onClick={() => setFullScreenImage(b.image_url)} />
+                          </td>
+                          <td style={{padding:'12px'}}>
+                            <strong>{b.product_name}</strong><br/>
+                            <span style={{fontSize:'0.85rem', color:'#7a85a0'}}>Size: {b.size} | Price: {b.price}</span>
+                          </td>
+                          <td style={{padding:'12px'}}>
+                            <strong>{b.customer_name}</strong><br/>
+                            <span style={{fontSize:'0.85rem', color:'#7a85a0'}}>📞 {b.customer_phone}</span>
+                          </td>
+                          <td style={{padding:'12px'}}>
+                            <span style={{
+                              padding:'4px 8px', borderRadius:'4px', fontSize:'0.8rem', fontWeight:'bold',
+                              background: b.status === 'Approved' ? '#2e7d32' : b.status === 'Pending' ? '#ef6c00' : '#c62828'
+                            }}>{b.status}</span>
+                          </td>
+                          <td style={{padding:'12px', display:'flex', gap:'5px'}}>
+                            <button onClick={() => handleStatusUpdate(b.booking_id, 'agree')} style={{background:'#2e7d32', color:'#fff', border:'none', padding:'6px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}}>Agree</button>
+                            <button onClick={() => handleStatusUpdate(b.booking_id, 'disagree')} style={{background:'#c62828', color:'#fff', border:'none', padding:'6px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}}>No Stock</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )
+          : <Login onLogin={() => { setIsAdminLoggedIn(true); fetchBookings(); }} />
       ) : (
         <>
           {activePage === 'shop' && (
@@ -189,11 +265,7 @@ function App() {
                 ) : (
                   <div className="products-grid">
                     {filtered.map(product => (
-                      <div
-                        className={product.available === false ? 'product-card not-available' : 'product-card'}
-                        key={product.product_id || product.id}
-                        /* ⚡ ಕಾರ್ಡ್ ಮೇಲಿನ ಕ್ಲಿಕ್ ಇವೆಂಟ್ ತೆಗೆದಿದ್ದೇನೆ, ಈಗ ಕಾರ್ಡ್ ಕ್ಲಿಕ್ ಮಾಡಿದ್ರೆ ಬೈ ಆಪ್ಷನ್ ಓಪನ್ ಆಗಲ್ಲ */
-                      >
+                      <div className={product.available === false ? 'product-card not-available' : 'product-card'} key={product.product_id || product.id}>
                         {product.available === false && (
                           <span className="not-available-badge">❌ Not Available</span>
                         )}
@@ -204,7 +276,6 @@ function App() {
                           </div>
                         )}
                         
-                        {/* ⚡ ಫೋಟೋ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಓಪನ್ ಆಗುವ ಲಾಜಿಕ್ */}
                         <div className="product-card-img-wrap" onClick={() => setFullScreenImage(product.image)} style={{cursor: 'zoom-in'}}>
                           <img src={product.image} alt={product.name} onError={e => e.target.src='https://via.placeholder.com/300x400?text=No+Image'} />
                         </div>
@@ -217,7 +288,6 @@ function App() {
                             <p className="original-price-small"><s>{product.original_price}</s></p>
                           )}
                           {product.available !== false && (
-                            /* ⚡ ಈಗ Buy Now ಬಟನ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿದ್ರೆ ಮಾತ್ರ ಪಕ್ಕಾ ಬುಕಿಂಗ್ ಫೇಜ್ ಓಪನ್ ಆಗುತ್ತೆ */
                             <button className="buy-btn" onClick={() => setViewProduct(product)}>
                               🛍️ Buy Now
                             </button>
@@ -239,8 +309,8 @@ function App() {
               </div>
               <div className="branch-grid">
                 {[
-                  { tag:'Main Branch', name:'Laggere Main Road', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 7795800741', hours:'Mon–Sun: 11am – 10pm' },
-                  { tag:'Branch 2', name:'Rajgopalnagar', addr:'Near Peenya 2nd Stage, Bangalore — 560091', phone:'📞 +91 9353838835', hours:'Mon–Sun: 11am – 10pm' },
+                  { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560091', phone:'📞 +91 7795800741', hours:'Mon–Sun: 11am – 10pm' },
+                  { tag:'Branch 2', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 9353838835', hours:'Mon–Sun: 11am – 10pm' },
                 ].map((b, i) => (
                   <div className="branch-card" key={i}>
                     <span className="branch-tag">{b.tag}</span>
@@ -276,12 +346,11 @@ function App() {
                   ))}
                 </div>
                 <div className="info-card">
-                  <h3>📍 Main Branch Address</h3>
+                  <h3>📍 Store Address</h3>
                   {[
                     { icon:'🏪', label:'Shop Name', value:"Dolphin Trends — Women's Fashion Store" },
-                    { icon:'📌', label:'Address', value:'Laggere Main Road, Bangalore — 560058' },
-                    { icon:'🚇', label:'Nearest Metro', value:'Jalahalli Metro Station' },
-                    { icon:'🚌', label:'Bus Stop', value:'Laggere Aladmara Bus Stop' },
+                    { icon:'📌', label:'Address', value:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore' },
+                    { icon:'🚇', label:'Nearest Metro', value:'Peenya Industry Metro Station' },
                   ].map((row, i) => (
                     <div className="contact-row" key={i}>
                       <div className="c-icon">{row.icon}</div>
@@ -293,20 +362,21 @@ function App() {
             </div>
           )}
 
+          {/* ⚡ 1ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: Location ನಲ್ಲಿ ನಿಮ್ಮ ರಾಜಗೋಪಾಲ ನಗರ ಮೆನ್ ಬ್ರಾಂಚ್ ಮ್ಯಾಪ್ ಅಪ್ಡೇಟ್ ಮಾಡಲಾಗಿದೆ */}
           {activePage === 'location' && (
             <div className="section-page">
               <div className="section-page-header">
                 <h2>📍 Our Location</h2>
-                <p>Rajagopala Nagar, Peenya 2nd Stage, Bangalore</p>
+                <p>Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore</p>
               </div>
               <div className="map-embed">
                 <iframe
                   title="Dolphin Trends Location"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.126425176161!2d77.5195431!3d13.0276313!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae3d90680f4f9f%3A0x608e06385a49b28a!2sPeenya%202nd%20Stage%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1m4!1s0x0:0x0!2zMTLCsDAwJzU4LjQiTiA3N8KwNTInNDEuMiJF!5e0!3m2!1sen!2sin!4v1650000000000!5m2!1sen!2sin"
                   allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
                   style={{border:0, width:'100%', height:'400px', borderRadius:'15px'}}
                 />
-                <div className="map-label">📍 Rajagopala Nagar, Peenya 2nd Stage, Bangalore — 560091</div>
+                <div className="map-label">📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560091</div>
               </div>
             </div>
           )}
@@ -315,22 +385,14 @@ function App() {
 
       <footer>
         <p><strong>🐬 Dolphin Trends</strong> | Women's Fashion Store | Bangalore</p>
-        <p>📍 Laggere Main Road, Bangalore — 560058</p>
-        <p>📱 +91 7795800741 | 📸 Developer by Jeevan JD</p>
+        <p>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore</p>
+        <p>📱 +91 9353838835 | 📸 Developed by Jeevan JD</p>
       </footer>
 
-      {/* ⚡ ಹೊಸ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಇಮೇಜ್ ಪಾಪ್-ಅಪ್ (ಯಾವಾಗ ಇಮೇಜ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡ್ತಾರೋ ಆಗ ಮಾತ್ರ ಇದು ಕಾಣುತ್ತೆ) */}
       {fullScreenImage && (
-        <div 
-          onClick={() => setFullScreenImage(null)} 
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            zIndex: 9999, cursor: 'zoom-out'
-          }}
-        >
+        <div onClick={() => setFullScreenImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'zoom-out' }}>
           <span style={{ position: 'absolute', top: '20px', right: '30px', color: '#fff', fontSize: '30px', fontWeight: 'bold', cursor: 'pointer' }}>✕</span>
-          <img src={fullScreenImage} alt="Full Screen" style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px', boxShadow: '0 0 20px rgba(255,255,255,0.2)' }} />
+          <img src={fullScreenImage} alt="Full Screen" style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px' }} />
         </div>
       )}
 
@@ -345,7 +407,7 @@ function App() {
       {editProduct && (
         <div style={overlayStyle}>
           <div style={modalStyle}>
-            <h3 style={{color:'#4d9fff', marginBottom:'20px', fontFamily:'Playfair Display, serif'}}>✏️ Product Edit</h3>
+            <h3 style={{color:'#4d9fff', marginBottom:'20px'}}>✏️ Product Edit</h3>
             {[
               { label:'Product Name', key:'name', placeholder:'Product name' },
               { label:'Price (₹)', key:'price', placeholder:'₹500' },
@@ -365,10 +427,10 @@ function App() {
               Available ✅
             </label>
             <div style={{display:'flex', gap:'10px', marginTop:'22px'}}>
-              <button onClick={handleEditSave} disabled={editLoading} style={{flex:1, background:'#1a6cff', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontWeight:'700', fontSize:'0.9rem', cursor:'pointer'}}>
+              <button onClick={handleEditSave} disabled={editLoading} style={{flex:1, background:'#1a6cff', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontWeight:'700', cursor:'pointer'}}>
                 {editLoading ? 'Saving...' : '💾 Save'}
               </button>
-              <button onClick={() => setEditProduct(null)} style={{flex:1, background:'#1a1a30', color:'#7a85a0', border:'1px solid #1a4fff44', borderRadius:'10px', padding:'12px', fontWeight:'600', fontSize:'0.9rem', cursor:'pointer'}}>Cancel</button>
+              <button onClick={() => setEditProduct(null)} style={{flex:1, background:'#1a1a30', color:'#7a85a0', border:'1px solid #1a4fff44', borderRadius:'10px', padding:'12px', cursor:'pointer'}}>Cancel</button>
             </div>
           </div>
         </div>
@@ -377,8 +439,8 @@ function App() {
   );
 }
 
-const editBtnStyle = { background:'#1a6cff', color:'#fff', border:'none', borderRadius:'7px', padding:'5px 10px', fontWeight:'700', fontSize:'0.75rem', cursor:'pointer' };
-const deleteBtnStyle = { background:'#ff3b5c', color:'#fff', border:'none', borderRadius:'7px', padding:'5px 10px', fontWeight:'700', fontSize:'0.75rem', cursor:'pointer' };
+const editBtnStyle = { background:'#1a6cff', color:'#fff', border:'none', borderRadius:'7px', padding:'5px 10px', cursor:'pointer' };
+const deleteBtnStyle = { background:'#ff3b5c', color:'#fff', border:'none', borderRadius:'7px', padding:'5px 10px', cursor:'pointer' };
 const overlayStyle = { position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000 };
 const modalStyle = { background:'#0f0f1e', border:'1px solid rgba(26,108,255,0.3)', borderRadius:'18px', padding:'30px', width:'90%', maxWidth:'420px', color:'#f0f4ff' };
 const labelStyle = { fontSize:'0.78rem', color:'#7a85a0', display:'block', marginBottom:'4px' };
