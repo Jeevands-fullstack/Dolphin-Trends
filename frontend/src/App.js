@@ -22,7 +22,7 @@ function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
-  const [editProductData, setEditProductData] = useState(null); // Edit ಮಾಡಬೇಕಾದ ಪ್ರಾಡಕ್ಟ್ ಸ್ಟೇಟ್
+  const [editProductData, setEditProductData] = useState(null); 
 
   // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
@@ -54,7 +54,6 @@ function App() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // 🔐 Admin Login Verification
   const handleAdminLoginSubmit = (e) => {
     e.preventDefault();
     if (adminUsername === 'dolphin_admin' && adminPassword === 'dolphin@2024') {
@@ -62,7 +61,7 @@ function App() {
       setLoginError('');
       setAdminUsername('');
       setAdminPassword('');
-      setShowAdmin(true); // ಲಾಗಿನ್ ಆದ ತಕ್ಷಣ ಅಡ್ಮಿನ್ ಪ್ಯಾನಲ್ ತೋರಿಸಿ
+      setShowAdmin(true); 
     } else {
       setLoginError('❌ ತಪ್ಪು Username ಅಥವಾ Password! ಸರಿಯಾಗಿ ನಮೂದಿಸಿ.');
     }
@@ -87,7 +86,7 @@ function App() {
   // ✏️ Shop ಪೇಜ್‌ನಲ್ಲಿ Edit ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಅಡ್ಮಿನ್ ಫಾರ್ಮ್‌ಗೆ ಕಳುಹಿಸುವುದು
   const handleEditClick = (product) => {
     setEditProductData(product);
-    setShowAdmin(true); // ಅಡ್ಮಿನ್ ಪ್ಯಾನಲ್ ಓಪನ್ ಮಾಡು
+    setShowAdmin(true); 
   };
 
   const filtered = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
@@ -123,7 +122,6 @@ function App() {
             onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); }}
           />
         ) : (
-          /* 🔐 Admin Login Form */
           <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <form onSubmit={handleAdminLoginSubmit} style={{ background: '#1a233d', padding: '35px 30px', borderRadius: '15px', width: '100%', maxWidth: '380px', textAlign: 'center', border: '1px solid rgba(26,108,255,0.25)', boxShadow: '0 10px 25px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔐</div>
@@ -173,11 +171,11 @@ function App() {
                 {loading ? <div className="loading">Loading... <div className="spinner"></div></div> : filtered.length === 0 ? <div className="no-products">😊 ಇನ್ನೂ products ಇಲ್ಲ — ಶೀಘ್ರದಲ್ಲೇ ಬರ್ತಿವೆ!</div> : (
                   <div className="products-grid">
                     {filtered.map(product => (
-                      <div className={product.available === false ? 'product-card not-available' : 'product-card'} key={product.product_id || product.id}>
+                      <div className={product.available === false ? 'product-card not-available' : 'product-card'} key={product.product_id || product.id} style={{ position: 'relative' }}>
                         
                         {/* 🛠️ ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಫೋಟೋ ಮೇಲ್ಗಡೆ ಎಡಿಟ್ ಮತ್ತು ಡಿಲೀಟ್ ಬಟನ್ ತೋರಿಸಲು */}
                         {isAdminLoggedIn && (
-                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px', zIndex: 10, background: 'rgba(11,19,41,0.8)', padding: '5px', borderRadius: '8px' }}>
+                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px', zIndex: 10, background: 'rgba(11,19,41,0.85)', padding: '6px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
                             <button onClick={() => handleEditClick(product)} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>✏️ Edit</button>
                             <button onClick={() => handleDeleteProduct(product.product_id || product.id)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>🗑️ Del</button>
                           </div>
