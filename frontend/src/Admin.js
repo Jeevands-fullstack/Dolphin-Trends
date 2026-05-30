@@ -10,7 +10,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
-  // ✏️ Shop ಪೇಜ್‌ನಿಂದ Edit ಕ್ಲಿಕ್ ಮಾಡಿ ಬಂದಾಗ ಡೇಟಾ ತುಂಬಲು
+  // ✏️ Shop ಪೇಜ್‌ನಿಂದ ಎಡಿಟ್ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫಾರ್ಮ್ ತುಂಬಲು
   useEffect(() => {
     if (editData) {
       setFormData({
@@ -48,6 +48,8 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     if (!formData.name || !formData.price) { alert('⚠️ Name ಮತ್ತು Price ಹಾಕಿ!'); return; }
     setLoading(true);
     const file = fileInputRef.current?.files[0];
+    
+    // 🚀 422 ಎರರ್ ಬರದೇ ಇರಲು ಮಲ್ಟಿಪಾರ್ಟ್ ಫಾರ್ಮ್ ಡೇಟಾ ರೆಡಿ ಮಾಡಲಾಗ್ತಿದೆ
     const dataToSend = new FormData();
     dataToSend.append('name', formData.name);
     dataToSend.append('price', formData.price.startsWith('₹') ? formData.price : `₹${formData.price}`);
@@ -56,18 +58,12 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     dataToSend.append('category', formData.category);
     if (file) dataToSend.append('file', file);
 
-    // ✏️ Edit ಮೋಡ್‌ನಲ್ಲಿದ್ದರೆ PUT ಮೆಥಡ್, ಹೊಸದಾಗಿದ್ದರೆ POST ಮೆಥಡ್
+    // 💡 ನಿಮ್ಮ ಬ್ಯಾಕೆಂಡ್‌ನ @app.post("/products") ಫಂಕ್ಷನ್ ಹೆಸರುಗಳು 'existing_product = products_table.find_one({"name": name})' ಎಂದು ಹುಡುಕುತ್ತದೆ.
+    // ಆದ್ದರಿಂದ ಎಡಿಟ್ ಮಾಡುವಾಗಲೂ ಅದೇ ಹೆಸರಿನೊಂದಿಗೆ ಕಳುಹಿಸಿದರೆ ಬ್ಯಾಕೆಂಡ್ ತಾನಾಗಿಯೇ ಅಪ್ಡೇಟ್ ಮಾಡಿಕೊಳ್ಳುತ್ತದೆ!
     let url = 'https://dolphin-trends-3.onrender.com/products';
-    let method = 'POST';
-
-    if (editData) {
-      const pid = editData.product_id || editData.id;
-      url = `https://dolphin-trends-3.onrender.com/products/${pid}`;
-      method = 'PUT'; 
-    }
 
     try {
-      const r = await fetch(url, { method: method, body: dataToSend });
+      const r = await fetch(url, { method: 'POST', body: dataToSend }); // 422 ಎರರ್ ತಡೆಯಲು ಪೋಸ್ಟ್ ಮೆಥಡ್
       if (r.ok) {
         alert(editData ? '🔄 Product Updated Successfully!' : '✅ Product saved!');
         setFormData({ name: '', description: '', price: '', original_price: '', category: 'Tops' });
@@ -75,7 +71,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
         if (fileInputRef.current) fileInputRef.current.value = '';
         if (onProductAdded) onProductAdded();
       } else {
-        alert('❌ Save failed! Check backend rules.');
+        alert(`❌ Save failed! Status: ${r.status}`);
       }
     } catch { 
       alert('❌ Server Error!'); 
@@ -99,7 +95,8 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
           {preview && <img src={preview} alt="preview" style={{ width: '100px', borderRadius: '8px', marginBottom: '15px' }} />}
 
           <label style={lbl}>Product Name</label>
-          <input style={inp} placeholder="eg: Silk Kurti" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+          <input style={inp} placeholder="eg: Silk Kurti" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} disabled={editData ? true : false} />
+          {editData && <p style={{ color: '#7a85a0', fontSize: '0.75rem', marginTop: '2px' }}>💡 ಬ್ಯಾಕೆಂಡ್ ನಿಯಮದ ಪ್ರಕಾರ ಎಡಿಟ್ ಮೋಡ್‌ನಲ್ಲಿ ಹೆಸರು ಬದಲಾಯಿಸಲು ಬರುವುದಿಲ್ಲ.</p>}
 
           <label style={lbl}>Description</label>
           <textarea style={{ ...inp, height: '80px', resize: 'vertical' }} placeholder="Product details..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
