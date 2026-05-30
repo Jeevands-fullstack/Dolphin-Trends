@@ -29,7 +29,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   const fetchBookings = async () => {
     setBookingsLoading(true);
     try {
-      const response = await fetch('https://dolphin-trends-3.onrender.com/api/admin/bookings');
+      const response = await fetch('https://dolphin-trends-3.onrender.com/bookings');
       if (response.ok) setBookings(await response.json());
     } catch (e) { console.error(e); }
     finally { setBookingsLoading(false); }
@@ -44,21 +44,22 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     } catch { alert('❌ Server Error'); }
   };
 
-  // 🗑️ Customer Booking ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡುವ ಹೊಸ ಫಂಕ್ಷನ್
+  // 🗑️ Customer Booking ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡುವ ಪರ್ಫೆಕ್ಟ್ ಫಂಕ್ಷನ್
   const handleDeleteBooking = async (bookingId) => {
+    if (!bookingId) { alert('❌ Invalid Booking ID!'); return; }
     if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ ಅನ್ನು ಲಿಸ್ಟ್‌ನಿಂದ ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
+    
     try {
-      // ಬ್ಯಾಕೆಂಡ್‌ನ ಹಾಲಿ ಡಿಲೀಟ್ ರೂಲ್ಸ್ ಪ್ರಕಾರ ವಿನಂತಿ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ
-      const r = await fetch(`https://dolphin-trends-3.onrender.com/bookings/${bookingId}`, { method: 'DELETE' });
-      
-      // ಒಂದು ವೇಳೆ ಮೇಲಿನ ಯುಆರ್‌ಎಲ್ ಕೆಲಸ ಮಾಡದಿದ್ದರೆ ಬ್ಯಾಕೆಂಡ್ ಎಂಡ್‌ಪಾಯಿಂಟ್ ಹೀಗಿರಬಹುದು, ಇದನ್ನು ಟ್ರೈ ಮಾಡಿ:
-      // const r = await fetch(`https://dolphin-trends-3.onrender.com/api/admin/bookings/${bookingId}`, { method: 'DELETE' });
+      // ⚡ main.py ನಲ್ಲಿ ಬರೆದ ಹೊಸ ರೂಟ್‌ಗೆ ನೇರ ಕನೆಕ್ಷನ್
+      const r = await fetch(`https://dolphin-trends-3.onrender.com/bookings/${bookingId}`, { 
+        method: 'DELETE' 
+      });
 
-      if (r.ok || r.status === 200) {
+      if (r.ok) {
         alert('🗑️ Booking Deleted Successfully!');
         fetchBookings(); // ಲಿಸ್ಟ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ
       } else {
-        alert('❌ Booking delete failed!');
+        alert(`❌ Delete failed! Status: ${r.status}`);
       }
     } catch {
       alert('❌ Server Error while deleting booking!');
@@ -150,7 +151,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
 
         {/* Bookings Table */}
         <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px' }}>
-          <div style={{ display: 'flex', justify_content: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ color: '#4d9fff', margin: 0 }}>📥 Customer Bookings</h2>
             <button onClick={fetchBookings} style={{ padding: '8px 16px', background: '#1a6cff', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>🔄 Refresh</button>
           </div>
@@ -171,7 +172,6 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                   ) : bookings.map(b => (
                     <tr key={b.booking_id} style={{ borderBottom: '1px solid rgba(26,108,255,0.1)' }}>
                       <td style={{ padding: '12px' }}>
-                        {/* 🖼️ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫುಲ್ ಸ್ಕ್ರೀನ್ ಓಪನ್ ಆಗುವ ಹಾಗೆ ಮಾಡಲಾಗಿದೆ */}
                         {b.image_url && (
                           <img 
                             src={b.image_url} 
@@ -203,9 +203,9 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                               <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '6px 14px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>No Stock</button>
                             </>
                           )}
-                          {/* 🗑️ ಪ್ರತಿ ರೋ ಗೂ ಡಿಲೀಟ್ ಬಟನ್ ಸೇರಿಸಲಾಗಿದೆ */}
+                          {/* ⚡ ಇಲ್ಲಿ ಕೇವಲ b.booking_id ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ */}
                           <button 
-                            onClick={() => handleDeleteBooking(b.booking_id || b.id)} 
+                            onClick={() => handleDeleteBooking(b.booking_id)} 
                             style={{ padding: '6px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
                             title="Delete Booking"
                           >
