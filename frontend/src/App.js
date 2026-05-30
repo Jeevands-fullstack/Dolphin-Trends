@@ -6,6 +6,11 @@ import Login from './Login';
 import ProductPage from './ProductPage';
 import dolphin from './assets/dolphin.png';
 import heroVideo from './assets/hero-video.mp4';
+import shop1 from './assets/shop-1.jpg';
+import shop2 from './assets/shop-2.jpg';
+import shop3 from './assets/shop-3.jpg';
+import shop4 from './assets/shop-4.jpg';
+import shop5 from './assets/shop-5.jpg';
 
 const API = 'https://dolphin-trends-3.onrender.com';
 
@@ -22,9 +27,18 @@ function App() {
   const [editForm, setEditForm] = useState({});
   const [editLoading, setEditLoading] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState(null);
-  
-  // ಬುಕಿಂಗ್ ಡೇಟಾ ಸ್ಟೋರ್ ಮಾಡಲು ಸ್ಟೇಟ್
-  const [bookings, setBookings] = useState([]);
+
+  // 📸 ಶಾಪ್ ಇಮೇಜ್ ಸ್ಲೈಡರ್‌ಗಾಗಿ ಸ್ಟೇಟ್ಸ್
+  const shopImages = [shop1, shop2, shop3, shop4, shop5];
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+  const nextShopImage = () => {
+    setCurrentImgIndex((prev) => (prev + 1) % shopImages.length);
+  };
+
+  const prevShopImage = () => {
+    setCurrentImgIndex((prev) => (prev - 1 + shopImages.length) % shopImages.length);
+  };
 
   const categories = [
     'All', 'Leggings', 'Kurta Sets', 'Jeans',
@@ -43,16 +57,8 @@ function App() {
       .catch(() => setLoading(false));
   };
 
-  const fetchBookings = () => {
-    fetch(`${API}/bookings`)
-      .then(r => r.json())
-      .then(d => setBookings(Array.isArray(d) ? d.reverse() : []))
-      .catch(err => console.error(err));
-  };
-
   useEffect(() => { 
     fetchProducts(); 
-    fetchBookings();
   }, []);
 
   const filtered = activeCategory === 'All'
@@ -104,7 +110,7 @@ function App() {
 
   const handleEditSave = async () => {
     if (!editProduct) return;
-    setEditLoading(true);
+    setEditLoading(true)
     const productId = editProduct.product_id || editProduct.id;
     if (!productId || productId === 'undefined') {
       alert('❌ Product ID not found!');
@@ -130,22 +136,6 @@ function App() {
       alert('❌ Server error');
     } finally {
       setEditLoading(false);
-    }
-  };
-
-  const handleStatusUpdate = async (bookingId, action) => {
-    try {
-      const response = await fetch(`${API}/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, {
-        method: 'POST'
-      });
-      if (response.ok) {
-        alert(`✅ Status updated to ${action}`);
-        fetchBookings(); // ರಿಫ್ರೆಶ್ ಲಿಸ್ಟ್
-      } else {
-        alert('❌ Status update failed');
-      }
-    } catch (err) {
-      alert('❌ Server error');
     }
   };
 
@@ -184,57 +174,8 @@ function App() {
 
       {showAdmin ? (
         isAdminLoggedIn
-          ? (
-            <div>
-              <Admin onProductAdded={fetchProducts} />
-              
-              {/* ⚡ 3ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: ಬುಕಿಂಗ್ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಪ್ರಾಡಕ್ಟ್ ಇಮೇಜ್ ಕಾಣಿಸುವ ಟೇಬಲ್ */}
-              <div className="admin-bookings-section" style={{padding:'20px', maxWidth:'1000px', margin:'0 auto', color:'#fff'}}>
-                <h3 style={{marginBottom:'15px', borderBottom:'1px solid #333', paddingBottom:'10px'}}>📦 Customer Bookings List</h3>
-                <div style={{overflowX:'auto'}}>
-                  <table style={{width:'100%', borderCollapse:'collapse', textAlign:'left', background:'#0f0f1e', borderRadius:'8px'}}>
-                    <thead>
-                      <tr style={{background:'#1a1a30', color:'#4d9fff'}}>
-                        <th style={{padding:'12px'}}>Image</th>
-                        <th style={{padding:'12px'}}>Product Info</th>
-                        <th style={{padding:'12px'}}>Customer</th>
-                        <th style={{padding:'12px'}}>Status</th>
-                        <th style={{padding:'12px'}}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bookings.map(b => (
-                        <tr key={b.booking_id} style={{borderBottom:'1px solid #222'}}>
-                          <td style={{padding:'12px'}}>
-                            <img src={b.image_url} alt={b.product_name} style={{width:'50px', height:'65px', objectFit:'cover', borderRadius:'4px', cursor:'pointer'}} onClick={() => setFullScreenImage(b.image_url)} />
-                          </td>
-                          <td style={{padding:'12px'}}>
-                            <strong>{b.product_name}</strong><br/>
-                            <span style={{fontSize:'0.85rem', color:'#7a85a0'}}>Size: {b.size} | Price: {b.price}</span>
-                          </td>
-                          <td style={{padding:'12px'}}>
-                            <strong>{b.customer_name}</strong><br/>
-                            <span style={{fontSize:'0.85rem', color:'#7a85a0'}}>📞 {b.customer_phone}</span>
-                          </td>
-                          <td style={{padding:'12px'}}>
-                            <span style={{
-                              padding:'4px 8px', borderRadius:'4px', fontSize:'0.8rem', fontWeight:'bold',
-                              background: b.status === 'Approved' ? '#2e7d32' : b.status === 'Pending' ? '#ef6c00' : '#c62828'
-                            }}>{b.status}</span>
-                          </td>
-                          <td style={{padding:'12px', display:'flex', gap:'5px'}}>
-                            <button onClick={() => handleStatusUpdate(b.booking_id, 'agree')} style={{background:'#2e7d32', color:'#fff', border:'none', padding:'6px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}}>Agree</button>
-                            <button onClick={() => handleStatusUpdate(b.booking_id, 'disagree')} style={{background:'#c62828', color:'#fff', border:'none', padding:'6px 10px', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}}>No Stock</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )
-          : <Login onLogin={() => { setIsAdminLoggedIn(true); fetchBookings(); }} />
+          ? <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
+          : <Login onLogin={() => setIsAdminLoggedIn(true)} />
       ) : (
         <>
           {activePage === 'shop' && (
@@ -309,7 +250,7 @@ function App() {
               </div>
               <div className="branch-grid">
                 {[
-                  { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560091', phone:'📞 +91 7795800741', hours:'Mon–Sun: 11am – 10pm' },
+                  { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 7795800741', hours:'Mon–Sun: 11am – 10pm' },
                   { tag:'Branch 2', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 9353838835', hours:'Mon–Sun: 11am – 10pm' },
                 ].map((b, i) => (
                   <div className="branch-card" key={i}>
@@ -362,21 +303,64 @@ function App() {
             </div>
           )}
 
-          {/* ⚡ 1ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: Location ನಲ್ಲಿ ನಿಮ್ಮ ರಾಜಗೋಪಾಲ ನಗರ ಮೆನ್ ಬ್ರಾಂಚ್ ಮ್ಯಾಪ್ ಅಪ್ಡೇಟ್ ಮಾಡಲಾಗಿದೆ */}
           {activePage === 'location' && (
             <div className="section-page">
               <div className="section-page-header">
-                <h2>📍 Our Location</h2>
-                <p>Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore</p>
+                <h2>📍 Our Locations</h2>
+                <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ ಮತ್ತು ಗೂಗಲ್ ಮ್ಯಾಪ್ ಲಿಂಕ್ಸ್</p>
               </div>
-              <div className="map-embed">
+
+              {/* 1. Our Main Branch */}
+              <div className="map-embed" style={{ marginBottom: '40px' }}>
+                <h3 style={{ color: '#4d9fff', marginBottom: '15px', textAlign: 'left', fontSize: '1.4rem' }}>⭐ Our Main Branch</h3>
                 <iframe
-                  title="Dolphin Trends Location"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1m4!1s0x0:0x0!2zMTLCsDAwJzU4LjQiTiA3N8KwNTInNDEuMiJF!5e0!3m2!1sen!2sin!4v1650000000000!5m2!1sen!2sin"
+                  title="Dolphin Trends Main Branch"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.0371946399066!2d77.5186103!3d13.0333333!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae3daf708e9b45%3A0x1ba4bb9909c7191f!2sDOLPHIN%20Trends!5e0!3m2!1sen!2sin!4v1717050000000!5m2!1sen!2sin"
                   allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-                  style={{border:0, width:'100%', height:'400px', borderRadius:'15px'}}
+                  style={{ border: 0, width: '100%', height: '350px', borderRadius: '15px' }}
                 />
-                <div className="map-label">📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560091</div>
+                <div className="map-label" style={{ marginBottom: '20px' }}>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058</div>
+                
+                {/* 📸 ಮಲ್ಟಿಪಲ್ ಇಮೇಜ್ ಕರೌಸೆಲ್ / ಸ್ಲೈಡರ್ ಬಾಕ್ಸ್ */}
+                <h4 style={{ color: '#7a85a0', marginBottom: '10px', fontSize: '1rem', textAlign: 'center' }}>📸 Inside & Outside Our Shop Glance</h4>
+                <div className="shop-slider-container" style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '380px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(26,108,255,0.2)' }}>
+                  
+                  <img 
+                    src={shopImages[currentImgIndex]} 
+                    alt={`Dolphin Trends Shop ${currentImgIndex + 1}`} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+                  />
+
+                  <button onClick={prevShopImage} style={{ position: 'absolute', top: '50%', left: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', zIndex: 10 }}>
+                    ‹
+                  </button>
+
+                  <button onClick={nextShopImage} style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', zIndex: 10 }}>
+                    ›
+                  </button>
+
+                  <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '6px', zIndex: 10 }}>
+                    {shopImages.map((_, idx) => (
+                      <span 
+                        key={idx} 
+                        onClick={() => setCurrentImgIndex(idx)}
+                        style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentImgIndex === idx ? '#1a6cff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.3s' }} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Branch 2 (Laggere) */}
+              <div className="map-embed">
+                <h3 style={{ color: '#4d9fff', marginBottom: '15px', textAlign: 'left', fontSize: '1.4rem' }}>🏪 Branch 2</h3>
+                <iframe
+                  title="Dolphin Trends Branch 2"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.218749168936!2d77.5218731!3d13.0218742!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae3d999d3d3a6d%3A0x7c041fde2422ab67!2sDolphin%20trends!5e0!3m2!1sen!2sin!4v1717050000001!5m2!1sen!2sin"
+                  allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                  style={{ border: 0, width: '100%', height: '350px', borderRadius: '15px' }}
+                />
+                <div className="map-label">📍 Anikethana Kishore Kendra Laggere, Bangalore — 560058</div>
               </div>
             </div>
           )}
@@ -386,7 +370,7 @@ function App() {
       <footer>
         <p><strong>🐬 Dolphin Trends</strong> | Women's Fashion Store | Bangalore</p>
         <p>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore</p>
-        <p>📱 +91 9353838835 | 📸 Developed by Jeevan JD</p>
+        <p>📱 +91 7795800741 | 📸 Developed by Jeevan JD</p>
       </footer>
 
       {fullScreenImage && (
