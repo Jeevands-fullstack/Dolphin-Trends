@@ -53,7 +53,7 @@ function App() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // 🔐 Admin Login Verification Function
+  // 🔐 Admin Login Verification
   const handleAdminLoginSubmit = (e) => {
     e.preventDefault();
     if (adminUsername === 'dolphin_admin' && adminPassword === 'dolphin@2024') {
@@ -95,14 +95,13 @@ function App() {
         isAdminLoggedIn ? (
           <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
         ) : (
-          /* 🔐 Secure Username & Password Admin Login Form */
+          /* 🔐 Admin Login Form */
           <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <form onSubmit={handleAdminLoginSubmit} style={{ background: '#1a233d', padding: '35px 30px', borderRadius: '15px', width: '100%', maxWidth: '380px', textAlign: 'center', border: '1px solid rgba(26,108,255,0.25)', boxShadow: '0 10px 25px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔐</div>
               <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.5rem' }}>Admin Control</h2>
               <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginBottom: '25px' }}>ದಯವಿಟ್ಟು ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ</p>
               
-              {/* Username Field */}
               <div style={{ textAlign: 'left', marginBottom: '15px' }}>
                 <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Username</label>
                 <input 
@@ -115,7 +114,6 @@ function App() {
                 />
               </div>
 
-              {/* Password Field */}
               <div style={{ textAlign: 'left', marginBottom: '20px' }}>
                 <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Password</label>
                 <input 
@@ -170,36 +168,47 @@ function App() {
             </div>
           )}
 
-          {/* 📞 ಹೊಸದಾಗಿ ಅಪ್ಡೇಟ್ ಆಗಿರೋ ಕ್ಲೀನ್ ಮತ್ತು ಮಾಡ್ರನ್ ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ ಡಿಸೈನ್ */}
+          {/* 📞 ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ - ನಿಮ್ಮ ಹಳೇ ಕೋಡ್ ಮತ್ತು ಪೂರ್ತಿ ವಿವರಗಳನ್ನು ಇಲ್ಲಿ ರಿಸ್ಟೋರ್ ಮಾಡಲಾಗಿದೆ */}
           {activePage === 'contact' && (
             <div className="section-page">
               <div className="section-page-header">
                 <h2>📞 Contact Us</h2>
-                <p>Feel free to reach out to us for any queries or custom orders</p>
+                <p>ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ — ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಂತೋಷ!</p>
               </div>
-              <div className="contact-container">
-                <div className="contact-info">
-                  <div className="contact-item">
-                    <span className="icon">📍</span>
-                    <div>
-                      <h4>Our Address</h4>
-                      <p>Rajgopal Nagar Main Road, Peenya 2nd Stage, Bangalore - 560058</p>
+              <div className="contact-grid">
+                <div className="info-card">
+                  <h3>📬 Get In Touch</h3>
+                  {[
+                    { icon:'📱', label:'WhatsApp', value:'+91 7795800741' },
+                    { icon:'📧', label:'Email', value:'dolphintrends@gmail.com' },
+                    { icon:'📸', label:'Instagram', value:'@dolphintrends_blr' },
+                    { icon:'⏰', label:'Working Hours', value:'Mon – Sun: 11:00 AM – 10:00 PM' },
+                  ].map((row, i) => (
+                    <div className="contact-row" key={i}>
+                      <div className="c-icon">{row.icon}</div>
+                      <div>
+                        <strong>{row.label}</strong>
+                        <span>{row.value}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="contact-item">
-                    <span className="icon">📞</span>
-                    <div>
-                      <h4>Phone</h4>
-                      <p>+91 7795800741</p>
+                  ))}
+                </div>
+                <div className="info-card">
+                  <h3>📍 Main Branch Address</h3>
+                  {[
+                    { icon:'🏪', label:'Shop Name', value:"Dolphin Trends — Women's Fashion Store" },
+                    { icon:'📌', label:'Address', value:'Laggere Main Road, Bangalore — 560058' },
+                    { icon:'🚇', label:'Nearest Metro', value:'Jalahalli Metro Station' },
+                    { icon:'🚌', label:'Bus Stop', value:'Laggere Aladmara Bus Stop' },
+                  ].map((row, i) => (
+                    <div className="contact-row" key={i}>
+                      <div className="c-icon">{row.icon}</div>
+                      <div>
+                        <strong>{row.label}</strong>
+                        <span>{row.value}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="contact-item">
-                    <span className="icon">✉️</span>
-                    <div>
-                      <h4>Email</h4>
-                      <p>support@dolphintrends.com</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
