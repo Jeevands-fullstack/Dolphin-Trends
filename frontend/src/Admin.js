@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-function Admin({ onProductAdded }) {
+function Admin({ onProductAdded, setFullScreenImage }) {
   // ─── 📦 ಸಿಂಪಲ್ ಫಾರ್ಮ್ ಸ್ಟೇಟ್ಸ್ ───
   const [formData, setFormData] = useState({
     name: '',
@@ -112,7 +112,6 @@ function Admin({ onProductAdded }) {
   return (
     <div style={{ background: '#0b1329', padding: '10px 0' }}>
       
-      {/* ⚡ ಜೀವಾ, ಇಲ್ಲಿ maxWidth ಅನ್ನು 1100px ಗೆ ದೊಡ್ಡದು ಮಾಡಿದ್ದೇನೆ, ಇದರಿಂದ ಬಾಕ್ಸ್ ಅಗಲವಾಗಿ ಚೆನ್ನಾಗಿ ಕಾಣುತ್ತೆ */}
       <div className="admin-container" style={{ padding: '15px', maxWidth: '1100px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -156,16 +155,18 @@ function Admin({ onProductAdded }) {
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#fff' }}>Category</label>
                 <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{ width: '100%', padding: '8px' }}>
                   <option value="Tops">Tops</option>
-                  <option value="Kurthas Sets">Kurthas Sets</option>
+                  <option value="Kurta Sets">Kurta Sets</option>
                   <option value="Jeans">Jeans</option>
                   <option value="Umbrella Sets">Umbrella Sets</option>
-                  <option value="Western wear">Western wear</option>
+                  <option value="Western Wear">Western Wear</option>
                   <option value="250 Tops">250 Tops</option>
-                  <option value="Kurtha Tops">Kurtha Tops</option>
+                  <option value="Kurtha Top">Kurtha Top</option>
                   <option value="Jeans Tops">Jeans Tops</option>
-                  <option value="Leggins">Leggins</option>
-                  <option value="350 Sets">350 Sets</option>
-                  <option value="frocks">frocks</option>
+                  <option value="Leggings">Leggings</option>
+                  <option value="Patiala Pants">Patiala Pants</option>
+                  <option value="Frocks">Frocks</option>
+                  <option value="Gym Pants">Gym Pants</option>
+                  <option value="350 Tops">350 Tops</option>
                 </select>
               </div>
 
@@ -175,7 +176,7 @@ function Admin({ onProductAdded }) {
             </div>
           </div>
 
-          {/* ─── 📥 2. ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ಸ್ ಕಾರ್ಡ್ (ಇದು ಕೂಡ ಈಗ ದೊಡ್ಡದಾಗಿ ಹರಡಿಕೊಳ್ಳುತ್ತದೆ) ─── */}
+          {/* ─── 📥 2. ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ಸ್ ಕಾರ್ಡ್ (ಟೇಬಲ್ ಎರರ್ ಫಿಕ್ಸ್ ಮಾಡಲಾಗಿದೆ) ─── */}
           <div className="admin-card" style={{ width: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ color: '#fff', margin: 0 }}>📥 Customer Bookings List</h2>
@@ -189,6 +190,8 @@ function Admin({ onProductAdded }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
                   <thead>
                     <tr style={{ background: '#334155', borderBottom: '2px solid #475569', color: '#fff' }}>
+                      {/* 📸 ಫೋಟೋಗಾಗಿ ಹೊಸ ಹೆಡರ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ */}
+                      <th style={{ padding: '12px', textAlign: 'left' }}>Product Photo</th>
                       <th style={{ padding: '12px', textAlign: 'left' }}>Customer Name</th>
                       <th style={{ padding: '12px', textAlign: 'left' }}>Phone</th>
                       <th style={{ padding: '12px', textAlign: 'left' }}>Product Name</th>
@@ -199,11 +202,24 @@ function Admin({ onProductAdded }) {
                   <tbody>
                     {bookings.length === 0 ? (
                       <tr>
-                        <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ಯಾವ ಬುಕಿಂಗ್ಸ್ ಬಂದಿಲ್ಲ ಜೀವನ್!</td>
+                        <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>ಯಾವ ಬುಕಿಂಗ್ಸ್ ಬಂದಿಲ್ಲ ಜೀವನ್!</td>
                       </tr>
                     ) : (
                       bookings.map((b) => (
                         <tr key={b.booking_id} style={{ borderBottom: '1px solid #334155', color: '#fff' }}>
+                          {/* 📸 ಬುಕ್ ಆಗಿರೋ ಬಟ್ಟೆಯ ಇಮೇಜ್ ಇಲ್ಲಿದೆ. ಕ್ಲಿಕ್ ಮಾಡಿದ್ರೆ ದೊಡ್ಡದಾಗಿ ಕಾಣಿಸುತ್ತೆ */}
+                          <td style={{ padding: '12px' }}>
+                            {b.product_image ? (
+                              <img 
+                                src={b.product_image} 
+                                alt={b.product_name} 
+                                onClick={() => setFullScreenImage && setFullScreenImage(b.product_image)}
+                                style={{ width: '50px', height: '65px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }} 
+                              />
+                            ) : (
+                              <div style={{ width: '50px', height: '65px', background: '#334155', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#94a3b8' }}>No Img</div>
+                            )}
+                          </td>
                           <td style={{ padding: '12px' }}><b style={{ color: '#38bdf8' }}>{b.customer_name}</b></td>
                           <td style={{ padding: '12px' }}>{b.customer_phone}</td>
                           <td style={{ padding: '12px' }}>{b.product_name}</td>
@@ -228,11 +244,9 @@ function Admin({ onProductAdded }) {
         </div>
       </div>
 
-      {/* ⚡ ಜೀವಾ, ಡಬಲ್ ಆಗ್ತಿದ್ದ ಫೂಟರ್ ಸೆಕ್ಷನ್ ಅನ್ನು ಇಲ್ಲಿಂದ ಕಂಪ್ಲೀಟ್ ಆಗಿ ತೆಗೆದುಹಾಕಲಾಗಿದೆ. 
-          ಈಗ ಮೇನ್ ಆಪ್‌ನಲ್ಲಿರೋ ಫೂಟರ್ ಮಾತ್ರ ಕೆಳಗಡೆ ನೀಟಾಗಿ ಒಂದೇ ಸಾರಿ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತೆ! */}
-
     </div>
   );
 }
 
-export default Admin;            
+export default Admin;
+
