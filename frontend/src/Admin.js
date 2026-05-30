@@ -1,17 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-// App.js ನಿಂದ products ಮತ್ತು fetchProducts (onProductAdded) ಎರಡನ್ನೂ ತಗೋತಿದ್ದೀವಿ
-function Admin({ onProductAdded, products = [] }) {
+function Admin({ onProductAdded, editData, onCancelEdit }) {
   const [formData, setFormData] = useState({
     name: '', description: '', price: '', original_price: '', category: 'Tops'
   });
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [editingProductId, setEditingProductId] = useState(null); // Edit ಟ್ರ್ಯಾಕ್ ಮಾಡಲು
-  
   const fileInputRef = useRef(null);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
+
+  // ✏️ Shop ಪೇಜ್‌ನಿಂದ Edit ಕ್ಲಿಕ್ ಮಾಡಿ ಬಂದಾಗ ಡೇಟಾ ತುಂಬಲು
+  useEffect(() => {
+    if (editData) {
+      setFormData({
+        name: editData.name || '',
+        description: editData.description || '',
+        price: editData.price ? editData.price.replace('₹', '') : '',
+        original_price: editData.original_price ? editData.original_price.replace('₹', '') : '',
+        category: editData.category || 'Tops'
+      });
+      setPreview(editData.image || null);
+    }
+  }, [editData]);
 
   useEffect(() => { fetchBookings(); }, []);
 
@@ -33,38 +44,6 @@ function Admin({ onProductAdded, products = [] }) {
     } catch { alert('❌ Server Error'); }
   };
 
-  // 📝 EDIT ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಫಾರ್ಮ್‌ಗೆ ಡೇಟಾ ತುಂಬಲು
-  const startEdit = (product) => {
-    setEditingProductId(product.product_id || product.id);
-    setFormData({
-      name: product.name,
-      description: product.description || '',
-      price: product.price.replace('₹', ''), // ₹ ಸಿಂಬಲ್ ತೆಗೆದು ಬರಿ ನಂಬರ್ ಹಾಕಲು
-      original_price: product.original_price ? product.original_price.replace('₹', '') : '',
-      category: product.category
-    });
-    setPreview(product.image); // ಹಳೇ ಫೋಟೋ ಪ್ರಿವ್ಯೂ ತೋರಿಸು
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಮೂವ್ ಮಾಡಿ ಫಾರ್ಮ್ ತೋರಿಸಲು
-  };
-
-  // ❌ DELETE ಫಂಕ್ಷನ್
-  const handleDeleteProduct = async (productId) => {
-    if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಪ್ರಾಡಕ್ಟ್ ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
-    try {
-      const r = await fetch(`https://dolphin-trends-3.onrender.com/products/${productId}`, {
-        method: 'DELETE'
-      });
-      if (r.ok) {
-        alert('🗑️ Product Deleted Successfully!');
-        if (onProductAdded) onProductAdded(); // ಲಿಸ್ಟ್ ರಿಫ್ರೆಶ್ ಮಾಡಲು
-      } else {
-        alert('❌ Delete failed!');
-      }
-    } catch {
-      alert('❌ Server Error while deleting!');
-    }
-  };
-
   const handleAddOrUpdateProduct = async () => {
     if (!formData.name || !formData.price) { alert('⚠️ Name ಮತ್ತು Price ಹಾಕಿ!'); return; }
     setLoading(true);
@@ -77,30 +56,32 @@ function Admin({ onProductAdded, products = [] }) {
     dataToSend.append('category', formData.category);
     if (file) dataToSend.append('file', file);
 
-    // ಎಡಿಟ್ ಮೋಡ್ ನಲ್ಲಿದ್ದರೆ ಅದೇ ID ಗೆ PUT/POST ಮಾಡಬೇಕು (ನಿಮ್ಮ ಬ್ಯಾಕೆಂಡ್ ರೌಟ್ ಪ್ರಕಾರ)
+    // ✏️ Edit ಮೋಡ್‌ನಲ್ಲಿದ್ದರೆ PUT ಮೆಥಡ್, ಹೊಸದಾಗಿದ್ದರೆ POST ಮೆಥಡ್
     let url = 'https://dolphin-trends-3.onrender.com/products';
     let method = 'POST';
-    if (editingProductId) {
-      url = `https://dolphin-trends-3.onrender.com/products/${editingProductId}`;
-      method = 'PUT'; // ಒಂದು ವೇಳೆ ನಿಮ್ಮ ಬ್ಯಾಕೆಂಡ್ PUT ಸಪೋರ್ಟ್ ಮಾಡಿದ್ರೆ, ಇಲ್ಲದಿದ್ದರೆ POST ಬಳಸಿ
+
+    if (editData) {
+      const pid = editData.product_id || editData.id;
+      url = `https://dolphin-trends-3.onrender.com/products/${pid}`;
+      method = 'PUT'; 
     }
 
     try {
       const r = await fetch(url, { method: method, body: dataToSend });
       if (r.ok) {
-        alert(editingProductId ? '🔄 Product updated!' : '✅ Product saved!');
-        cancelEdit();
+        alert(editData ? '🔄 Product Updated Successfully!' : '✅ Product saved!');
+        setFormData({ name: '', description: '', price: '', original_price: '', category: 'Tops' });
+        setPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
         if (onProductAdded) onProductAdded();
-      } else alert('❌ Save failed!');
-    } catch { alert('❌ Server Error!'); }
-    finally { setLoading(false); }
-  };
-
-  const cancelEdit = () => {
-    setEditingProductId(null);
-    setFormData({ name: '', description: '', price: '', original_price: '', category: 'Tops' });
-    setPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        alert('❌ Save failed! Check backend rules.');
+      }
+    } catch { 
+      alert('❌ Server Error!'); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
@@ -110,10 +91,10 @@ function Admin({ onProductAdded, products = [] }) {
         {/* Product Form */}
         <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px', marginBottom: '30px' }}>
           <h2 style={{ color: '#4d9fff', marginBottom: '20px' }}>
-            {editingProductId ? '🔄 Edit Product Mode' : '🛠️ Admin Panel - Add Product'}
+            {editData ? '🔄 Edit Product Details' : '🛠️ Admin Panel - Add Product'}
           </h2>
 
-          <label style={lbl}>👗 Dress Photo {editingProductId && '(ಬದಲಾಯಿಸಬೇಕಿದ್ದರೆ ಮಾತ್ರ ಫೈಲ್ ಸೆಲೆಕ್ಟ್ ಮಾಡಿ)'}</label>
+          <label style={lbl}>👗 Dress Photo {editData && '(ಬದಲಾಯಿಸಬೇಕಿದ್ದರೆ ಮಾತ್ರ ಹೊಸ ಫೈಲ್ ಆರಿಸಿ)'}</label>
           <input type="file" accept="image/*" ref={fileInputRef} onChange={e => { const f = e.target.files[0]; if (f) setPreview(URL.createObjectURL(f)); }} style={{ width: '100%', marginBottom: '15px', color: '#fff' }} />
           {preview && <img src={preview} alt="preview" style={{ width: '100px', borderRadius: '8px', marginBottom: '15px' }} />}
 
@@ -141,59 +122,20 @@ function Admin({ onProductAdded, products = [] }) {
 
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
             <button onClick={handleAddOrUpdateProduct} disabled={loading}
-              style={{ flex: 2, padding: '14px', background: editingProductId ? '#e11d48' : '#1a6cff', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
-              {loading ? 'Saving...' : editingProductId ? '🔄 Update Product' : '✅ Save Product'}
+              style={{ flex: 2, padding: '14px', background: editData ? '#e11d48' : '#1a6cff', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
+              {loading ? 'Saving...' : editData ? '🔄 Update Product' : '✅ Save Product'}
             </button>
-            {editingProductId && (
-              <button onClick={cancelEdit} style={{ flex: 1, padding: '14px', background: '#4b5563', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
+            {editData && (
+              <button onClick={onCancelEdit} style={{ flex: 1, padding: '14px', background: '#4b5563', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
                 Cancel
               </button>
             )}
           </div>
         </div>
 
-        {/* 🛍️ ಹೊಸದಾಗಿ ಆಡ್ ಮಾಡಲಾದ ಸೆಕ್ಷನ್: MANAGE & DELETE PRODUCTS LIST */}
-        <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px', marginBottom: '30px' }}>
-          <h2 style={{ color: '#4d9fff', marginBottom: '20px' }}>📦 Active Products ({products.length})</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid rgba(26,108,255,0.3)', color: '#4d9fff', fontSize: '0.85rem' }}>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Image</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Product Details</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Category</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.length === 0 ? (
-                  <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#7a85a0' }}>ಯಾವ ಪ್ರೋಡಕ್ಟ್ ಸಿಗುತ್ತಿಲ್ಲ!</td></tr>
-                ) : products.map(p => (
-                  <tr key={p.product_id || p.id} style={{ borderBottom: '1px solid rgba(26,108,255,0.1)', color: '#f0f4ff' }}>
-                    <td style={{ padding: '12px' }}>
-                      <img src={p.image} alt="" style={{ width: '50px', height: '60px', objectFit: 'cover', borderRadius: '6px' }} onError={e => e.target.src='https://via.placeholder.com/50'} />
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: 'bold' }}>{p.name}</div>
-                      <div style={{ color: '#38bdf8', fontSize: '0.85rem' }}>Price: {p.price}</div>
-                    </td>
-                    <td style={{ padding: '12px' }}><span style={{ background: 'rgba(26,108,255,0.15)', color: '#4d9fff', padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem' }}>{p.category}</span></td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => startEdit(p)} style={{ padding: '6px 12px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>✏️ Edit</button>
-                        <button onClick={() => handleDeleteProduct(p.product_id || p.id)} style={{ padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>🗑️ Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         {/* Bookings Table */}
         <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px' }}>
-          <div style={{ display: 'flex', justifycontent: 'space-between', alignitems: 'center', marginbottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ color: '#4d9fff', margin: 0 }}>📥 Customer Bookings</h2>
             <button onClick={fetchBookings} style={{ padding: '8px 16px', background: '#1a6cff', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>🔄 Refresh</button>
           </div>
