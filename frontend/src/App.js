@@ -23,7 +23,7 @@ function App() {
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
 
-  // 🔐 ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಕ್ರೆಡೆನ್ಶಿಯಲ್ಸ್ ಮತ್ತು ಕಂಟ್ರೋಲ್ ಸ್ಟೇಟ್‌ಗಳು
+  // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -53,7 +53,7 @@ function App() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // 🔐 ಅಡ್ಮಿನ್ ವೆರಿಫಿಕೇಶನ್ ಸಬ್ಮಿಟ್ ಫಂಕ್ಷನ್
+  // 🔐 Admin Login Verification Function
   const handleAdminLoginSubmit = (e) => {
     e.preventDefault();
     if (adminUsername === 'dolphin_admin' && adminPassword === 'dolphin@2024') {
@@ -95,14 +95,14 @@ function App() {
         isAdminLoggedIn ? (
           <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
         ) : (
-          /* 🔐 ಸೆಕ್ಯೂರ್ಡ್ ಮತ್ತು ಸುಂದರವಾದ ಯೂಸರ್ ನೇಮ್ + ಪಾಸ್‌ವರ್ಡ್ ಲಾಗಿನ್ ಬಾಕ್ಸ್ ಡಿಸೈನ್ */
+          /* 🔐 Secure Username & Password Admin Login Form */
           <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <form onSubmit={handleAdminLoginSubmit} style={{ background: '#1a233d', padding: '35px 30px', borderRadius: '15px', width: '100%', maxWidth: '380px', textAlign: 'center', border: '1px solid rgba(26,108,255,0.25)', boxShadow: '0 10px 25px rgba(0,0,0,0.4)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🔐</div>
               <h2 style={{ color: '#fff', marginBottom: '8px', fontSize: '1.5rem' }}>Admin Control</h2>
               <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginBottom: '25px' }}>ದಯವಿಟ್ಟು ಮುಂದುವರಿಯಲು ನಿಮ್ಮ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ</p>
               
-              {/* Username Input */}
+              {/* Username Field */}
               <div style={{ textAlign: 'left', marginBottom: '15px' }}>
                 <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Username</label>
                 <input 
@@ -115,7 +115,7 @@ function App() {
                 />
               </div>
 
-              {/* Password Input */}
+              {/* Password Field */}
               <div style={{ textAlign: 'left', marginBottom: '20px' }}>
                 <label style={{ fontSize: '0.8rem', color: '#7a85a0', display: 'block', marginBottom: '5px' }}>Password</label>
                 <input 
@@ -170,39 +170,36 @@ function App() {
             </div>
           )}
 
+          {/* 📞 ಹೊಸದಾಗಿ ಅಪ್ಡೇಟ್ ಆಗಿರೋ ಕ್ಲೀನ್ ಮತ್ತು ಮಾಡ್ರನ್ ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ ಡಿಸೈನ್ */}
           {activePage === 'contact' && (
-            <div className="section-page" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto' }}>
-              <div className="section-page-header" style={{ textAlign: 'center', marginBottom: '40px' }}>
-                <h2>📞 Get in Touch</h2>
-                <p>Dolphin Trends — ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು ಕೆಳಗಿನ ಮಾಧ್ಯಮಗಳನ್ನು ಬಳಸಿ</p>
+            <div className="section-page">
+              <div className="section-page-header">
+                <h2>📞 Contact Us</h2>
+                <p>Feel free to reach out to us for any queries or custom orders</p>
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '25px', marginBottom: '40px' }}>
-                <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>📞</div>
-                  <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Call Us</h3>
-                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', margin: '8px 0' }}>Main Branch: <br/><strong style={{color: '#fff'}}>+91 77958 00741</strong></p>
-                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', margin: '8px 0' }}>Branch 2 : <br/><strong style={{color: '#fff'}}>+91 93538 38835</strong></p>
-                </div>
-
-                <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>📸</div>
-                  <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Instagram</h3>
-                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', marginBottom: '20px' }}>ನಮ್ಮ ಲೇಟೆಸ್ಟ್ ಕಲೆಕ್ಷನ್ ಮತ್ತು ರೀಲ್ಸ್ ನೋಡಲು ಫಾಲೋ ಮಾಡಿ</p>
-                  <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" 
-                     style={{ display: 'inline-block', background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', color: '#fff', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 4px 10px rgba(220,39,67,0.3)' }}>
-                    Follow @DolphinTrends
-                  </a>
-                </div>
-
-                <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>✉️</div>
-                  <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Email & Support</h3>
-                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', marginBottom: '15px' }}>ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳಿದ್ದರೆ ನಮಗೆ ಇಮೇಲ್ ಮಾಡಿ:</p>
-                  <a href="mailto:support@dolphintrends.com" style={{ color: '#4d9fff', fontWeight: 'bold', textDecoration: 'none', wordBreak: 'break-word', fontSize: '0.95rem' }}>
-                    support@dolphintrends.com
-                  </a>
-                  <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginTop: '15px' }}>📍 Bangalore, India</p>
+              <div className="contact-container">
+                <div className="contact-info">
+                  <div className="contact-item">
+                    <span className="icon">📍</span>
+                    <div>
+                      <h4>Our Address</h4>
+                      <p>Rajgopal Nagar Main Road, Peenya 2nd Stage, Bangalore - 560058</p>
+                    </div>
+                  </div>
+                  <div className="contact-item">
+                    <span className="icon">📞</span>
+                    <div>
+                      <h4>Phone</h4>
+                      <p>+91 7795800741</p>
+                    </div>
+                  </div>
+                  <div className="contact-item">
+                    <span className="icon">✉️</span>
+                    <div>
+                      <h4>Email</h4>
+                      <p>support@dolphintrends.com</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -215,6 +212,7 @@ function App() {
                 <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p>
               </div>
 
+              {/* Main Branch */}
               <div className="map-embed" style={{ marginBottom: '40px' }}>
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Laggere</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px', marginBottom: '15px' }}>
@@ -240,6 +238,7 @@ function App() {
                 </div>
               </div>
 
+              {/* Branch 2 */}
               <div className="map-embed">
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>🏪 Branch 2 — Rajgopal nagar</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px' }}>
