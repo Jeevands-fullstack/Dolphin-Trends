@@ -22,6 +22,7 @@ function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
+  const [editProductData, setEditProductData] = useState(null); // Edit ಮಾಡಬೇಕಾದ ಪ್ರಾಡಕ್ಟ್ ಸ್ಟೇಟ್
 
   // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
@@ -61,9 +62,32 @@ function App() {
       setLoginError('');
       setAdminUsername('');
       setAdminPassword('');
+      setShowAdmin(true); // ಲಾಗಿನ್ ಆದ ತಕ್ಷಣ ಅಡ್ಮಿನ್ ಪ್ಯಾನಲ್ ತೋರಿಸಿ
     } else {
       setLoginError('❌ ತಪ್ಪು Username ಅಥವಾ Password! ಸರಿಯಾಗಿ ನಮೂದಿಸಿ.');
     }
+  };
+
+  // 🗑️ Shop ಪೇಜ್‌ನಿಂದಲೇ ಡಿಲೀಟ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಪ್ರಾಡಕ್ಟ್ ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
+    try {
+      const r = await fetch(`${API}/products/${productId}`, { method: 'DELETE' });
+      if (r.ok) {
+        alert('🗑️ Product Deleted Successfully!');
+        fetchProducts();
+      } else {
+        alert('❌ Delete failed!');
+      }
+    } catch {
+      alert('❌ Server Error!');
+    }
+  };
+
+  // ✏️ Shop ಪೇಜ್‌ನಲ್ಲಿ Edit ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಅಡ್ಮಿನ್ ಫಾರ್ಮ್‌ಗೆ ಕಳುಹಿಸುವುದು
+  const handleEditClick = (product) => {
+    setEditProductData(product);
+    setShowAdmin(true); // ಅಡ್ಮಿನ್ ಪ್ಯಾನಲ್ ಓಪನ್ ಮಾಡು
   };
 
   const filtered = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
@@ -85,7 +109,7 @@ function App() {
           <li><button className={activePage === 'location' ? 'active' : ''} onClick={() => { setActivePage('location'); setShowAdmin(false); }}>📍 Location</button></li>
         </ul>
         <div className="navbar-right">
-          <button className="admin-btn" onClick={() => isAdminLoggedIn ? (setIsAdminLoggedIn(false) || setShowAdmin(false) || fetchProducts()) : setShowAdmin(!showAdmin)}>
+          <button className="admin-btn" onClick={() => isAdminLoggedIn ? (setIsAdminLoggedIn(false) || setShowAdmin(false) || setEditProductData(null) || fetchProducts()) : setShowAdmin(!showAdmin)}>
             {isAdminLoggedIn ? '🔓 Logout' : '🛠️ Admin'}
           </button>
         </div>
@@ -93,7 +117,11 @@ function App() {
 
       {showAdmin ? (
         isAdminLoggedIn ? (
-          <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} products={products} />
+          <Admin 
+            onProductAdded={() => { fetchProducts(); setEditProductData(null); setShowAdmin(false); }} 
+            editData={editProductData} 
+            onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); }}
+          />
         ) : (
           /* 🔐 Admin Login Form */
           <div style={{ background: '#0b1329', padding: '60px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -146,7 +174,18 @@ function App() {
                   <div className="products-grid">
                     {filtered.map(product => (
                       <div className={product.available === false ? 'product-card not-available' : 'product-card'} key={product.product_id || product.id}>
-                        <div className="product-card-img-wrap" onClick={() => setFullScreenImage(product.image)} style={{cursor: 'zoom-in'}}><img src={product.image} alt={product.name} onError={e => e.target.src='https://via.placeholder.com/300x400?text=No+Image'} /></div>
+                        
+                        {/* 🛠️ ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಫೋಟೋ ಮೇಲ್ಗಡೆ ಎಡಿಟ್ ಮತ್ತು ಡಿಲೀಟ್ ಬಟನ್ ತೋರಿಸಲು */}
+                        {isAdminLoggedIn && (
+                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px', zIndex: 10, background: 'rgba(11,19,41,0.8)', padding: '5px', borderRadius: '8px' }}>
+                            <button onClick={() => handleEditClick(product)} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>✏️ Edit</button>
+                            <button onClick={() => handleDeleteProduct(product.product_id || product.id)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>🗑️ Del</button>
+                          </div>
+                        )}
+
+                        <div className="product-card-img-wrap" onClick={() => setFullScreenImage(product.image)} style={{cursor: 'zoom-in'}}>
+                          <img src={product.image} alt={product.name} onError={e => { e.target.onerror = null; e.target.src = dolphin; }} />
+                        </div>
                         <div className="product-info"><span className="category-tag">{product.category}</span><h4>{product.name}</h4><p className="price">{product.price}</p>{product.available !== false && <button className="buy-btn" onClick={() => setViewProduct(product)}>🛍️ Buy Now</button>}</div>
                       </div>
                     ))}
@@ -168,13 +207,9 @@ function App() {
             </div>
           )}
 
-          {/* 📞 ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ - ನಿಮ್ಮ ಹಳೇ ಕೋಡ್ ಮತ್ತು ಪೂರ್ತಿ ವಿವರಗಳನ್ನು ಇಲ್ಲಿ ರಿಸ್ಟೋರ್ ಮಾಡಲಾಗಿದೆ */}
           {activePage === 'contact' && (
             <div className="section-page">
-              <div className="section-page-header">
-                <h2>📞 Contact Us</h2>
-                <p>ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ — ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಂತೋಷ!</p>
-              </div>
+              <div className="section-page-header"><h2>📞 Contact Us</h2><p>ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ — ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಂತೋಷ!</p></div>
               <div className="contact-grid">
                 <div className="info-card">
                   <h3>📬 Get In Touch</h3>
@@ -184,13 +219,7 @@ function App() {
                     { icon:'📸', label:'Instagram', value:'@dolphintrends_blr' },
                     { icon:'⏰', label:'Working Hours', value:'Mon – Sun: 11:00 AM – 10:00 PM' },
                   ].map((row, i) => (
-                    <div className="contact-row" key={i}>
-                      <div className="c-icon">{row.icon}</div>
-                      <div>
-                        <strong>{row.label}</strong>
-                        <span>{row.value}</span>
-                      </div>
-                    </div>
+                    <div className="contact-row" key={i}><div className="c-icon">{row.icon}</div><div><strong>{row.label}</strong><span>{row.value}</span></div></div>
                   ))}
                 </div>
                 <div className="info-card">
@@ -201,13 +230,7 @@ function App() {
                     { icon:'🚇', label:'Nearest Metro', value:'Jalahalli Metro Station' },
                     { icon:'🚌', label:'Bus Stop', value:'Laggere Aladmara Bus Stop' },
                   ].map((row, i) => (
-                    <div className="contact-row" key={i}>
-                      <div className="c-icon">{row.icon}</div>
-                      <div>
-                        <strong>{row.label}</strong>
-                        <span>{row.value}</span>
-                      </div>
-                    </div>
+                    <div className="contact-row" key={i}><div className="c-icon">{row.icon}</div><div><strong>{row.label}</strong><span>{row.value}</span></div></div>
                   ))}
                 </div>
               </div>
@@ -216,23 +239,14 @@ function App() {
 
           {activePage === 'location' && (
             <div className="section-page">
-              <div className="section-page-header">
-                <h2>📍 Our Locations</h2>
-                <p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p>
-              </div>
-
-              {/* Main Branch */}
+              <div className="section-page-header"><h2>📍 Our Locations</h2><p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p></div>
               <div className="map-embed" style={{ marginBottom: '40px' }}>
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Laggere</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px', marginBottom: '15px' }}>
                   <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍  Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
                   <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
-                  <a href="https://maps.app.goo.gl/tJQ47jqAsoLRQ1Ua7" target="_blank" rel="noreferrer"
-                    style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>
-                    🗺️ Open in Google Maps
-                  </a>
+                  <a href="https://maps.app.goo.gl/tJQ47jqAsoLRQ1Ua7" target="_blank" rel="noreferrer" style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>🗺️ Open in Google Maps</a>
                 </div>
-
                 <h4 style={{ color: '#7a85a0', marginBottom: '10px', textAlign: 'center' }}>📸 Our Shop</h4>
                 <div style={{ position: 'relative', width: '100%', maxWidth: '500px', height: '380px', margin: '0 auto', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(26,108,255,0.2)' }}>
                   <img src={shopImages[currentImgIndex]} alt="Shop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -240,23 +254,17 @@ function App() {
                   <button onClick={nextShopImage} style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px' }}>›</button>
                   <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '6px' }}>
                     {shopImages.map((_, idx) => (
-                      <span key={idx} onClick={() => setCurrentImgIndex(idx)}
-                        style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentImgIndex === idx ? '#1a6cff' : 'rgba(255,255,255,0.5)', cursor: 'pointer' }} />
+                      <span key={idx} onClick={() => setCurrentImgIndex(idx)} style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentImgIndex === idx ? '#1a6cff' : 'rgba(255,255,255,0.5)', cursor: 'pointer' }} />
                     ))}
                   </div>
                 </div>
               </div>
-
-              {/* Branch 2 */}
               <div className="map-embed">
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>🏪 Branch 2 — Rajgopal nagar</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px' }}>
                   <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍 Rajgopal nagar,main road,peenya 2nd stage— 560058</p>
                   <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
-                  <a href="https://maps.app.goo.gl/amrkmppGsdgprtx27" target="_blank" rel="noreferrer"
-                    style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>
-                    🗺️ Open in Google Maps
-                  </a>
+                  <a href="https://maps.app.goo.gl/amrkmppGsdgprtx27" target="_blank" rel="noreferrer" style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>🗺️ Open in Google Maps</a>
                 </div>
               </div>
             </div>
@@ -265,7 +273,6 @@ function App() {
       )}
 
       <footer><p><strong>🐬 Dolphin Trends</strong> | Developed by Jeevan JD</p></footer>
-
       {fullScreenImage && <div onClick={() => setFullScreenImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}><img src={fullScreenImage} alt="Full" style={{ maxWidth: '95%', maxHeight: '90vh' }} /></div>}
       {viewProduct && <ProductPage product={viewProduct} allProducts={products} onClose={() => setViewProduct(null)} onBook={p => setViewProduct(p)} />}
     </div>
