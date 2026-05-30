@@ -113,31 +113,54 @@ function App() {
               <div className="section-page-header"><h2>🏪 Our Branches</h2><p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮ ಅಂಗಡಿಗಳು</p></div>
               <div className="branch-grid">
                 {[
-                  { tag:'Branch 2', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 9353838835' },
-                  { tag:'Main Branch ', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 7795800741' },
+                  { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 7795800741' },
+                  { tag:'Branch 2', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 9353838835' },
                 ].map((b, i) => <div className="branch-card" key={i}><span className="branch-tag">{b.tag}</span><h3>{b.name}</h3><p>{b.addr}</p><p className="branch-phone">{b.phone}</p></div>)}
               </div>
             </div>
           )}
 
-          {/* ─── 📞 ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ ಫಿಕ್ಸ್ (ಇಲ್ಲಿ ಆಡ್ ಮಾಡಲಾಗಿದೆ ಜೀವಾ!) ─── */}
+          {/* ─── 📞 ಕಾಂಟ್ಯಾಕ್ಟ್ ಪೇಜ್ — ನಿಮ್ಮ ಹಳೇ ಸೂಪರ್ ಬಾಕ್ಸ್ ಲೇಔಟ್ ಡಿಸೈನ್ ವಾಪಸ್ ತರಲಾಗಿದೆ! ─── */}
           {activePage === 'contact' && (
-            <div className="section-page" style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto' }}>
-              <div className="section-page-header" style={{ textAlign: 'center', marginBottom: '30px' }}>
-                <h2>📞 Contact Us</h2>
-                <p>ಯಾವುದೇ ಆರ್ಡರ್ ಅಥವಾ ವಿಚಾರಣೆಗಾಗಿ ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಿ</p>
+            <div className="section-page" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto' }}>
+              <div className="section-page-header" style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h2>📞 Get in Touch</h2>
+                <p>Dolphin Trends — ನಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲು ಕೆಳಗಿನ ಮಾಧ್ಯಮಗಳನ್ನು ಬಳಸಿ</p>
               </div>
-              <div style={{ background: '#1a233d', padding: '30px', borderRadius: '12px', color: '#fff', border: '1px solid rgba(26,108,255,0.2)' }}>
-                <div style={{ marginBottom: '20px' }}>
-                  <h4 style={{ color: '#4d9fff', marginBottom: '5px' }}>📱 Phone Numbers:</h4>
-                  <p style={{ fontSize: '1.1rem', margin: '5px 0' }}>🟢 Main Branch: <strong>+91 7795800741</strong></p>
-                  <p style={{ fontSize: '1.1rem', margin: '5px 0' }}>🟢 Branch 2 (Laggere): <strong>+91 93538 38835</strong></p>
+              
+              {/* ಮಾಡ್ರನ್ ಗ್ರಿಡ್ ಬಾಕ್ಸ್ ಲೇಔಟ್ */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '25px', marginBottom: '40px' }}>
+                
+                {/* ಬಾಕ್ಸ್ 1: ಫೋನ್ ಕಾಲ್ */}
+                <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>📞</div>
+                  <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Call Us</h3>
+                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', margin: '8px 0' }}>Main Branch: <br/><strong style={{color: '#fff'}}>+91 77958 00741</strong></p>
+                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', margin: '8px 0' }}>Branch 2 : <br/><strong style={{color: '#fff'}}>+91 93538 38835</strong></p>
                 </div>
-                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '20px 0' }} />
-                <div>
-                  <h4 style={{ color: '#4d9fff', marginBottom: '5px' }}>📍 Address:</h4>
-                  <p style={{ color: '#b4c6ef' }}>Rajgopal Nagar Main Road, Peenya 2nd Stage, Bengaluru, Karnataka 560058</p>
+
+                {/* ಬಾಕ್ಸ್ 2: ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ */}
+                <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>📸</div>
+                  <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Instagram</h3>
+                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', marginBottom: '20px' }}>ನಮ್ಮ ಲೇಟೆಸ್ಟ್ ಕಲೆಕ್ಷನ್ ಮತ್ತು ರೀಲ್ಸ್ ನೋಡಲು ಫಾಲೋ ಮಾಡಿ</p>
+                  <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" 
+                     style={{ display: 'inline-block', background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', color: '#fff', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 4px 10px rgba(220,39,67,0.3)' }}>
+                    Follow @DolphinTrends
+                  </a>
                 </div>
+
+                {/* ಬಾಕ್ಸ್ 3: ಇಮೇಲ್ ಮತ್ತು ವಿಳಾಸ */}
+                <div style={{ background: '#1a233d', padding: '30px', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', textAlign: 'center', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>✉️</div>
+                  <h3 style={{ color: '#fff', marginBottom: '15px', fontSize: '1.25rem' }}>Email & Support</h3>
+                  <p style={{ color: '#b4c6ef', fontSize: '0.95rem', marginBottom: '15px' }}>ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳಿದ್ದರೆ ನಮಗೆ ಇಮೇಲ್ ಮಾಡಿ:</p>
+                  <a href="mailto:support@dolphintrends.com" style={{ color: '#4d9fff', fontWeight: 'bold', textDecoration: 'none', wordBreak: 'break-word', fontSize: '0.95rem' }}>
+                    support@dolphintrends.com
+                  </a>
+                  <p style={{ color: '#7a85a0', fontSize: '0.85rem', marginTop: '15px' }}>📍 Bangalore, India</p>
+                </div>
+
               </div>
             </div>
           )}
@@ -151,10 +174,10 @@ function App() {
 
               {/* Main Branch */}
               <div className="map-embed" style={{ marginBottom: '40px' }}>
-                <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Rajgopalnagar</h3>
+                <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Laggere</h3>
                 
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px', marginBottom: '15px' }}>
-                  <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍 Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058</p>
+                  <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍  Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
                   <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
                   <a href="https://maps.app.goo.gl/tJQ47jqAsoLRQ1Ua7" target="_blank" rel="noreferrer"
                     style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>
@@ -179,9 +202,9 @@ function App() {
 
               {/* Branch 2 */}
               <div className="map-embed">
-                <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>🏪 Branch 2 — Laggere</h3>
+                <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>🏪 Branch 2 — Rajgopal nagar</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px' }}>
-                  <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍 Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
+                  <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍 Rajgopal nagar,main road,peenya 2nd stage— 560058</p>
                   <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
                   <a href="https://maps.app.goo.gl/amrkmppGsdgprtx27" target="_blank" rel="noreferrer"
                     style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>
