@@ -91,12 +91,12 @@ def send_whatsapp_image(image_url, product_name):
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
             return False
         
-        # ಸ್ಪೇಸ್ ಕಡಿಮೆ ಮಾಡಲಾಗಿದೆ + "Explore our latest collections..." ಕ್ಯಾಚಿ ಲೈನ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ
+        # ⚡ ಪ್ರೊಫೆಷನಲ್ ಕ್ಯಾಪ್ಶನ್ - ಯಾವುದೇ ಲಿಂಕ್ ಪ್ರಿವ್ಯೂ ಕನ್ಫ್ಯೂಷನ್ ಇಲ್ಲದೆ ನೇರ ಮಾಹಿತಿ
         caption = (
-            f"🔥 *New Arrival!*\n"
-            f"✨ Premium Dress: *{product_name}*\n"
+            f"🔥 *New Arrival at Dolphin Trends!* 🐬\n\n"
+            f"👗 *Product:* {product_name}\n"
             f"💃 Grab yours before it's gone!\n\n"
-            f"💥 *Explore our latest collections & exclusive offers here:* 👇\n"
+            f"💥 *Explore our latest boutique collections & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
         
@@ -104,7 +104,7 @@ def send_whatsapp_image(image_url, product_name):
         payload = {
             "chatId": f"{YOUR_PERSONAL_PHONE}@c.us",
             "urlFile": image_url,
-            "fileName": "product.jpg",
+            "fileName": f"{product_name.replace(' ', '_')}.jpg",
             "caption": caption
         }
         response = requests.post(url, json=payload, timeout=30)
@@ -113,7 +113,6 @@ def send_whatsapp_image(image_url, product_name):
     except Exception as e:
         print("WhatsApp Error:", str(e))
         return False
-
 def send_whatsapp_msg(phone, message):
     if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
         return False
