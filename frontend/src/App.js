@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import BookingModal from './BookingModal';
-import Login from './Login';
 import ProductPage from './ProductPage';
 import dolphin from './assets/dolphin.png';
 import heroVideo from './assets/hero-video.mp4';
@@ -23,9 +22,6 @@ function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [viewProduct, setViewProduct] = useState(null);
-  const [editProduct, setEditProduct] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [editLoading, setEditLoading] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState(null);
 
   const shopImages = [shop1, shop2, shop3, shop4, shop5];
@@ -72,15 +68,27 @@ function App() {
           <li><button className={activePage === 'location' ? 'active' : ''} onClick={() => { setActivePage('location'); setShowAdmin(false); }}>📍 Location</button></li>
         </ul>
         <div className="navbar-right">
-          {isAdminLoggedIn && !showAdmin && <button className="admin-btn" onClick={() => setShowAdmin(true)}>⚙️ Admin Panel</button>}
           <button className="admin-btn" onClick={() => isAdminLoggedIn ? (setIsAdminLoggedIn(false) || setShowAdmin(false) || fetchProducts()) : setShowAdmin(!showAdmin)}>
             {isAdminLoggedIn ? '🔓 Logout' : '🛠️ Admin'}
           </button>
         </div>
       </nav>
 
+      {/* ─── 🔥 ಅಡ್ಮಿನ್ ಸೆಕ್ಷನ್ ಫಿಕ್ಸ್ ─── */}
       {showAdmin ? (
-        isAdminLoggedIn ? <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} /> : <Login onLogin={() => setIsAdminLoggedIn(true)} />
+        isAdminLoggedIn ? (
+          /* ಇಲ್ಲಿ ಕೇವಲ ಒಂದೇ ಒಂದು ಪರ್ಫೆಕ್ಟ್ Admin ಕಾಂಪೊನೆಂಟ್ ಮಾತ್ರ ರನ್ ಆಗುತ್ತೆ ಜೀವಾ. ಬೇರೆ ಯಾವುದೇ ಎಕ್ಸ್ಟ್ರಾ ಟೇಬಲ್ ಲೂಪ್ ಇಲ್ಲ */
+          <Admin onProductAdded={fetchProducts} setFullScreenImage={setFullScreenImage} />
+        ) : (
+          <div style={{ background: '#0b1329', padding: '40px 20px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ background: '#1a233d', padding: '30px', borderRadius: '12px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+              <h2 style={{ color: '#fff', marginBottom: '20px' }}>🔐 Admin Login</h2>
+              <button onClick={() => setIsAdminLoggedIn(true)} style={{ background: '#007bff', color: 'white', border: 'none', padding: '12px 25px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>
+                Enter Dashboard
+              </button>
+            </div>
+          </div>
+        )
       ) : (
         <>
           {activePage === 'shop' && (
