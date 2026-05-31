@@ -257,4 +257,3 @@ const lbl = { display: 'block', color: '#7a85a0', fontSize: '0.8rem', marginBott
 const inp = { width: '100%', padding: '10px 13px', marginBottom: '5px', borderRadius: '9px', border: '1px solid rgba(26,108,255,0.25)', background: '#0b0b18', color: '#f0f4ff', boxSizing: 'border-box', fontSize: '14px' };
 
 export default Admin;
-        
