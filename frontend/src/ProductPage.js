@@ -28,8 +28,6 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
     ? Math.round((1 - cleanPrice(product.price) / cleanPrice(product.original_price)) * 100)
     : 0;
 
-  /* ⚡ ಜೀವಾ, ಇಲ್ಲಿದೆ ನೋಡಿ ಬದಲಾವಣೆ: Similar Products ಕೊನೆಯಲ್ಲಿ .reverse() ಮಾಡಲಾಗಿದೆ. 
-     ಇದರಿಂದ ಹೊಸದಾಗಿ ಬಂದ ಡ್ರೆಸ್‌ಗಳು ಇಲ್ಲೂ ಮೊದಲು ಕಾಣಿಸುತ್ತವೆ */
   const similarProducts = allProducts
     ? allProducts.filter(p => p.category === product.category && (p.product_id || p.id) !== currentId).reverse()
     : [];
@@ -48,11 +46,9 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
   }, [currentId]); 
 
-  // ✅ ಹೊಸ ಅಪ್ಡೇಟ್: ಬುಕಿಂಗ್ ಡೇಟಾವನ್ನು ನೇರವಾಗಿ ಬ್ಯಾಕೆಂಡ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ ಮಾಡುತ್ತದೆ
-  // 🔥 2ನೇ ಪ್ರಾಬ್ಲಮ್ ಫಿಕ್ಸ್: ಕಸ್ಟಮರ್ ಆರ್ಡರ್ ಮಾಡಿದಾಗ ಶಾಪ್ ಅಡ್ರೆಸ್ ಇಲ್ಲದೆ ಹೋಗುವ ಪ್ರೊಫೆಷನಲ್ ಮೆಸೇಜ್
   const handleBuyNow = async () => {
     if (!selectedSize) { alert('⚠️ Please select a size!'); return; }
-    if (!customerName || !customerPhone) { alert('⚠️ Name ಮತ್ತು Phoneಹಾಕಿ!'); return; }
+    if (!customerName || !customerPhone) { alert('⚠️ Name mattu Phone haki!'); return; }
 
     setBookingLoading(true);
 
@@ -73,11 +69,9 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
 
       if (response.ok) {
-        // ✨ ಪಕ್ಕಾ ಪ್ರೊಫೆಷನಲ್ ಇಂಗ್ಲಿಷ್ ಮೆಸೇಜ್ (ಅಡ್ರೆಸ್ ತೆಗೆದು ಸ್ಟಾಕ್ ಚೆಕಿಂಗ್ ಲೈನ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ)
         const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + ",\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\n📝 *We are currently checking the stock availability for your order. Our team will contact you shortly with confirmation.* 🙏\n\n💥 *Meanwhile, explore our latest collections here:* 👇\n🔗 https://dolphin-trends-two.vercel.app\n\n📞 Contact: 7411255628\n\nThank you for choosing us! 😊\n*Team Dolphin Trends* 🐬";
         window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
 
-        // ಅಡ್ಮಿನ್‌ಗೆ ಹೋಗುವ ಮೆಸೇಜ್
         const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone + "\n\n⚙️ *Please update them here:* 👇\n🔗 https://dolphin-trends-two.vercel.app";
         window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
 
@@ -93,11 +87,9 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       setBookingLoading(false);
     }
   };
-  
-  
 
   const handleAddReview = async () => {
-    if (!reviewName || !reviewText) { alert('⚠️ Name ಮತ್ತು Review ಹಾಕಿ!'); return; }
+    if (!reviewName || !reviewText) { alert('⚠️ Name mattu Review haki!'); return; }
     try {
       const review = { product_id: currentId, name: reviewName, text: reviewText, rating: reviewRating };
       const res = await fetch('https://dolphin-trends-3.onrender.com/reviews', {
@@ -123,9 +115,48 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
 
         {/* Top Section */}
         <div className="pp-top">
-          {/* Left - Image */}
-          <div className="pp-img-box">
-            <img src={product.image} alt={product.name} />
+          
+          {/* Left - Image Box */}
+          <div className="pp-img-box" style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px' }}>
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: 'none', // ⚡ Blur remove madalagide, image iga clear agi kanutthe
+                transition: 'all 0.3s'
+              }}
+            />
+            
+            {/* 🔴 Out of stock banner */}
+            {product.available === false && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0,0,0,0.25)', // Photo svalpa dark agi text eddo kanisalu matra
+                zIndex: 5
+              }}>
+                <span style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  fontSize: '15px',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 4px 15px rgba(239,68,68,0.6)',
+                  letterSpacing: '1px',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}>
+                  🛑 Out of Stock
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right - Details */}
@@ -158,12 +189,13 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
                     key={size}
                     className={selectedSize === size ? 'size-btn selected' : 'size-btn'}
                     onClick={() => setSelectedSize(size)}
+                    disabled={product.available === false}
                   >{size}</button>
                 ))}
               </div>
             </div>
 
-            {/* Buy Now */}
+            {/* Buy Now / Out of stock message */}
             {product.available !== false ? (
               !showBuyForm ? (
                 <button className="main-buy-btn" onClick={() => setShowBuyForm(true)}>
@@ -188,8 +220,18 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
                 </div>
               )
             ) : (
-              <div style={{padding:'15px', background:'rgba(255,59,92,0.1)', borderRadius:'10px', color:'#ff3b5c', textAlign:'center', border:'1px solid rgba(255,59,92,0.3)', margin:'15px 0'}}>
-                ❌ Not Available
+              <div style={{
+                padding: '14px', 
+                background: 'rgba(239,68,68,0.1)', 
+                borderRadius: '10px', 
+                color: '#ef4444', 
+                textAlign: 'center', 
+                border: '1px solid rgba(239,68,68,0.25)', 
+                margin: '15px 0',
+                fontWeight: 'bold',
+                fontSize: '15px'
+              }}>
+                🛑 This Product is Currently Out of Stock
               </div>
             )}
 
@@ -208,7 +250,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
           <h3 style={{color:'#4d9fff', marginBottom:'20px', fontFamily:'Playfair Display, serif'}}>⭐ Customer Reviews</h3>
 
           {reviews.length === 0 ? (
-            <p style={{color:'#7a85a0', textAlign:'center', padding:'20px'}}>😊 ಇನ್ನೂ reviews ಇಲ್ಲ!</p>
+            <p style={{color:'#7a85a0', textAlign:'center', padding:'20px'}}>😊 Innu reviews illa!</p>
           ) : (
             reviews.map((review, idx) => (
               <div key={review.id || idx} style={{background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'15px', marginBottom:'12px'}}>
@@ -251,9 +293,24 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
                 return (
                   <div key={simId}
                     onClick={() => onBook(p)}
-                    style={{cursor:'pointer', background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'10px', textAlign:'center', transition:'all 0.2s'}}
+                    style={{
+                      cursor:'pointer', 
+                      background:'#0f0f1e', 
+                      border:'1px solid #1a4fff44', 
+                      borderRadius:'12px', 
+                      padding:'10px', 
+                      textAlign:'center', 
+                      transition:'all 0.2s',
+                      position: 'relative',
+                      opacity: p.available === false ? 0.75 : 1
+                    }}
                   >
-                    <img src={p.image} alt={p.name} style={{width:'100%', height:'110px', objectFit:'cover', borderRadius:'8px', marginBottom:'8px'}} />
+                    <img src={p.image} alt={p.name} style={{width:'100%', height:'110px', objectFit:'cover', borderRadius:'8px', marginBottom:'8px', filter: 'none'}} />
+                    
+                    {p.available === false && (
+                      <span style={{position:'absolute', top:'45px', left:'50%', transform:'translateX(-50%)', background:'#ef4444', color:'#fff', fontSize:'9px', padding:'3px 6px', borderRadius:'4px', fontWeight:'bold', whiteSpace:'nowrap'}}>OUT OF STOCK</span>
+                    )}
+                    
                     <p style={{color:'#f0f4ff', fontSize:'0.8rem', marginBottom:'4px'}}>{p.name}</p>
                     <p style={{color:'#4d9fff', fontSize:'0.85rem', fontWeight:'bold'}}>{p.price}</p>
                   </div>
