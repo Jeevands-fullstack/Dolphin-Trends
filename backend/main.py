@@ -1,5 +1,4 @@
 import os
-import io
 import uuid
 import time
 import requests
@@ -10,7 +9,6 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 import certifi
 import google.generativeai as genai
-
 import cloudinary
 import cloudinary.uploader
 
@@ -47,7 +45,6 @@ if GOOGLE_API_KEY:
 
 JEEVAN_TELEGRAM_CHAT_ID = 2113728041
 YOUR_PERSONAL_PHONE = "917411255628"
-YOUR_UPI_ID = "7411255628@ybl"
 
 ca = certifi.where()
 db = None
@@ -85,15 +82,13 @@ def send_whatsapp_image(image_url, product_name):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
             return False
-        
         caption = (
             f"🔥 *New Arrival at Dolphin Trends!* 🐬\n\n"
             f"👗 *Product:* {product_name}\n"
             f"💃 Grab yours before it's gone!\n\n"
-            f"💥 *Explore our latest boutique collections & order here:* 👇\n"
+            f"💥 *Explore & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
-        
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": f"{YOUR_PERSONAL_PHONE}@c.us",
@@ -128,7 +123,6 @@ def generate_product_details_via_ai(image_url):
             return "Premium Dress", "Suit Set", "Curated boutique wear."
         response = requests.get(image_url)
         image_bytes = response.content
-        
         model = genai.GenerativeModel('models/gemini-1.5-flash')
         prompt = (
             "Analyze this boutique fashion clothing image. "
@@ -173,7 +167,6 @@ def create_booking(payload: BookingPayload):
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
-        
         admin_message = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -181,10 +174,9 @@ def create_booking(payload: BookingPayload):
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Please update them here:* 👇\n"
+            f"⚙️ *Please update here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
-        
         send_whatsapp_msg(YOUR_PERSONAL_PHONE, admin_message)
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
@@ -197,13 +189,13 @@ async def add_or_update_product_via_panel(
     original_price: str = Form(None),
     description: str = Form(None),
     category: str = Form(...),
-    available: str = Form("true"),  
+    available: str = Form("true"),
     file: UploadFile = File(None)
 ):
     if products_table is None:
         raise HTTPException(status_code=500, detail="Database missing")
     try:
-        is_available = True if available.lower() == "true" else False
+        is_available = available.lower() == "true"
         existing_product = products_table.find_one({"name": name})
         cloud_image_url = None
         if file:
@@ -212,10 +204,10 @@ async def add_or_update_product_via_panel(
 
         if existing_product:
             update_data = {
-                "price": price, 
-                "category": category, 
+                "price": price,
+                "category": category,
                 "description": description or "",
-                "available": is_available  
+                "available": is_available
             }
             if original_price:
                 update_data["original_price"] = original_price
@@ -231,7 +223,7 @@ async def add_or_update_product_via_panel(
                 "id": new_id, "product_id": new_id, "name": name, "price": price,
                 "original_price": original_price or "", "category": category,
                 "description": description or "", "image": final_image,
-                "available": is_available  
+                "available": is_available
             }
             products_table.insert_one(product_data)
             return {"status": "success", "action": "created", "product_id": new_id}
@@ -312,12 +304,17 @@ async def telegram_webhook(request: Request):
         print(f"Webhook Error: {str(e)}")
         return {"status": "error"}
 
+# ✅ FIXED: Update by product_id OR id - separate queries to avoid wrong match
 @app.put("/api/products/{product_id}")
 @app.put("/products/{product_id}")
 def update_product_direct(product_id: str, payload: dict):
     if not product_id or product_id == "undefined":
         raise HTTPException(status_code=400, detail="Invalid ID")
-    products_table.update_one({"$or": [{"product_id": product_id}, {"id": product_id}]}, {"$set": payload})
+    result = products_table.update_one({"product_id": product_id}, {"$set": payload})
+    if result.matched_count == 0:
+        result = products_table.update_one({"id": product_id}, {"$set": payload})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Product not found")
     return {"status": "success"}
 
 @app.delete("/api/products/{product_id}")
@@ -325,12 +322,14 @@ def update_product_direct(product_id: str, payload: dict):
 def delete_product_direct(product_id: str):
     if not product_id or product_id == "undefined":
         raise HTTPException(status_code=400, detail="Invalid ID")
-    products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
+    result = products_table.delete_one({"product_id": product_id})
+    if result.deleted_count == 0:
+        products_table.delete_one({"id": product_id})
     return {"success": True}
 
 @app.delete("/api/admin/bookings/{booking_id}")
 @app.delete("/bookings/{booking_id}")
-def delete_booking_direct(booking_id: str):
+def delete_booking(booking_id: str):
     if not booking_id or booking_id == "undefined":
         raise HTTPException(status_code=400, detail="Invalid Booking ID")
     if bookings_table is None:
@@ -338,7 +337,7 @@ def delete_booking_direct(booking_id: str):
     result = bookings_table.delete_one({"booking_id": booking_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Booking not found")
-    return {"success": True, "message": "Booking deleted successfully"}
+    return {"success": True}
 
 @app.get("/products")
 def get_products():
@@ -376,36 +375,31 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
-                f"Good news! Your requested item *{p_name}* is available at Dolphin Trends!\n\n"
+                f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Google Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
+                f"📍 https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
-                f"We look forward to seeing you soon! Happy Shopping! 🛍️\n"
-                f"Team Dolphin Trends 🐬"
+                f"See you soon! 🛍️\nTeam Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
-            
         elif action == "disagree":
             msg = (
                 f"Hello {c_name},\n\n"
-                f"Thank you for reaching out. We are sorry to inform you that *{p_name}* is currently completely out of stock. "
-                f"We will gladly notify you as soon as it becomes available again!\n\n"
-                f"Team Dolphin Trends 🐬"
+                f"Sorry, *{p_name}* is currently out of stock.\n"
+                f"We'll notify you when it's back!\n\nTeam Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
-            
-        elif action == "size_unavail":  
+        elif action == "size_unavail":
             msg = (
                 f"Hello {c_name}! 😊\n\n"
-                f"Regarding your request, *{p_name}* is available in our store, but your specific requested size is currently out of stock. 😟\n\n"
-                f"We have other attractive sizes and beautiful new collections available. We invite you to visit our store to explore alternatives!\n\n"
-                f"🏪 *Dolphin Trends Store*\n"
+                f"*{p_name}* is available but your size is currently out of stock.\n\n"
+                f"Please visit our store to check alternatives!\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
-                f"Thank you for choosing us! 🐬"
+                f"📍 https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
+                f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size Unavailable"}})
@@ -417,3 +411,7 @@ def update_booking_status(booking_id: str, action: str):
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Cloudinary Secure Backend Active!"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)
