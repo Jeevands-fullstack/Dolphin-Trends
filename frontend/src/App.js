@@ -337,7 +337,7 @@ function App() {
                 </p>
 
                 <a 
-                  href="https://share.google/FX4HiIYqDaiFFO" 
+                  href="https://share.google/UPBRCnDCHS8m48ymt" 
                   target="_blank" 
                   rel="noreferrer" 
                   className="review-btn"
