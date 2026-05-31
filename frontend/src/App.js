@@ -353,8 +353,8 @@ function App() {
               <div className="section-page-header"><h2>🏪 Our Branches</h2><p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮಂಗಡಿಗಳು</p></div>
               <div className="branch-grid">
                 {[
-                  { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 7795800741' },
-                  { tag:'Branch 2', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 9353838835' },
+                  { tag:'Main Branch', name:'Laggere', addr:'Anikethana Kishore Kendra Laggere, Bangalore — 560058', phone:'📞 +91 7795800741' },
+                  { tag:'Branch 2', name:'Rajgopal nagar', addr:'Rajgopal nagar main road ,Peenya 2nd stage, Bangalore — 560058', phone:'📞 +91 9353838835' },
                 ].map((b, i) => <div className="branch-card" key={i}><span className="branch-tag">{b.tag}</span><h3>{b.name}</h3><p>{b.addr}</p><p className="branch-phone">{b.phone}</p></div>)}
               </div>
             </div>
@@ -367,7 +367,7 @@ function App() {
                 <div className="info-card">
                   <h3>📬 Get In Touch</h3>
                   {[
-                    { icon:'📱', label:'WhatsApp', value:'+91 7795800741' },
+                    { icon:'📱', label:'WhatsApp', value:'+91 9353838835' },
                     { icon:'📧', label:'Email', value:'dolphintrends@gmail.com' },
                     { icon:'📸', label:'Instagram', value:'@dolphintrends_blr' },
                     { icon:'⏰', label:'Working Hours', value:'Mon – Sun: 11:00 AM – 10:00 PM' },
@@ -425,7 +425,7 @@ function App() {
         </>
       )}
 
-      <footer><p><strong>🐬 Dolphin Trends</strong> | Developed by Jeevan JD</p></footer>
+      <footer><p><strong>🐬 Dolphin Trends</strong> | Developed by Jeevan___JD</p></footer>
       {fullScreenImage && <div onClick={() => setFullScreenImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}><img src={fullScreenImage} alt="Full" style={{ maxWidth: '95%', maxHeight: '90vh' }} /></div>}
       {viewProduct && <ProductPage product={viewProduct} allProducts={products} onClose={() => setViewProduct(null)} onBook={p => setViewProduct(p)} />}
     </div>
