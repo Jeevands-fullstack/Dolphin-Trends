@@ -379,7 +379,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"Good news! Your requested item *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Google Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n\n"
+                f"📍 Google Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
                 f"We look forward to seeing you soon! Happy Shopping! 🛍️\n"
                 f"Team Dolphin Trends 🐬"
@@ -404,7 +404,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"We have other attractive sizes and beautiful new collections available. We invite you to visit our store to explore alternatives!\n\n"
                 f"🏪 *Dolphin Trends Store*\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n\n\n\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
                 f"Thank you for choosing us! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
