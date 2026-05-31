@@ -2,14 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 
 function Admin({ onProductAdded, editData, onCancelEdit }) {
   const [formData, setFormData] = useState({
-    name: '', description: '', price: '', original_price: '', category: 'Tops'
+    name: '', description: '', price: '', original_price: '', category: 'Tops', available: true // 👈 available ಡಿಫಾಲ್ಟ್ ಆಗಿ true ಇರುತ್ತದೆ
   });
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [adminFullScreenImg, setAdminFullScreenImg] = useState(null); // 🖼️ Booking Image Full Screen ಗಾಗಿ ಹೊಸ ಸ್ಟೇಟ್
+  const [adminFullScreenImg, setAdminFullScreenImg] = useState(null); 
 
   useEffect(() => {
     if (editData) {
@@ -18,7 +18,8 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
         description: editData.description || '',
         price: editData.price ? editData.price.replace('₹', '') : '',
         original_price: editData.original_price ? editData.original_price.replace('₹', '') : '',
-        category: editData.category || 'Tops'
+        category: editData.category || 'Tops',
+        available: editData.available !== undefined ? editData.available : true // 👈 ಎಡಿಟ್ ಮಾಡುವಾಗ ಹಳೆಯ ಸ್ಟೇಟಸ್ ತಗೆದುಕೊಳ್ಳುತ್ತದೆ
       });
       setPreview(editData.image || null);
     }
@@ -36,28 +37,27 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   };
 
   const handleBookingAction = async (bookingId, action) => {
-    if (!window.confirm(`${action === 'agree' ? 'AGREE' : 'DISAGREE'} ಮಾಡಬೇಕಾ?`)) return;
+    let confirmMsg = "AGREE ಮಾಡಬೇಕಾ?";
+    if (action === "disagree") confirmMsg = "DRESS NO STOCK ಮಾಡಬೇಕಾ?";
+    if (action === "size_unavail") confirmMsg = "SIZE NO STOCK ಮಾಡಬೇಕಾ?";
+
+    if (!window.confirm(confirmMsg)) return;
     try {
       const r = await fetch(`https://dolphin-trends-3.onrender.com/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, { method: 'POST' });
-      if (r.ok) { alert('✅ Done!'); fetchBookings(); }
+      if (r.ok) { alert('✅ Notification Sent Successfully!'); fetchBookings(); }
       else alert('❌ Failed');
     } catch { alert('❌ Server Error'); }
   };
 
-  // 🗑️ Customer Booking ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡುವ ಪರ್ಫೆಕ್ಟ್ ಫಂಕ್ಷನ್
   const handleDeleteBooking = async (bookingId) => {
     if (!bookingId) { alert('❌ Invalid Booking ID!'); return; }
     if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ ಅನ್ನು ಲಿಸ್ಟ್‌ನಿಂದ ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
     
     try {
-      // ⚡ main.py ನಲ್ಲಿ ಬರೆದ ಹೊಸ ರೂಟ್‌ಗೆ ನೇರ ಕನೆಕ್ಷನ್
-      const r = await fetch(`https://dolphin-trends-3.onrender.com/bookings/${bookingId}`, { 
-        method: 'DELETE' 
-      });
-
+      const r = await fetch(`https://dolphin-trends-3.onrender.com/bookings/${bookingId}`, { method: 'DELETE' });
       if (r.ok) {
         alert('🗑️ Booking Deleted Successfully!');
-        fetchBookings(); // ಲಿಸ್ಟ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ
+        fetchBookings(); 
       } else {
         alert(`❌ Delete failed! Status: ${r.status}`);
       }
@@ -77,7 +77,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     dataToSend.append('original_price', formData.original_price ? (formData.original_price.startsWith('₹') ? formData.original_price : `₹${formData.original_price}`) : '');
     dataToSend.append('description', formData.description);
     dataToSend.append('category', formData.category);
-    if (file) dataToSend.append('file', file);
+    dataToSend.append('available', formData.available); // 👈 ಚೆಕ್‌ಬಾಕ್ಸ್ ಡೇಟಾವನ್ನು ಬ್ಯಾಕೆಂಡ್‌ಗೆ ಕಳುಹಿಸುತ್ತದೆ
 
     let url = 'https://dolphin-trends-3.onrender.com/products';
 
@@ -85,7 +85,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
       const r = await fetch(url, { method: 'POST', body: dataToSend });
       if (r.ok) {
         alert(editData ? '🔄 Product Updated Successfully!' : '✅ Product saved!');
-        setFormData({ name: '', description: '', price: '', original_price: '', category: 'Tops' });
+        setFormData({ name: '', description: '', price: '', original_price: '', category: 'Tops', available: true });
         setPreview(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         if (onProductAdded) onProductAdded();
@@ -136,7 +136,21 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
             {['Tops','Kurthas Sets','Jeans','Umbrella Sets','Western wear','250 Tops','Kurtha Tops','Jeans Tops','Leggins','350 Sets','Frocks','Gym Pants','Patiala Pants'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+          {/* 📦 ಹೊಸದಾಗಿ ಆಡ್ ಮಾಡಲಾದ Available ಚೆಕ್‌ಬಾಕ್ಸ್ ಬಾಕ್ಸ್ */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '18px 0 10px 0', background: '#0b0b18', padding: '12px', borderRadius: '9px', border: '1px solid rgba(26,108,255,0.2)' }}>
+            <input 
+              type="checkbox" 
+              id="available_box"
+              checked={formData.available} 
+              onChange={e => setFormData({ ...formData, available: e.target.checked })}
+              style={{ width: '19px', height: '19px', cursor: 'pointer' }}
+            />
+            <label htmlFor="available_box" style={{ color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+              ✅ Available (ಇದನ್ನು ಅನ್‌ಟಿಕ್ ಮಾಡಿದರೆ ಮೇನ್ ವೆಬ್‌ಸೈಟ್‌ನಲ್ಲಿ Out of Stock ಅಂತ ಕೆಂಪು ಕಲರ್‌ನಲ್ಲಿ ಬರುತ್ತದೆ)
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
             <button onClick={handleAddOrUpdateProduct} disabled={loading}
               style={{ flex: 2, padding: '14px', background: editData ? '#e11d48' : '#1a6cff', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
               {loading ? 'Saving...' : editData ? '🔄 Update Product' : '✅ Save Product'}
@@ -191,22 +205,25 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                         <div style={{ color: '#7a85a0', fontSize: '0.8rem' }}>📞 {b.customer_phone}</div>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : b.status === 'Approved' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: b.status === 'Pending' ? '#f59e0b' : b.status === 'Approved' ? '#10b981' : '#ef4444' }}>
-                          {b.status}
+                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold', background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : b.status === 'Approved' ? 'rgba(16,185,129,0.2)' : b.status === 'Size Unavailable' ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)', color: b.status === 'Pending' ? '#f59e0b' : b.status === 'Approved' ? '#10b981' : b.status === 'Size Unavailable' ? '#3b82f6' : '#ef4444' }}>
+                          {b.status || 'Pending'}
                         </span>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           {b.status === 'Pending' && (
                             <>
-                              <button onClick={() => handleBookingAction(b.booking_id, 'agree')} style={{ padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>Agree</button>
-                              <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '6px 14px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>No Stock</button>
+                              <button onClick={() => handleBookingAction(b.booking_id, 'agree')} style={{ padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Agree</button>
+                              
+                              {/* 👕 ಹೊಸದಾಗಿ ಆಡ್ ಮಾಡಲಾದ Size No Stock ಬಟನ್ */}
+                              <button onClick={() => handleBookingAction(b.booking_id, 'size_unavail')} style={{ padding: '5px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Size No Stock</button>
+                              
+                              <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '5px 10px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>No Stock</button>
                             </>
                           )}
-                          {/* ⚡ ಇಲ್ಲಿ ಕೇವಲ b.booking_id ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ */}
                           <button 
                             onClick={() => handleDeleteBooking(b.booking_id)} 
-                            style={{ padding: '6px 10px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                            style={{ padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
                             title="Delete Booking"
                           >
                             🗑️ Delete
@@ -222,7 +239,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
         </div>
       </div>
 
-      {/* 🖼️ Full Screen Image Modal for Admin Bookings */}
+      {/* Full Screen Image Modal */}
       {adminFullScreenImg && (
         <div 
           onClick={() => setAdminFullScreenImg(null)} 
@@ -240,3 +257,4 @@ const lbl = { display: 'block', color: '#7a85a0', fontSize: '0.8rem', marginBott
 const inp = { width: '100%', padding: '10px 13px', marginBottom: '5px', borderRadius: '9px', border: '1px solid rgba(26,108,255,0.25)', background: '#0b0b18', color: '#f0f4ff', boxSizing: 'border-box', fontSize: '14px' };
 
 export default Admin;
+        
