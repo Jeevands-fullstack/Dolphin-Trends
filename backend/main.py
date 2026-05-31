@@ -1,7 +1,7 @@
 import os
 import io
 import uuid
-import time  
+import time
 import requests
 import re
 from fastapi import FastAPI, HTTPException, Request, Form, File, UploadFile
@@ -190,7 +190,6 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🛠️ ಅಪ್ಡೇಟ್ ಮಾಡಲಾದ ಪ್ರಾಡಕ್ಟ್ ರೂಟ್ (ಚೆಕ್‌ಬಾಕ್ಸ್ ವ್ಯಾಲ್ಯೂ ಸೇವ್ ಮಾಡುತ್ತದೆ)
 @app.post("/products")
 async def add_or_update_product_via_panel(
     name: str = Form(...),
@@ -198,7 +197,7 @@ async def add_or_update_product_via_panel(
     original_price: str = Form(None),
     description: str = Form(None),
     category: str = Form(...),
-    available: str = Form("true"),  # 👈 ಸ್ವೀಕರಿಸಲು ಹೊಸದಾಗಿ ಸೇರಿಸಲಾಗಿದೆ
+    available: str = Form("true"),  
     file: UploadFile = File(None)
 ):
     if products_table is None:
@@ -216,7 +215,7 @@ async def add_or_update_product_via_panel(
                 "price": price, 
                 "category": category, 
                 "description": description or "",
-                "available": is_available  # 👈 ಅಪ್ಡೇಟ್ ಮಾಡಲು ಸೇರಿಸಲಾಗಿದೆ
+                "available": is_available  
             }
             if original_price:
                 update_data["original_price"] = original_price
@@ -232,7 +231,7 @@ async def add_or_update_product_via_panel(
                 "id": new_id, "product_id": new_id, "name": name, "price": price,
                 "original_price": original_price or "", "category": category,
                 "description": description or "", "image": final_image,
-                "available": is_available  # 👈 ಹೊಸದಾಗಿ ಸೇರಿಸಲಾಗಿದೆ
+                "available": is_available  
             }
             products_table.insert_one(product_data)
             return {"status": "success", "action": "created", "product_id": new_id}
@@ -362,7 +361,6 @@ def add_review(review: dict):
 def get_bookings():
     return list(bookings_table.find({}, {"_id": 0})) if bookings_table is not None else []
 
-# 💎 ಪ್ರೊಫೆಷನಲ್ ಇಂಗ್ಲಿಷ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಅಪ್ಡೇಟ್
 @app.post("/api/admin/update-booking")
 def update_booking_status(booking_id: str, action: str):
     if bookings_table is None:
@@ -381,7 +379,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"Good news! Your requested item *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Google Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n"
+                f"📍 Google Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
                 f"We look forward to seeing you soon! Happy Shopping! 🛍️\n"
                 f"Team Dolphin Trends 🐬"
@@ -399,14 +397,14 @@ def update_booking_status(booking_id: str, action: str):
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
             
-        elif action == "size_unavail":  # 👈 ಸೈಜ್ ಲಭ್ಯವಿಲ್ಲದಿದ್ದಾಗ ಹೋಗುವ ಹೊಸ ಪ್ರೊಫೆಷನಲ್ ಇಂಗ್ಲಿಷ್ ಮೆಸೇಜ್
+        elif action == "size_unavail":  
             msg = (
                 f"Hello {c_name}! 😊\n\n"
                 f"Regarding your request, *{p_name}* is available in our store, but your specific requested size is currently out of stock. 😟\n\n"
                 f"We have other attractive sizes and beautiful new collections available. We invite you to visit our store to explore alternatives!\n\n"
                 f"🏪 *Dolphin Trends Store*\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n\n\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n\n\n\n"
                 f"Thank you for choosing us! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
