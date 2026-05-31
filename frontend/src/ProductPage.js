@@ -69,7 +69,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
 
       if (response.ok) {
-        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + ",\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\n📝 *We are currently checking the stock availability for your order. Our team will contact you shortly with confirmation.* 🙏\n\n💥 *Meanwhile, explore our latest collections here:* 👇\n🔗 https://dolphin-trends-two.vercel.app\n\n📞 Contact: 7411255628\n\nThank you for choosing us! 😊\n*Team Dolphin Trends* 🐬";
+        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + ",\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\n📝 *We are currently checking the stock availability for your order. Our team will contact you shortly with confirmation.* 🙏\n\n💥 *Meanwhile, explore our latest collections here:* 👇\n🔗 https://dolphin-trends-two.vercel.appnn📞 Contact: 7411255628\n\nThank you for choosing us! 😊\n*Team Dolphin Trends* 🐬";
         window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
 
         const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone + "\n\n⚙️ *Please update them here:* 👇\n🔗 https://dolphin-trends-two.vercel.app";
@@ -116,8 +116,17 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
         {/* Top Section */}
         <div className="pp-top">
           
-          {/* Left - Image Box */}
-          <div className="pp-img-box" style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px' }}>
+          {/* Left - Image Box (Updated for Perfect Center Out Of Stock Badge) */}
+          <div className="pp-img-box" style={{ 
+            position: 'relative', 
+            overflow: 'hidden', 
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            minHeight: '350px'
+          }}>
             <img 
               src={product.image} 
               alt={product.name} 
@@ -125,33 +134,37 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                filter: 'none', // ⚡ Blur remove madalagide, image iga clear agi kanutthe
+                filter: product.available === false ? 'brightness(60%) grayscale(30%)' : 'none', 
                 transition: 'all 0.3s'
               }}
             />
             
-            {/* 🔴 Out of stock banner */}
+            {/* 🔴 Out of stock banner - Absolute Center Overlay */}
             {product.available === false && (
               <div style={{
                 position: 'absolute',
-                inset: 0,
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 5,
+                width: '100%',
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(0,0,0,0.25)', // Photo svalpa dark agi text eddo kanisalu matra
-                zIndex: 5
+                alignItems: 'center',
+                pointerEvents: 'none'
               }}>
                 <span style={{
                   background: '#ef4444',
                   color: '#fff',
-                  padding: '10px 20px',
+                  padding: '12px 24px',
                   borderRadius: '8px',
                   fontWeight: 'bold',
-                  fontSize: '15px',
+                  fontSize: '16px',
                   textTransform: 'uppercase',
-                  boxShadow: '0 4px 15px rgba(239,68,68,0.6)',
-                  letterSpacing: '1px',
-                  border: '1px solid rgba(255,255,255,0.2)'
+                  boxShadow: '0 4px 20px rgba(239,68,68,0.7)',
+                  letterSpacing: '1.5px',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  whiteSpace: 'nowrap'
                 }}>
                   🛑 Out of Stock
                 </span>
