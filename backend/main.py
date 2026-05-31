@@ -60,7 +60,6 @@ if MONGO_URL:
     products_table = db["products"]
     bookings_table = db["bookings"]
 
-# ================= STARTUP - WEBHOOK SET =================
 @app.on_event("startup")
 async def startup():
     if TELEGRAM_BOT_TOKEN:
@@ -76,10 +75,7 @@ async def startup():
 
 def upload_to_cloudinary(image_source, is_file=False):
     try:
-        if is_file:
-            result = cloudinary.uploader.upload(image_source, folder="dolphin_trends")
-        else:
-            result = cloudinary.uploader.upload(image_source, folder="dolphin_trends")
+        result = cloudinary.uploader.upload(image_source, folder="dolphin_trends")
         return result.get("secure_url")
     except Exception as e:
         print(f"Cloudinary Upload Error: {str(e)}")
@@ -133,9 +129,7 @@ def generate_product_details_via_ai(image_url):
         response = requests.get(image_url)
         image_bytes = response.content
         
-        # ⚡ 404 Error ಬರದಂತೆ ತಡೆಯಲು 'models/' ಆಡ್ ಮಾಡಲಾಗಿದೆ
         model = genai.GenerativeModel('models/gemini-1.5-flash')
-        
         prompt = (
             "Analyze this boutique fashion clothing image. "
             "1. Provide a simple product name. "
@@ -196,6 +190,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# 🛠️ ಅಪ್ಡೇಟ್ ಮಾಡಲಾದ ಪ್ರಾಡಕ್ಟ್ ರೂಟ್ (ಚೆಕ್‌ಬಾಕ್ಸ್ ವ್ಯಾಲ್ಯೂ ಸೇವ್ ಮಾಡುತ್ತದೆ)
 @app.post("/products")
 async def add_or_update_product_via_panel(
     name: str = Form(...),
@@ -203,11 +198,13 @@ async def add_or_update_product_via_panel(
     original_price: str = Form(None),
     description: str = Form(None),
     category: str = Form(...),
+    available: str = Form("true"),  # 👈 ಸ್ವೀಕರಿಸಲು ಹೊಸದಾಗಿ ಸೇರಿಸಲಾಗಿದೆ
     file: UploadFile = File(None)
 ):
     if products_table is None:
         raise HTTPException(status_code=500, detail="Database missing")
     try:
+        is_available = True if available.lower() == "true" else False
         existing_product = products_table.find_one({"name": name})
         cloud_image_url = None
         if file:
@@ -215,7 +212,12 @@ async def add_or_update_product_via_panel(
             cloud_image_url = upload_to_cloudinary(file_bytes, is_file=True)
 
         if existing_product:
-            update_data = {"price": price, "category": category, "description": description or ""}
+            update_data = {
+                "price": price, 
+                "category": category, 
+                "description": description or "",
+                "available": is_available  # 👈 ಅಪ್ಡೇಟ್ ಮಾಡಲು ಸೇರಿಸಲಾಗಿದೆ
+            }
             if original_price:
                 update_data["original_price"] = original_price
             if cloud_image_url:
@@ -229,7 +231,8 @@ async def add_or_update_product_via_panel(
             product_data = {
                 "id": new_id, "product_id": new_id, "name": name, "price": price,
                 "original_price": original_price or "", "category": category,
-                "description": description or "", "image": final_image
+                "description": description or "", "image": final_image,
+                "available": is_available  # 👈 ಹೊಸದಾಗಿ ಸೇರಿಸಲಾಗಿದೆ
             }
             products_table.insert_one(product_data)
             return {"status": "success", "action": "created", "product_id": new_id}
@@ -258,14 +261,9 @@ async def telegram_webhook(request: Request):
                 file_path = file_info.get("result", {}).get("file_path")
 
                 if not file_path:
-                    requests.post(
-                        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                        json={"chat_id": chat_id, "text": "❌ Image download failed!"}
-                    )
                     return {"status": "ok"}
 
                 telegram_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
-
                 permanent_url = upload_to_cloudinary(telegram_image_url)
                 if not permanent_url:
                     permanent_url = telegram_image_url
@@ -306,12 +304,10 @@ async def telegram_webhook(request: Request):
                 })
 
                 send_whatsapp_image(permanent_url, product_name)
-
                 requests.post(
                     f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
                     json={"chat_id": chat_id, "text": f"✅ Uploaded!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent!"}
                 )
-
         return {"status": "success"}
     except Exception as e:
         print(f"Webhook Error: {str(e)}")
@@ -333,7 +329,6 @@ def delete_product_direct(product_id: str):
     products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
     return {"success": True}
 
-# 🗑️ ಕಸ್ಟಮರ್ ಬುಕಿಂಗ್ ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡುವ ಹೊಸ ಬ್ಯಾಕೆಂಡ್ ರೌಟ್ (ADDED NEW)
 @app.delete("/api/admin/bookings/{booking_id}")
 @app.delete("/bookings/{booking_id}")
 def delete_booking_direct(booking_id: str):
@@ -341,12 +336,9 @@ def delete_booking_direct(booking_id: str):
         raise HTTPException(status_code=400, detail="Invalid Booking ID")
     if bookings_table is None:
         raise HTTPException(status_code=500, detail="Database connection missing")
-    
     result = bookings_table.delete_one({"booking_id": booking_id})
-    
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Booking not found")
-        
     return {"success": True, "message": "Booking deleted successfully"}
 
 @app.get("/products")
@@ -370,6 +362,7 @@ def add_review(review: dict):
 def get_bookings():
     return list(bookings_table.find({}, {"_id": 0})) if bookings_table is not None else []
 
+# 💎 ಪ್ರೊಫೆಷನಲ್ ಇಂಗ್ಲಿಷ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಅಪ್ಡೇಟ್
 @app.post("/api/admin/update-booking")
 def update_booking_status(booking_id: str, action: str):
     if bookings_table is None:
@@ -385,24 +378,37 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
-                f"*{p_name}* is available at Dolphin Trends!\n\n"
-                f"🏪 *Visit our Store:*\n"
+                f"Good news! Your requested item *{p_name}* is available at Dolphin Trends!\n\n"
+                f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Map Location: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
-                f"⏰ Timings: 11AM - 10PM\n\n"
-                f"See you soon! 🛍️\n"
+                f"📍 Google Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n"
+                f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
+                f"We look forward to seeing you soon! Happy Shopping! 🛍️\n"
                 f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
             
         elif action == "disagree":
-            msg = f"Hello {c_name},\n\nSorry, *{p_name}* is currently out of stock. We'll notify you when it's back!\n\nTeam Dolphin Trends 🐬"
+            msg = (
+                f"Hello {c_name},\n\n"
+                f"Thank you for reaching out. We are sorry to inform you that *{p_name}* is currently completely out of stock. "
+                f"We will gladly notify you as soon as it becomes available again!\n\n"
+                f"Team Dolphin Trends 🐬"
+            )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
             
-        elif action == "size_unavail":
-            msg = f"Hello {c_name},\n\n*{p_name}* is available but your size is currently out of stock.\n\nPlease visit our store to check alternatives!\n📍 Peenya 2nd Stage, Bangalore"
+        elif action == "size_unavail":  # 👈 ಸೈಜ್ ಲಭ್ಯವಿಲ್ಲದಿದ್ದಾಗ ಹೋಗುವ ಹೊಸ ಪ್ರೊಫೆಷನಲ್ ಇಂಗ್ಲಿಷ್ ಮೆಸೇಜ್
+            msg = (
+                f"Hello {c_name}! 😊\n\n"
+                f"Regarding your request, *{p_name}* is available in our store, but your specific requested size is currently out of stock. 😟\n\n"
+                f"We have other attractive sizes and beautiful new collections available. We invite you to visit our store to explore alternatives!\n\n"
+                f"🏪 *Dolphin Trends Store*\n"
+                f"📍 Peenya 2nd Stage, Bangalore\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n\n\n\n"
+                f"Thank you for choosing us! 🐬"
+            )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size Unavailable"}})
 
@@ -413,7 +419,3 @@ def update_booking_status(booking_id: str, action: str):
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Cloudinary Secure Backend Active!"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)
