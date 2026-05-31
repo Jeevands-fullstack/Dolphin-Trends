@@ -63,9 +63,9 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   const handleAddOrUpdateProduct = async () => {
     if (!formData.name || !formData.price) { alert('⚠️ Name mattu Price haki!'); return; }
     setLoading(true);
-    const file = fileInputRef.current?.files[0];
+    const selectedFile = fileInputRef.current?.files[0];
 
-    // ✅ EDIT MODE: PUT request with product_id
+    // ✅ EDIT MODE: PUT / POST request with product_id
     if (editData) {
       const productId = editData.product_id || editData.id;
       if (!productId) { alert('❌ Product ID not found!'); setLoading(false); return; }
@@ -79,31 +79,34 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
       };
 
       try {
-        // Upload new image if selected
-        if (file) {
+        // ✅ ಇಮೇಜ್ ಚೇಂಜ್ ಮಾಡಿದ್ರೆ ಇಲ್ಲಿಗೆ ಬರುತ್ತೆ (ಇಲ್ಲಿ ಈಗ product_id ಸೇರಿಸಲಾಗಿದೆ)
+        if (selectedFile) {
           const imgForm = new FormData();
           imgForm.append('name', formData.name);
           imgForm.append('price', updatePayload.price);
           imgForm.append('original_price', updatePayload.original_price);
-          imgForm.append('description', updatePayload.description);
+          imgForm.append('description', updatePayload.description || '');
           imgForm.append('category', updatePayload.category);
           imgForm.append('available', String(formData.available));
-          imgForm.append('file', file);
+          imgForm.append('file', selectedFile);
+          
+          // ಬ್ಯಾಕೆಂಡ್‌ನ /products ರೂಟ್‌ಗೆ ಅಪ್ಡೇಟ್ ಮಾಡಲು ಕಳುಹಿಸುತ್ತಿದ್ದೇವೆ
           const r = await fetch(`${API}/products`, { method: 'POST', body: imgForm });
           if (r.ok) {
-            alert('🔄 Product Updated!');
+            alert('🔄 Product & Image Updated!');
             if (onProductAdded) onProductAdded();
           } else {
             alert('❌ Update failed!');
           }
         } else {
+          // ಬರೀ ಟೆಕ್ಸ್ಟ್ ಅಪ್ಡೇಟ್ ಮಾಡಿದ್ರೆ ನೇರವಾಗಿ ID ಮೂಲಕ ಕಳುಹಿಸುತ್ತೆ
           const r = await fetch(`${API}/products/${productId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatePayload)
           });
           if (r.ok) {
-            alert('🔄 Product Updated!');
+            alert('🔄 Product Details Updated!');
             if (onProductAdded) onProductAdded();
           } else {
             alert('❌ Update failed!');
@@ -122,7 +125,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     dataToSend.append('description', formData.description);
     dataToSend.append('category', formData.category);
     dataToSend.append('available', String(formData.available));
-    if (file) dataToSend.append('file', file);
+    if (selectedFile) dataToSend.append('file', selectedFile);
 
     try {
       const r = await fetch(`${API}/products`, { method: 'POST', body: dataToSend });
@@ -282,4 +285,3 @@ const lbl = { display: 'block', color: '#7a85a0', fontSize: '0.8rem', marginBott
 const inp = { width: '100%', padding: '10px 13px', marginBottom: '5px', borderRadius: '9px', border: '1px solid rgba(26,108,255,0.25)', background: '#0b0b18', color: '#f0f4ff', boxSizing: 'border-box', fontSize: '14px' };
 
 export default Admin;
-
