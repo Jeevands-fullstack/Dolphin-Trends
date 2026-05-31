@@ -153,6 +153,54 @@ function App() {
                 border-color: #1a6cff !important;
                 box-shadow: 0 0 8px rgba(26,108,255,0.3) !important;
               }
+
+              /* ⭐ Google Reviews Section Styles */
+              .reviews-section {
+                background: #0f1a35;
+                border: 1px solid rgba(26, 108, 255, 0.2);
+                border-radius: 15px;
+                padding: 35px 20px;
+                margin: 50px auto 20px auto;
+                max-width: 1100px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+              }
+              .rating-big {
+                font-size: 3.5rem;
+                font-weight: bold;
+                color: #fff;
+                margin-bottom: 5px;
+                font-family: sans-serif;
+              }
+              .stars-gold {
+                color: #f59e0b;
+                font-size: 1.8rem;
+                margin-bottom: 10px;
+                letter-spacing: 2px;
+              }
+              .reviews-count {
+                color: #7a85a0;
+                font-size: 0.95rem;
+                margin-bottom: 25px;
+                font-weight: 500;
+              }
+              .review-btn {
+                display: inline-block;
+                padding: 13px 28px;
+                background: linear-gradient(135deg, #1a6cff, #004ecc);
+                color: #fff;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: bold;
+                transition: all 0.25s ease;
+                box-shadow: 0 4px 15px rgba(26, 108, 255, 0.3);
+                font-size: 0.95rem;
+              }
+              .review-btn:hover {
+                transform: scale(1.03);
+                box-shadow: 0 6px 20px rgba(26, 108, 255, 0.5);
+                color: #fff;
+              }
             `}</style>
 
             <form onSubmit={handleAdminLoginSubmit} className="login-box" style={{ padding: '40px 35px', borderRadius: '20px', width: '100%', maxWidth: '390px', textAlign: 'center' }}>
@@ -274,6 +322,29 @@ function App() {
                   </div>
                 )}
               </div>
+
+              {/* ⭐ Google Reviews & Rating Section */}
+              <div className="reviews-section">
+                <h3 style={{ color: '#4d9fff', marginBottom: '8px', fontSize: '1.6rem', fontWeight: '600' }}>✨ What Our Customers Say</h3>
+                <p style={{ color: '#7a85a0', marginBottom: '20px', fontSize: '0.95rem' }}>ನಮ್ಮ ಗ್ರಾಹಕರ ನಂಬಿಕೆ ಮತ್ತು ಪ್ರೀತಿ 🌸</p>
+                
+                <div className="rating-big">4.9</div>
+                <div className="stars-gold">⭐⭐⭐⭐⭐</div>
+                <div className="reviews-count">Based on 12 Google Reviews</div>
+                
+                <p style={{ color: '#f0f4ff', maxWidth: '650px', margin: '0 auto 25px auto', fontSize: '0.95rem', lineHeight: '1.6', fontStyle: 'italic' }}>
+                  "Dolphin Trends offers the best premium collection of Kurtis, Tops, and Western Wear in Bangalore at unbeatable prices!"
+                </p>
+
+                <a 
+                  href="https://share.google/FX4HiIYqDaiFFO" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="review-btn"
+                >
+                  🚀 View All Reviews on Google
+                </a>
+              </div>
             </div>
           )}
 
@@ -321,11 +392,11 @@ function App() {
 
           {activePage === 'location' && (
             <div className="section-page">
-              <div className="section-page-header"><h2>📍 Our Locations</h2><p>Dolphin Trends — ನಮ್ಮ ಅಂಗಡಿಗಳ ವಿಳಾಸ</p></div>
+              <div className="section-page-header"><h2>📍 Our Locations</h2><p>Dolphin Trends — ನಮ್ಮಂಗಡಿಗಳ ವಿಳಾಸ</p></div>
               <div className="map-embed" style={{ marginBottom: '40px' }}>
                 <h3 style={{ color: '#4d9fff', marginBottom: '15px', fontSize: '1.4rem' }}>⭐ Main Branch — Laggere</h3>
                 <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '15px', padding: '25px', marginBottom: '15px' }}>
-                  <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍  Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
+                  <p style={{ color: '#f0f4ff', marginBottom: '10px' }}>📍   Anikethana Kishore Kendra, Laggere, Bangalore — 560058</p>
                   <p style={{ color: '#7a85a0', marginBottom: '15px' }}>⏰ Mon–Sun: 11:00 AM – 10:00 PM</p>
                   <a href="https://maps.app.goo.gl/tJQ47jqAsoLRQ1Ua7" target="_blank" rel="noreferrer" style={{ display: 'inline-block', padding: '12px 24px', background: '#1a6cff', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 'bold' }}>🗺️ Open in Google Maps</a>
                 </div>
