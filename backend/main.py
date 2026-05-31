@@ -304,7 +304,6 @@ async def telegram_webhook(request: Request):
         print(f"Webhook Error: {str(e)}")
         return {"status": "error"}
 
-# ✅ FIXED: Update by product_id OR id - separate queries to avoid wrong match
 @app.put("/api/products/{product_id}")
 @app.put("/products/{product_id}")
 def update_product_direct(product_id: str, payload: dict):
@@ -378,27 +377,31 @@ def update_booking_status(booking_id: str, action: str):
                 f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
-                f"See you soon! 🛍️\nTeam Dolphin Trends 🐬"
+                f"See you soon! 🛍️\n"
+                f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
+            
         elif action == "disagree":
             msg = (
                 f"Hello {c_name},\n\n"
                 f"Sorry, *{p_name}* is currently out of stock.\n"
-                f"We'll notify you when it's back!\n\nTeam Dolphin Trends 🐬"
+                f"We'll notify you when it's back!\n\n"
+                f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
+            
         elif action == "size_unavail":
             msg = (
                 f"Hello {c_name}! 😊\n\n"
                 f"*{p_name}* is available but your size is currently out of stock.\n\n"
                 f"Please visit our store to check alternatives!\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=aw\n"
                 f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
@@ -411,7 +414,3 @@ def update_booking_status(booking_id: str, action: str):
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Cloudinary Secure Backend Active!"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)
