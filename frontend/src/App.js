@@ -125,7 +125,6 @@ function App() {
           /* 🔐 Animated Deep Dark Blue Admin Login Form */
           <div style={{ background: '#070b19', padding: '60px 20px', minHeight: '75vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
             
-            {/* ಅನಿಮೇಷನ್ ಮತ್ತು ಸ್ಟೈಲ್ ಎಫೆಕ್ಟ್‌ಗಳು */}
             <style>{`
               @keyframes fadeInUp {
                 from { opacity: 0; transform: translateY(40px); }
@@ -133,7 +132,7 @@ function App() {
               }
               .login-box {
                 animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                background: #0d162d !important; /* ಪ್ರೀಮಿಯಂ ಡಾರ್ಕ್ ಬ್ಲೂ ಕಲರ್ */
+                background: #0d162d !important;
                 border: 1px solid rgba(26, 108, 255, 0.35) !important;
                 box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 15px rgba(26, 108, 255, 0.1) !important;
                 transition: all 0.3s ease;
@@ -220,9 +219,55 @@ function App() {
                           </div>
                         )}
 
-                        <div className="product-card-img-wrap" onClick={() => setFullScreenImage(product.image)} style={{cursor: 'zoom-in'}}>
-                          <img src={product.image} alt={product.name} onError={e => { e.target.onerror = null; e.target.src = dolphin; }} />
+                        {/* ⚡ ಅಪ್ಡೇಟ್ ಮಾಡಲಾದ ಇಮೇಜ್ ವ್ಯಾಪರ್ - ಪಕ್ಕಾ ಸೆಂಟರ್ Out Of Stock ಬ್ಯಾನರ್ */}
+                        <div 
+                          className="product-card-img-wrap" 
+                          onClick={() => setFullScreenImage(product.image)} 
+                          style={{
+                            cursor: 'zoom-in', 
+                            position: 'relative', 
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            onError={e => { e.target.onerror = null; e.target.src = dolphin; }} 
+                            style={{
+                              filter: product.available === false ? 'brightness(60%) grayscale(20%)' : 'none',
+                              transition: 'all 0.3s'
+                            }}
+                          />
+
+                          {/* 🛑 ಸ್ಟಾಕ್ ಇಲ್ಲದಿದ್ದರೆ ಫೋಟೋದ ಪಕ್ಕಾ ಸೆಂಟರ್‌ನಲ್ಲಿ ಬರೆಯಲು: */}
+                          {product.available === false && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              zIndex: 6,
+                              background: '#ef4444',
+                              color: '#fff',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              fontWeight: 'bold',
+                              fontSize: '13px',
+                              textTransform: 'uppercase',
+                              boxShadow: '0 4px 15px rgba(239,68,68,0.6)',
+                              letterSpacing: '1px',
+                              whiteSpace: 'nowrap',
+                              pointerEvents: 'none',
+                              border: '1px solid rgba(255,255,255,0.2)'
+                            }}>
+                              🛑 Out of Stock
+                            </div>
+                          )}
                         </div>
+
                         <div className="product-info"><span className="category-tag">{product.category}</span><h4>{product.name}</h4><p className="price">{product.price}</p>{product.available !== false && <button className="buy-btn" onClick={() => setViewProduct(product)}>🛍️ Buy Now</button>}</div>
                       </div>
                     ))}
@@ -234,7 +279,7 @@ function App() {
 
           {activePage === 'branches' && (
             <div className="section-page">
-              <div className="section-page-header"><h2>🏪 Our Branches</h2><p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮ ಅಂಗಡಿಗಳು</p></div>
+              <div className="section-page-header"><h2>🏪 Our Branches</h2><p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮಂಗಡಿಗಳು</p></div>
               <div className="branch-grid">
                 {[
                   { tag:'Main Branch', name:'Rajgopalnagar', addr:'Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore — 560058', phone:'📞 +91 7795800741' },
