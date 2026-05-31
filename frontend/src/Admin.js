@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import './Admin.css';
 
 const API = 'https://dolphin-trends-3.onrender.com';
 
