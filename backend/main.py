@@ -1,5 +1,4 @@
 import os
-import io
 import uuid
 import time
 import requests
@@ -9,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pymongo import MongoClient
 import certifi
+import google.generativeai as genai
 import cloudinary
 import cloudinary.uploader
 
@@ -22,7 +22,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= ENV =================
 MONGO_URL = os.getenv("MONGO_URL")
 GREEN_API_INSTANCE = os.getenv("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
@@ -31,9 +30,9 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
-CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "")
-CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "")
-CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "")
+CLOUDINARY_CLOUD_NAME = "diqwkall4"
+CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "YOUR_API_KEY")
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "YOUR_API_SECRET")
 
 cloudinary.config(
     cloud_name=CLOUDINARY_CLOUD_NAME,
@@ -41,60 +40,54 @@ cloudinary.config(
     api_secret=CLOUDINARY_API_SECRET
 )
 
-JEEVAN_TELEGRAM_CHAT_ID = 2113728041
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+
+# 👥 Render Environment Variable ಇಂದ ಮಲ್ಟಿಪಲ್ ಅಡ್ಮಿನ್ ಐಡಿಗಳನ್ನು ಓದುವ ಲಾಜಿಕ್
+raw_users = os.getenv("ALLOWED_USERS", "2113728041")
+ALLOWED_USERS = [int(uid.strip()) for uid in raw_users.split(",") if uid.strip().isdigit()]
+
 YOUR_PERSONAL_PHONE = "917411255628"
 
-# ================= MONGODB =================
 ca = certifi.where()
 db = None
 bookings_table = None
 products_table = None
 
 if MONGO_URL:
-    try:
-        client = MongoClient(MONGO_URL, tlsCAFile=ca, connectTimeoutMS=5000, serverSelectionTimeoutMS=5000)
-        db = client["dolphin_trends_db"]
-        products_table = db["products"]
-        bookings_table = db["bookings"]
-        print("✅ MongoDB Connected!")
-    except Exception as e:
-        print(f"❌ MongoDB Error: {e}")
+    client = MongoClient(MONGO_URL, tlsCAFile=ca, connectTimeoutMS=5000, serverSelectionTimeoutMS=5000)
+    db = client["dolphin_trends_db"]
+    products_table = db["products"]
+    bookings_table = db["bookings"]
 
-# ================= STARTUP WEBHOOK =================
 @app.on_event("startup")
 async def startup():
     if TELEGRAM_BOT_TOKEN:
         try:
-            requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook", timeout=5)
+            requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook")
             r = requests.post(
                 f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook",
-                json={"url": f"{BACKEND_URL}/webhook"},
-                timeout=5
+                json={"url": f"{BACKEND_URL}/webhook"}
             )
             print("Webhook set:", r.text)
         except Exception as e:
-            print("Webhook error:", e)
+            print("Webhook setup error:", e)
 
-# ================= CLOUDINARY UPLOAD =================
 def upload_to_cloudinary(image_source, is_file=False):
     try:
-        if not CLOUDINARY_CLOUD_NAME or CLOUDINARY_CLOUD_NAME == "":
-            print("⚠️ Cloudinary not configured!")
-            return None
+        unique_filename = f"prod_{str(uuid.uuid4())[:8]}"
         result = cloudinary.uploader.upload(
-            image_source,
+            image_source, 
             folder="dolphin_trends",
-            resource_type="image",
-            timeout=30
+            public_id=unique_filename,
+            overwrite=True,
+            resource_type="image"
         )
-        url = result.get("secure_url")
-        print(f"✅ Cloudinary upload success: {url}")
-        return url
+        return result.get("secure_url")
     except Exception as e:
-        print(f"❌ Cloudinary Upload Error: {str(e)}")
+        print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
-# ================= WHATSAPP =================
 def send_whatsapp_image(image_url, product_name):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
@@ -114,34 +107,31 @@ def send_whatsapp_image(image_url, product_name):
             "caption": caption
         }
         response = requests.post(url, json=payload, timeout=30)
-        print("WhatsApp Status:", response.status_code)
+        print("WhatsApp Status:", response.status_code, response.text)
         return response.status_code == 200
     except Exception as e:
         print("WhatsApp Error:", str(e))
         return False
 
 def send_whatsapp_msg(phone, message):
+    if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
+        return False
+    phone = str(phone).replace("+", "").replace(" ", "").strip()
+    if len(phone) == 10:
+        phone = f"91{phone}"
+    chat_id = f"{phone}@c.us"
+    url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
     try:
-        if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
-            return False
-        phone = str(phone).replace("+", "").replace(" ", "").strip()
-        if len(phone) == 10:
-            phone = f"91{phone}"
-        chat_id = f"{phone}@c.us"
-        url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
         requests.post(url, json={"chatId": chat_id, "message": message}, timeout=5)
         return True
     except:
         return False
 
-# ================= AI =================
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
             return "Premium Dress", "Suit Set", "Curated boutique wear."
-        import google.generativeai as genai
-        genai.configure(api_key=GOOGLE_API_KEY)
-        response = requests.get(image_url, timeout=10)
+        response = requests.get(image_url)
         image_bytes = response.content
         model = genai.GenerativeModel('models/gemini-1.5-flash')
         prompt = (
@@ -162,7 +152,6 @@ def generate_product_details_via_ai(image_url):
         print("AI Error:", e)
         return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
 
-# ================= MODELS =================
 class BookingPayload(BaseModel):
     customer_name: str
     customer_phone: str
@@ -171,12 +160,6 @@ class BookingPayload(BaseModel):
     size: str = "M"
     price: str = "₹1299"
 
-# ================= HEALTH =================
-@app.get("/")
-def home():
-    return {"status": "Dolphin Trends Backend Active!"}
-
-# ================= BOOKING =================
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -201,16 +184,16 @@ def create_booking(payload: BookingPayload):
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ Admin Panel: {FRONTEND_URL}"
+            f"⚙️ *Please update here:* 👇\n"
+            f"🔗 {FRONTEND_URL}"
         )
         send_whatsapp_msg(YOUR_PERSONAL_PHONE, admin_message)
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ================= ADD PRODUCT (FIXED) =================
 @app.post("/products")
-async def add_product(
+async def add_or_update_product_via_panel(
     name: str = Form(...),
     price: str = Form(...),
     original_price: str = Form(None),
@@ -223,82 +206,164 @@ async def add_product(
         raise HTTPException(status_code=500, detail="Database missing")
     try:
         is_available = available.lower() == "true"
+        existing_product = products_table.find_one({"name": name, "category": category})
+        if not existing_product:
+            existing_product = products_table.find_one({"name": name})
+
         cloud_image_url = None
-
-        # ✅ File upload ಮಾಡಿ Cloudinary ಗೆ
-        if file and file.filename and file.filename != "":
+        if file:
             file_bytes = await file.read()
-            if file_bytes and len(file_bytes) > 100:
-                print(f"📸 Uploading image: {file.filename} ({len(file_bytes)} bytes)")
+            if len(file_bytes) > 0:
                 cloud_image_url = upload_to_cloudinary(file_bytes, is_file=True)
-                if cloud_image_url:
-                    print(f"✅ Image URL: {cloud_image_url}")
-                else:
-                    print("❌ Cloudinary failed!")
-                    raise HTTPException(status_code=500, detail="Image upload to Cloudinary failed! Check Cloudinary credentials.")
-            else:
-                raise HTTPException(status_code=400, detail="Empty file uploaded!")
+
+        if existing_product:
+            update_data = {
+                "price": price,
+                "category": category,
+                "description": description or "",
+                "available": is_available
+            }
+            if original_price:
+                update_data["original_price"] = original_price
+            if cloud_image_url:
+                update_data["image"] = cloud_image_url
+            products_table.update_one({"_id": existing_product["_id"]}, {"$set": update_data})
+            pid = existing_product.get("product_id") or existing_product.get("id", str(existing_product["_id"]))
+            return {"status": "success", "action": "updated", "product_id": pid}
         else:
-            raise HTTPException(status_code=400, detail="Please upload a product image!")
-
-        # ✅ Always new product — no duplicate name check
-        new_id = str(uuid.uuid4())[:8]
-        product_data = {
-            "id": new_id,
-            "product_id": new_id,
-            "name": name,
-            "price": price,
-            "original_price": original_price or "",
-            "category": category,
-            "description": description or "",
-            "image": cloud_image_url,
-            "available": is_available
-        }
-        products_table.insert_one(product_data)
-        print(f"✅ Product saved: {name}")
-        return {"status": "success", "action": "created", "product_id": new_id}
-
-    except HTTPException:
-        raise
+            final_image = cloud_image_url if cloud_image_url else "https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?q=80&w=500"
+            new_id = str(uuid.uuid4())[:6]
+            product_data = {
+                "id": new_id, "product_id": new_id, "name": name, "price": price,
+                "original_price": original_price or "", "category": category,
+                "description": description or "", "image": final_image,
+                "available": is_available
+            }
+            products_table.insert_one(product_data)
+            if cloud_image_url:
+                try:
+                    send_whatsapp_image(final_image, name)
+                except:
+                    pass
+            return {"status": "success", "action": "created", "product_id": new_id}
     except Exception as e:
-        print(f"❌ Add product error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ================= UPDATE PRODUCT =================
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    if products_table is None:
+        return {"status": "DB error"}
+    try:
+        data = await request.json()
+        if "message" in data:
+            message = data["message"]
+            chat_id = message["chat"]["id"]
+            
+            # 🔐 ಮಲ್ಟಿಪಲ್ ಅಡ್ಮಿನ್ ಸೆಕ್ಯೂರಿಟಿ ಚೆಕ್ ರೋಬಸ್ಟ್ ಆಗಿದೆ
+            if chat_id not in ALLOWED_USERS:
+                print(f"Unauthorized Access From: {chat_id}")
+                return {"status": "Ignored"}
+
+            if "photo" in message:
+                caption = message.get("caption", "").strip()
+                file_id = message["photo"][-1]["file_id"]
+                file_info = requests.get(
+                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile",
+                    params={"file_id": file_id}
+                ).json()
+                file_path = file_info.get("result", {}).get("file_path")
+
+                if not file_path:
+                    return {"status": "ok"}
+
+                telegram_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
+                permanent_url = upload_to_cloudinary(telegram_image_url)
+                if not permanent_url:
+                    permanent_url = telegram_image_url
+
+                product_name = "Premium Dress"
+                product_price = "₹1500"
+                product_category = "Suit Set"
+                product_description = "Curated boutique wear."
+
+                if caption:
+                    clean_caption = caption.replace("#edit", "").strip()
+                    lines = [l.strip() for l in clean_caption.split("\n") if l.strip()]
+                    clean_text = " ".join(lines)
+                    price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_text)
+
+                    if "-" in clean_caption:
+                        parts = clean_caption.split("-")
+                        if len(parts) >= 3:
+                            product_name = parts[0].strip()
+                            product_price = parts[1].strip()
+                            product_category = parts[2].strip()
+                    elif price_match:
+                        product_price = f"₹{price_match.group(1)}"
+                        product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
+
+                if not caption or product_name == "Premium Dress":
+                    ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
+                    product_name = ai_name
+                    product_category = ai_cat
+                    product_description = ai_desc
+
+                new_id = str(uuid.uuid4())[:6]
+                products_table.insert_one({
+                    "product_id": new_id, "id": new_id,
+                    "name": product_name, "price": product_price,
+                    "category": product_category, "image": permanent_url,
+                    "description": product_description, "available": True
+                })
+
+                send_whatsapp_image(permanent_url, product_name)
+                requests.post(
+                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                    json={"chat_id": chat_id, "text": f"✅ Uploaded!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent!"}
+                )
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Webhook Error: {str(e)}")
+        return {"status": "error"}
+
 @app.put("/api/products/{product_id}")
 @app.put("/products/{product_id}")
-def update_product(product_id: str, payload: dict):
+def update_product_direct(product_id: str, payload: dict):
     if not product_id or product_id == "undefined":
         raise HTTPException(status_code=400, detail="Invalid ID")
-    if products_table is None:
-        raise HTTPException(status_code=500, detail="DB missing")
-    result = products_table.update_one(
-        {"$or": [{"product_id": product_id}, {"id": product_id}]},
-        {"$set": payload}
-    )
+    result = products_table.update_one({"product_id": product_id}, {"$set": payload})
+    if result.matched_count == 0:
+        result = products_table.update_one({"id": product_id}, {"$set": payload})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Product not found")
     return {"status": "success"}
 
-# ================= DELETE PRODUCT =================
 @app.delete("/api/products/{product_id}")
 @app.delete("/products/{product_id}")
-def delete_product(product_id: str):
+def delete_product_direct(product_id: str):
     if not product_id or product_id == "undefined":
         raise HTTPException(status_code=400, detail="Invalid ID")
-    if products_table is None:
-        raise HTTPException(status_code=500, detail="DB missing")
-    products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
+    result = products_table.delete_one({"product_id": product_id})
+    if result.deleted_count == 0:
+        products_table.delete_one({"id": product_id})
     return {"success": True}
 
-# ================= PRODUCTS GET =================
+@app.delete("/api/admin/bookings/{booking_id}")
+@app.delete("/bookings/{booking_id}")
+def delete_booking(booking_id: str):
+    if not booking_id or booking_id == "undefined":
+        raise HTTPException(status_code=400, detail="Invalid Booking ID")
+    if bookings_table is None:
+        raise HTTPException(status_code=500, detail="Database connection missing")
+    result = bookings_table.delete_one({"booking_id": booking_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    return {"success": True}
+
 @app.get("/products")
 def get_products():
-    if products_table is None:
-        return []
-    return list(products_table.find({}, {"_id": 0}))
+    return list(products_table.find({}, {"_id": 0})) if products_table is not None else []
 
-# ================= REVIEWS =================
 @app.get("/reviews/{product_id}")
 def get_reviews(product_id: str):
     if db is None or not product_id or product_id == "undefined":
@@ -307,35 +372,15 @@ def get_reviews(product_id: str):
 
 @app.post("/reviews")
 def add_review(review: dict):
-    if db is None:
-        raise HTTPException(status_code=500, detail="DB missing")
-    review["id"] = str(uuid.uuid4())
     db["reviews"].insert_one(review)
     review.pop("_id", None)
     return review
 
-# ================= BOOKINGS GET =================
 @app.get("/api/admin/bookings")
 @app.get("/bookings")
 def get_bookings():
-    if bookings_table is None:
-        return []
-    return list(bookings_table.find({}, {"_id": 0}))
+    return list(bookings_table.find({}, {"_id": 0})) if bookings_table is not None else []
 
-# ================= DELETE BOOKING =================
-@app.delete("/api/admin/bookings/{booking_id}")
-@app.delete("/bookings/{booking_id}")
-def delete_booking(booking_id: str):
-    if not booking_id or booking_id == "undefined":
-        raise HTTPException(status_code=400, detail="Invalid Booking ID")
-    if bookings_table is None:
-        raise HTTPException(status_code=500, detail="DB missing")
-    result = bookings_table.delete_one({"booking_id": booking_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    return {"success": True}
-
-# ================= UPDATE BOOKING =================
 @app.post("/api/admin/update-booking")
 def update_booking_status(booking_id: str, action: str):
     if bookings_table is None:
@@ -354,28 +399,32 @@ def update_booking_status(booking_id: str, action: str):
                 f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Map: https://maps.app.goo.gl/amrkmppGsdgprtx27\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
-                f"See you soon! 🛍️\nTeam Dolphin Trends 🐬"
+                f"See you soon! 🛍️\n"
+                f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
-
+            
         elif action == "disagree":
             msg = (
                 f"Hello {c_name},\n\n"
                 f"Sorry, *{p_name}* is currently out of stock.\n"
-                f"We'll notify you when it's back!\n\nTeam Dolphin Trends 🐬"
+                f"We'll notify you when it's back!\n\n"
+                f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
-
+            
         elif action == "size_unavail":
             msg = (
                 f"Hello {c_name}! 😊\n\n"
-                f"*{p_name}* is available but your size is out of stock.\n"
-                f"Please visit our store!\n"
-                f"📍 Peenya 2nd Stage, Bangalore\nTeam Dolphin Trends 🐬"
+                f"*{p_name}* is available but your size is currently out of stock.\n\n"
+                f"Please visit our store to check alternatives!\n"
+                f"📍 Peenya 2nd Stage, Bangalore\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn"
+                f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size Unavailable"}})
@@ -384,88 +433,6 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ================= TELEGRAM WEBHOOK =================
-@app.post("/webhook")
-async def telegram_webhook(request: Request):
-    if products_table is None:
-        return {"status": "DB error"}
-    try:
-        data = await request.json()
-        if "message" not in data:
-            return {"status": "ok"}
-
-        message = data["message"]
-        chat_id = message["chat"]["id"]
-
-        if chat_id != JEEVAN_TELEGRAM_CHAT_ID:
-            return {"status": "Ignored"}
-
-        if "photo" not in message:
-            return {"status": "ok"}
-
-        caption = message.get("caption", "").strip()
-        file_id = message["photo"][-1]["file_id"]
-        file_info = requests.get(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile",
-            params={"file_id": file_id},
-            timeout=10
-        ).json()
-        file_path = file_info.get("result", {}).get("file_path")
-
-        if not file_path:
-            return {"status": "ok"}
-
-        telegram_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
-        permanent_url = upload_to_cloudinary(telegram_image_url)
-        if not permanent_url:
-            permanent_url = telegram_image_url
-
-        product_name = "Premium Dress"
-        product_price = "₹1500"
-        product_category = "Suit Set"
-        product_description = "Curated boutique wear."
-
-        if caption:
-            clean_caption = caption.replace("#edit", "").strip()
-            lines = [l.strip() for l in clean_caption.split("\n") if l.strip()]
-            clean_text = " ".join(lines)
-            price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_text)
-
-            if "-" in clean_caption:
-                parts = clean_caption.split("-")
-                if len(parts) >= 3:
-                    product_name = parts[0].strip()
-                    product_price = parts[1].strip()
-                    product_category = parts[2].strip()
-            elif price_match:
-                product_price = f"₹{price_match.group(1)}"
-                product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
-
-        if not caption or product_name == "Premium Dress":
-            ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
-            product_name = ai_name
-            product_category = ai_cat
-            product_description = ai_desc
-
-        new_id = str(uuid.uuid4())[:8]
-        products_table.insert_one({
-            "product_id": new_id, "id": new_id,
-            "name": product_name, "price": product_price,
-            "category": product_category, "image": permanent_url,
-            "description": product_description, "available": True
-        })
-
-        send_whatsapp_image(permanent_url, product_name)
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": f"✅ Uploaded!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent!"
-            },
-            timeout=5
-        )
-
-        return {"status": "success"}
-    except Exception as e:
-        print(f"Webhook Error: {str(e)}")
-        return {"status": "error"}
+@app.get("/")
+def home():
+    return {"status": "Dolphin Trends Cloudinary Secure Backend Active!"}
