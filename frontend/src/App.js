@@ -41,9 +41,10 @@ function App() {
     'Western Wear', 'Gym Pants','250 Tops','350 Tops','Jeans Tops',
   ];
 
+  // 🔄 ಪ್ರಾಡಕ್ಟ್‌ಗಳನ್ನು ತರುವುದು (ಇಮೇಜ್ ಮಿಸ್‌ಮ್ಯಾಚ್ ತಡೆಯಲು ಲೈವ್ ಟೈಮ್‌ಸ್ಟ್ಯಾಂಪ್ ಫಿಕ್ಸ್ ಮಾಡಲಾಗಿದೆ)
   const fetchProducts = () => {
     setLoading(true);
-    fetch(`${API}/products`)
+    fetch(`${API}/products?_ts=${Date.now()}`)
       .then(r => r.json())
       .then(d => { 
         setProducts(Array.isArray(d) ? d.reverse() : []); 
@@ -62,6 +63,7 @@ function App() {
       setAdminUsername('');
       setAdminPassword('');
       setShowAdmin(true); 
+      setActivePage('shop');
     } else {
       setLoginError('❌ ತಪ್ಪು Username ಅಥವಾ Password! ಸರಿಯಾಗಿ ನಮೂದಿಸಿ.');
     }
@@ -87,6 +89,14 @@ function App() {
   const handleEditClick = (product) => {
     setEditProductData(product);
     setShowAdmin(true); 
+  };
+
+  // 🎯 ಪ್ರಾಡಕ್ಟ್ ಸೇವ್ ಅಥವಾ ಎಡಿಟ್ ಮುಗಿದ ತಕ್ಷಣ ರನ್ ಆಗುವ ಫಂಕ್ಷನ್ (ಪಕ್ಕಾ ಶಾಪ್ ವ್ಯೂಗೆ ಕಳುಹಿಸುತ್ತೆ)
+  const handleProductAddedSuccess = () => {
+    fetchProducts();
+    setEditProductData(null);
+    setShowAdmin(false);
+    setActivePage('shop'); // ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ವೆಬ್‌ಸೈಟ್ ಹೋಮ್ ಪೇಜ್‌ಗೆ ರೀಡೈರೆಕ್ಟ್ ಆಗುತ್ತೆ
   };
 
   const filtered = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
@@ -117,9 +127,9 @@ function App() {
       {showAdmin ? (
         isAdminLoggedIn ? (
           <Admin 
-            onProductAdded={() => { fetchProducts(); setEditProductData(null); setShowAdmin(false); }} 
+            onProductAdded={handleProductAddedSuccess} 
             editData={editProductData} 
-            onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); }}
+            onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); setActivePage('shop'); }}
           />
         ) : (
           /* 🔐 Animated Deep Dark Blue Admin Login Form */
@@ -433,3 +443,4 @@ function App() {
 }
 
 export default App;
+                              
