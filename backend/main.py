@@ -14,6 +14,7 @@ import cloudinary.uploader
 
 app = FastAPI()
 
+# 🚀 CORS ಫಿಕ್ಸ್ - ಫ್ರಂಟ್‌ಎಂಡ್ ಮತ್ತು ಬ್ಯಾಕೆಂಡ್ ಕನೆಕ್ಷನ್ ಪಕ್ಕಾ ಇರಲು
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -70,9 +71,17 @@ async def startup():
         except Exception as e:
             print("Webhook setup error:", e)
 
+# 🔄 ಅಪ್ಡೇಟ್ ಮಾಡಲಾದ Cloudinary ಫಂಕ್ಷನ್ (ಯೂನಿಕ್ ಐಡಿ ಕ್ರಿಯೇಟ್ ಮಾಡಿ ಇಮೇಜ್ ಮಿಸ್‌ಮ್ಯಾಚ್ ತಡೆಯುತ್ತೆ)
 def upload_to_cloudinary(image_source, is_file=False):
     try:
-        result = cloudinary.uploader.upload(image_source, folder="dolphin_trends")
+        unique_filename = f"prod_{str(uuid.uuid4())[:8]}"
+        result = cloudinary.uploader.upload(
+            image_source, 
+            folder="dolphin_trends",
+            public_id=unique_filename,
+            overwrite=True,
+            resource_type="image"
+        )
         return result.get("secure_url")
     except Exception as e:
         print(f"Cloudinary Upload Error: {str(e)}")
@@ -182,6 +191,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# 🛍️ ಪೂರ್ತಿ ಆಪ್ಟಿಮೈಸ್ ಆದ ಪ್ರಾಡಕ್ಟ್ ಅಪ್‌ಲೋಡ್ ಎಂಡ್‌ಪಾಯಿಂಟ್ (ಫಾಸ್ಟ್ ಸೇವಿಂಗ್ ಫಿಕ್ಸ್)
 @app.post("/products")
 async def add_or_update_product_via_panel(
     name: str = Form(...),
@@ -196,11 +206,18 @@ async def add_or_update_product_via_panel(
         raise HTTPException(status_code=500, detail="Database missing")
     try:
         is_available = available.lower() == "true"
-        existing_product = products_table.find_one({"name": name})
+        
+        # ⚡ ಹೆಸರಿನ ಜೊತೆಗೆ ಕ್ಯಾಟಗರಿ ಮ್ಯಾಚ್ ಮಾಡಿ ಹುಡುಕುತ್ತೆ, ಇದರಿಂದ ಡ್ಯೂಪ್ಲಿಕೇಟ್ ಇಂಟರ್‌ಚೇಂಜ್ ತಪ್ಪುತ್ತೆ
+        existing_product = products_table.find_one({"name": name, "category": category})
+        if not existing_product:
+            existing_product = products_table.find_one({"name": name})
+
         cloud_image_url = None
         if file:
+            # 🚀 ಫೈಲ್ ಕಂಟೆಂಟ್ ಅನ್ನು ಆಪ್ಟಿಮೈಸ್ಡ್ ಆಗಿ ಓದಿ ಡೈರೆಕ್ಟ್ ಆಗಿ ಕಳುಹಿಸುತ್ತೆ
             file_bytes = await file.read()
-            cloud_image_url = upload_to_cloudinary(file_bytes, is_file=True)
+            if len(file_bytes) > 0:
+                cloud_image_url = upload_to_cloudinary(file_bytes, is_file=True)
 
         if existing_product:
             update_data = {
@@ -213,8 +230,9 @@ async def add_or_update_product_via_panel(
                 update_data["original_price"] = original_price
             if cloud_image_url:
                 update_data["image"] = cloud_image_url
-            products_table.update_one({"name": name}, {"$set": update_data})
-            pid = existing_product.get("product_id") or existing_product.get("id", "")
+                
+            products_table.update_one({"_id": existing_product["_id"]}, {"$set": update_data})
+            pid = existing_product.get("product_id") or existing_product.get("id", str(existing_product["_id"]))
             return {"status": "success", "action": "updated", "product_id": pid}
         else:
             final_image = cloud_image_url if cloud_image_url else "https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?q=80&w=500"
@@ -226,6 +244,14 @@ async def add_or_update_product_via_panel(
                 "available": is_available
             }
             products_table.insert_one(product_data)
+            
+            # 🔥 ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಬಂದಾಗ ಮಾತ್ರ ವಾಟ್ಸಾಪ್‌ಗೆ ಅಲರ್ಟ್ ಕಳುಹಿಸುತ್ತೆ, ಸ್ಪೀಡ್ ಉಳಿಸುತ್ತೆ!
+            if cloud_image_url:
+                try:
+                    send_whatsapp_image(final_image, name)
+                except:
+                    pass
+                    
             return {"status": "success", "action": "created", "product_id": new_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -414,3 +440,4 @@ def update_booking_status(booking_id: str, action: str):
 @app.get("/")
 def home():
     return {"status": "Dolphin Trends Cloudinary Secure Backend Active!"}
+
