@@ -3,232 +3,358 @@ import React, { useState, useEffect } from 'react';
 const API = 'https://dolphin-trends-3.onrender.com';
 
 function Admin({ onProductAdded, editData, onCancelEdit }) {
+  // 📝 Product Form States
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
-  const [category, setCategory] = useState('Leggings');
+  const [category, setCategory] = useState('Tops');
   const [available, setAvailable] = useState(true);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // 📝 ಹಳೆಯ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್ ಜಾಗದಲ್ಲಿ ನಿನ್ನ ಲೈವ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ಇತ್ತೀಚಿನ ಕ್ಯಾಟಗರಿಗಳು
+  // 📥 Bookings States (ನಿನ್ನ ಹಳೇ ಕೋಡ್‌ನಿಂದ)
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [adminFullScreenImg, setAdminFullScreenImg] = useState(null);
+
+  // 🗂️ ಲೈವ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ಕ್ಯಾಟಗರಿಗಳು
   const categories = [
-    'Leggings', 'Suit Set', 'Kurthas', 'Umbrella', 'Jeans',
+    'Tops', 'Suit Set', 'Kurthas', 'Umbrella', 'Jeans', 'Kurtha Sets',
     'Patiala Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
-    'Western Wear', 'Gym Pants', '250 Tops', '350 Tops', 'Jeans Tops', 'Tops'
+    'Western Wear', 'Gym Pants', '250 Tops', '350 Tops', 'Jeans Tops', 'Leggings'
   ];
 
-  // 🔄 ಎಡಿಟ್ ಮಾಡೋಕೆ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಹಳೆಯ ಡೇಟಾವನ್ನು ಫಾರ್ಮ್‌ಗೆ ಲೋಡ್ ಮಾಡುವುದು
+  // 🔄 എഡിറ്റ് മോഡ് ಲೋಡ್ ಮಾಡುವುದು (Product Name ಇವಾಗ ಪೂರ್ತಿ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ!)
   useEffect(() => {
     if (editData) {
       setName(editData.name || '');
       setDescription(editData.description || '');
-      
-      // ₹ ಸಿಂಬಲ್ ಇದ್ದರೆ ತೆಗೆದು ಬರೀ ನಂಬರ್ ಮಾತ್ರ ಇನ್‌ಪುಟ್‌ಗೆ ಸೆಟ್ ಮಾಡುವುದು
       const p = String(editData.price || '').replace('₹', '').trim();
       setPrice(p);
-      
       const op = String(editData.original_price || '').replace('₹', '').trim();
       setOriginalPrice(op);
-      
-      setCategory(editData.category || 'Leggings');
+      setCategory(editData.category || 'Tops');
       setAvailable(editData.available !== false);
       setImagePreview(editData.image || null);
       setImageFile(null); 
     } else {
-      // ರೀಸೆಟ್ ಫಾರ್ಮ್
       setName('');
       setDescription('Beautiful design crafted with rich fabric.');
       setPrice('');
       setOriginalPrice('');
-      setCategory('Leggings');
+      setCategory('Tops');
       setAvailable(true);
       setImagePreview(null);
       setImageFile(null);
     }
   }, [editData]);
 
+  // 📥 Bookings ಲೋಡ್ ಮಾಡುವ ಎಫೆಕ್ಟ್
+  useEffect(() => { 
+    fetchBookings(); 
+  }, []);
+
+  const fetchBookings = async () => {
+    setBookingsLoading(true);
+    try {
+      const response = await fetch(`${API}/bookings`);
+      if (response.ok) setBookings(await response.json());
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setBookingsLoading(false); 
+    }
+  };
+
+  // 🟢 🟡 🔴 Booking Actions (Agree / No Stock / Size No Stock)
+  const handleBookingAction = async (bookingId, action) => {
+    let confirmMsg = "AGREE madbekka?";
+    if (action === "disagree") confirmMsg = "DRESS NO STOCK madbekka?";
+    if (action === "size_unavail") confirmMsg = "SIZE NO STOCK madbekka?";
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      const r = await fetch(`${API}/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, { method: 'POST' });
+      if (r.ok) { 
+        alert('✅ Notification Sent!'); 
+        fetchBookings(); 
+      } else {
+        alert('❌ Failed');
+      }
+    } catch { 
+      alert('❌ Server Error'); 
+    }
+  };
+
+  // 🗑️ Delete Booking
+  const handleDeleteBooking = async (bookingId) => {
+    if (!bookingId) { alert('❌ Invalid Booking ID!'); return; }
+    if (!window.confirm('⚠️ Booking delete madbekka?')) return;
+    try {
+      const r = await fetch(`${API}/bookings/${bookingId}`, { method: 'DELETE' });
+      if (r.ok) { 
+        alert('🗑️ Booking Deleted!'); 
+        fetchBookings(); 
+      } else {
+        alert(`❌ Delete failed!`);
+      }
+    } catch { 
+      alert('❌ Server Error!'); 
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setImageFile(file);
-    
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
+    reader.onloadend = () => { setImagePreview(reader.result); };
     reader.readAsDataURL(file);
   };
 
+  // 🚀 Product Save/Update Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!name || !price) { alert('⚠️ Name mattu Price haki!'); return; }
     setSubmitting(true);
 
+    const formattedPrice = price.startsWith('₹') ? price : `₹${price}`;
+    const formattedOriginalPrice = originalPrice ? (originalPrice.startsWith('₹') ? originalPrice : `₹${originalPrice}`) : '';
+
     try {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('description', description);
-      formData.append('price', `₹${price}`);
-      formData.append('original_price', originalPrice ? `₹${originalPrice}` : '');
-      formData.append('category', category);
-      formData.append('available', String(available));
-
-      if (imageFile) {
-        formData.append('image', imageFile);
-      }
-
-      let url = `${API}/products`;
-      let method = 'POST';
-
       if (editData) {
-        // ಎಡಿಟ್ ಮೋಡ್‌ನಲ್ಲಿದ್ದಾಗ ಆಯಾ ಪ್ರಾಡಕ್ಟ್ ಐಡಿಗೆ PUT ರಿಕ್ವೆಸ್ಟ್ ಹೋಗುತ್ತದೆ
-        const pId = editData.product_id || editData.id;
-        url = `${API}/products/${pId}`;
-        method = 'PUT';
-      }
-
-      const response = await fetch(url, {
-        method: method,
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert(editData ? '✅ Product Updated Successfully!' : '✅ Product Added Successfully!');
-        if (onProductAdded) onProductAdded();
+        const productId = editData.product_id || editData.id;
+        if (imageFile) {
+          // ಇಮೇಜ್ ಚೇಂಜ್ ಮಾಡಿದ್ರೆ Multipart ಫಾರ್ಮ್ ಕಳುಹಿಸುವುದು
+          const imgForm = new FormData();
+          imgForm.append('name', name);
+          imgForm.append('price', formattedPrice);
+          imgForm.append('original_price', formattedOriginalPrice);
+          imgForm.append('description', description);
+          imgForm.append('category', category);
+          imgForm.append('available', String(available));
+          imgForm.append('file', imageFile);
+          
+          const r = await fetch(`${API}/products`, { method: 'POST', body: imgForm });
+          if (r.ok) {
+            alert('🔄 Product & Image Updated!');
+            if (onProductAdded) onProductAdded();
+          } else {
+            alert('❌ Update failed!');
+          }
+        } else {
+          // ಬರೀ ಟೆಕ್ಸ್ಟ್ ಚೇಂಜ್ ಆದ್ರೆ PUT ರಿಕ್ವೆಸ್ಟ್
+          const updatePayload = {
+            name: name,
+            price: formattedPrice,
+            original_price: formattedOriginalPrice,
+            description: description,
+            category: category,
+            available: available
+          };
+          const r = await fetch(`${API}/products/${productId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatePayload)
+          });
+          if (r.ok) {
+            alert('🔄 Product Details Updated!');
+            if (onProductAdded) onProductAdded();
+          } else {
+            alert('❌ Update failed!');
+          }
+        }
       } else {
-        const errText = await response.text();
-        alert(`❌ Error: ${errText || 'Submission failed'}`);
+        // ADD MODE: ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಸೇವಿಂಗ್
+        const dataToSend = new FormData();
+        dataToSend.append('name', name);
+        dataToSend.append('price', formattedPrice);
+        dataToSend.append('original_price', formattedOriginalPrice);
+        dataToSend.append('description', description);
+        dataToSend.append('category', category);
+        dataToSend.append('available', String(available));
+        if (imageFile) dataToSend.append('file', imageFile);
+
+        const r = await fetch(`${API}/products`, { method: 'POST', body: dataToSend });
+        if (r.ok) {
+          alert('✅ Product saved!');
+          setName('');
+          setDescription('Beautiful design crafted with rich fabric.');
+          setPrice('');
+          setOriginalPrice('');
+          setCategory('Tops');
+          setAvailable(true);
+          setImagePreview(null);
+          setImageFile(null);
+          if (onProductAdded) onProductAdded();
+        } else {
+          alert(`❌ Save failed!`);
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('❌ Server Error! ದಯವಿಟ್ಟು ನೆಟ್‌ವರ್ಕ್ ಚೆಕ್ ಮಾಡಿ.');
-    } finally {
-      setSubmitting(false);
+    } catch { 
+      alert('❌ Server Error!'); 
+    } finally { 
+      setSubmitting(false); 
     }
   };
 
   return (
-    <div className="admin-container" style={{ maxWidth: '600px', margin: '30px auto', padding: '20px', background: '#0d162d', borderRadius: '15px', border: '1px solid rgba(26,108,255,0.2)', color: '#fff' }}>
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(26,108,255,0.1)', paddingBottom: '10px' }}>
-        <h2 style={{ margin: 0, color: '#4d9fff' }}>
-          {editData ? '🔄 Edit Product Details' : '➕ Add New Product'}
-        </h2>
-        {editData && (
-          <button type="button" onClick={onCancelEdit} style={{ background: '#6b7c96', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Cancel Edit
-          </button>
-        )}
-      </div>
+    <div style={{ background: '#0b1329', padding: '20px', minHeight: '100vh', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
-        {/* 👗 ಇಮೇಜ್ ಅಪ್ಲೋಡ್ ಸೆಕ್ಷನ್ */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#8fa0b7' }}>
-            👗 Dress Photo {editData && '(Change madbekidre new file choose madi)'}
-          </label>
-          <input type="file" accept="image/*" onChange={handleFileChange} required={!editData} style={{ color: '#8fa0b7', marginBottom: '10px' }} />
-          {imagePreview && (
-            <div style={{ marginTop: '5px' }}>
-              <img src={imagePreview} alt="Preview" style={{ width: '100px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #1a6cff' }} />
+        {/* 🛠️ Product ಫಾರ್ಮ್ ಸೆಕ್ಷನ್ */}
+        <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(26,108,255,0.1)', paddingBottom: '15px', textAlign: 'center' }}>
+            <h2 style={{ margin: 0, color: '#4d9fff', fontSize: '1.4rem' }}>
+              {editData ? '🔄 Edit Product Details' : '🛠️ Admin Panel - Add Product'}
+            </h2>
+            {editData && (
+              <button type="button" onClick={onCancelEdit} style={{ background: '#6b7c96', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', marginTop: '5px' }}>
+                Cancel Edit
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div>
+              <label style={lbl}>Dress Photo {editData && '(Change madbekidre new file choose madi)'}</label>
+              <input type="file" accept="image/*" onChange={handleFileChange} required={!editData} style={{ width: '100%', color: '#fff' }} />
+              {imagePreview && <img src={imagePreview} alt="preview" style={{ width: '100px', borderRadius: '8px', marginTop: '10px' }} />}
+            </div>
+
+            {/* 🏷️ Product Name - ಈಗ ಪೂರ್ತಿ ಎಡಿಟ್ ಆಗುತ್ತೆ! */}
+            <div>
+              <label style={lbl}>Product Name</label>
+              <input 
+                style={inp} 
+                type="text" 
+                placeholder="eg: Silk Kurti" 
+                value={name} 
+                onChange={e => setName(e.target.value)} 
+                required 
+              />
+            </div>
+
+            <div>
+              <label style={lbl}>Description</label>
+              <textarea style={{ ...inp, height: '80px', resize: 'vertical', fontFamily: 'sans-serif' }} placeholder="Product details..." value={description} onChange={e => setDescription(e.target.value)} required />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ width: '100%' }}>
+                <label style={lbl}>Selling Price (₹)</label>
+                <input style={inp} type="number" placeholder="500" value={price} onChange={e => setPrice(e.target.value)} required />
+              </div>
+              <div style={{ width: '100%' }}>
+                <label style={lbl}>Original Price (₹)</label>
+                <input style={inp} type="number" placeholder="800" value={originalPrice} onChange={e => setOriginalPrice(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <label style={lbl}>Category</label>
+              <select style={inp} value={category} onChange={e => setCategory(e.target.value)}>
+                {categories.map(c => <option key={c} value={c} style={{ background: '#0f1a35' }}>{c}</option>)}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0', background: '#0b0b18', padding: '12px', borderRadius: '9px', border: '1px solid rgba(26,108,255,0.2)' }}>
+              <input type="checkbox" id="available_box" checked={available} onChange={e => setAvailable(e.target.checked)} style={{ width: '19px', height: '19px', cursor: 'pointer' }} />
+              <label htmlFor="available_box" style={{ color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                ✅ Available (Untick madidre Out of Stock agthade)
+              </label>
+            </div>
+
+            <button type="submit" disabled={submitting} style={{ width: '100%', padding: '14px', background: editData ? '#e11d48' : '#1a6cff', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: submitting ? 'not-allowed' : 'pointer' }}>
+              {submitting ? 'Saving...' : editData ? '🔄 Update Product' : '✅ Save Product'}
+            </button>
+          </form>
+        </div>
+
+        {/* 📥 Customer Bookings ಟೇಬಲ್ ಸೆಕ್ಷನ್ (ಯಥಾವತ್ತಾಗಿ ಮರಳಿ ತರಲಾಗಿದೆ) */}
+        <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ color: '#4d9fff', margin: 0, fontSize: '1.3rem' }}>📥 Customer Bookings</h2>
+            <button onClick={fetchBookings} style={{ padding: '8px 16px', background: '#1a6cff', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>🔄 Refresh</button>
+          </div>
+
+          {bookingsLoading ? <p style={{ color: '#7a85a0' }}>Loading Bookings...</p> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid rgba(26,108,255,0.3)' }}>
+                    {['Image', 'Product Info', 'Customer', 'Status', 'Actions'].map(h => (
+                      <th key={h} style={{ padding: '12px', textAlign: 'left', color: '#4d9fff', fontSize: '0.85rem' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.length === 0 ? (
+                    <tr><td colSpan="5" style={{ padding: '30px', textAlign: 'center', color: '#7a85a0' }}>Yaav bookings bandilla!</td></tr>
+                  ) : bookings.map(b => (
+                    <tr key={b.booking_id} style={{ borderBottom: '1px solid rgba(26,108,255,0.1)' }}>
+                      <td style={{ padding: '12px' }}>
+                        {b.image_url && (
+                          <img src={b.image_url} alt="product"
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in' }}
+                            onClick={() => setAdminFullScreenImg(b.image_url)}
+                            onError={e => { e.target.style.display='none'; }}
+                          />
+                        )}
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ color: '#f0f4ff', fontWeight: 'bold' }}>{b.product_name}</div>
+                        <div style={{ color: '#7a85a0', fontSize: '0.8rem' }}>Size: {b.size} | Price: {b.price}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ color: '#38bdf8', fontWeight: 'bold' }}>{b.customer_name}</div>
+                        <div style={{ color: '#7a85a0', fontSize: '0.8rem' }}>📞 {b.customer_phone}</div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold',
+                          background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : b.status === 'Approved' ? 'rgba(16,185,129,0.2)' : b.status === 'Size Unavailable' ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)',
+                          color: b.status === 'Pending' ? '#f59e0b' : b.status === 'Approved' ? '#10b981' : b.status === 'Size Unavailable' ? '#3b82f6' : '#ef4444'
+                        }}>
+                          {b.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {b.status === 'Pending' && (
+                            <>
+                              <button onClick={() => handleBookingAction(b.booking_id, 'agree')} style={{ padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Agree</button>
+                              <button onClick={() => handleBookingAction(b.booking_id, 'size_unavail')} style={{ padding: '5px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Size No Stock</button>
+                              <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '5px 10px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>No Stock</button>
+                            </>
+                          )}
+                          <button onClick={() => handleDeleteBooking(b.booking_id)} style={{ padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>🗑️ Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
 
-        {/* 🏷️ ಪ್ರಾಡಕ್ಟ್ ಹೆಸರು - ಇವಾಗ ಪೂರ್ತಿ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ, ಚೇಂಜ್ ಮಾಡಬಹುದು! */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#8fa0b7' }}>Product Name</label>
-          <input 
-            type="text" 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
-            placeholder="Enter Product Name (e.g., Premium Dress)" 
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box' }}
-            required 
-          />
+      </div>
+
+      {/* 🔍 Full Screen Image Viewer */}
+      {adminFullScreenImg && (
+        <div onClick={() => setAdminFullScreenImg(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, cursor: 'zoom-out' }}>
+          <img src={adminFullScreenImg} alt="Full View" style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px' }} />
         </div>
-
-        {/* 📝 ಡಿಸ್ಕ್ರಿಪ್ಷನ್ */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#8fa0b7' }}>Description</label>
-          <textarea 
-            value={description} 
-            onChange={(e) => setDescription(e.target.value)} 
-            rows="3"
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box', fontFamily: 'sans-serif' }}
-            required
-          />
-        </div>
-
-        {/* 💰 ಪ್ರೈಸ್ ಸೆಕ್ಷನ್ */}
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#8fa0b7' }}>Selling Price (₹)</label>
-            <input 
-              type="number" 
-              value={price} 
-              onChange={(e) => setPrice(e.target.value)} 
-              placeholder="1500" 
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box' }}
-              required 
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#8fa0b7' }}>Original Price (₹)</label>
-            <input 
-              type="number" 
-              value={originalPrice} 
-              onChange={(e) => setOriginalPrice(e.target.value)} 
-              placeholder="1999" 
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box' }}
-            />
-          </div>
-        </div>
-
-        {/* 🗂️ ಕ್ಯಾಟಗರಿ ಸೆಲೆಕ್ಷನ್ */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.9rem', color: '#8fa0b7' }}>Category</label>
-          <select 
-            value={category} 
-            onChange={(e) => setCategory(e.target.value)} 
-            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box', cursor: 'pointer' }}
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat} style={{ background: '#0d162d' }}>{cat}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* 🚦 ಅವೈಲೆಬಿಲಿಟಿ ಸ್ಟೇಟಸ್ (In Stock / Out of Stock) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
-          <input 
-            type="checkbox" 
-            id="available" 
-            checked={available} 
-            onChange={(e) => setAvailable(e.target.checked)} 
-            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-          />
-          <label htmlFor="available" style={{ fontSize: '0.95rem', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>
-            {available ? '🟢 In Stock (ಯಾವುದೇ ತೊಂದರೆ ಇಲ್ಲದೆ ಗ್ರಾಹಕರು ಖರೀದಿಸಬಹುದು)' : '🔴 Out of Stock (ಪ್ರಾಡಕ್ಟ್ ಮೇಲೆ ಬ್ಯಾನರ್ ತೋರಿಸು)'}
-          </label>
-        </div>
-
-        {/* 🚀 ಸಬ್ಮಿಟ್ ಬಟನ್ */}
-        <button 
-          type="submit" 
-          disabled={submitting}
-          style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #1a6cff, #004ecc)', color: '#fff', fontWeight: 'bold', fontSize: '1rem', cursor: submitting ? 'not-allowed' : 'pointer', marginTop: '10px', boxShadow: '0 4px 15px rgba(26, 108, 255, 0.3)', transition: 'all 0.2s' }}
-        >
-          {submitting ? 'Processing...' : editData ? '🚀 Update Product Details' : '➕ Save & Publish Product'}
-        </button>
-
-      </form>
+      )}
     </div>
   );
 }
 
+const lbl = { display: 'block', color: '#7a85a0', fontSize: '0.85rem', marginBottom: '5px', marginTop: '5px' };
+const inp = { width: '100%', padding: '11px', marginBottom: '5px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box', fontSize: '0.9rem' };
+
 export default Admin;
 
+            
