@@ -138,7 +138,7 @@ def send_whatsapp_msg(phone, message):
     except:
         return False
 
-# 🔥 ನಿನ್ನ ಲಿಸ್ಟ್‌ನಲ್ಲಿರೋ ಕ್ಯಾಟಗರಿ ಮಾತ್ರ ಮ್ಯಾಚ್ ಮಾಡಲು AI ಪ್ರಾಂಪ್ಟ್ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ ಬಾಸ್!
+# 🔥 ನಿನ್ನ ಲಿಸ್ಟ್‌ನಲ್ಲಿರೋ ಕ್ಯಾಟಗರಿ ಮಾತ್ರ ಮ್ಯಾಚ್ ಮಾಡಲು AI ಪ್ರಾಂಪ್ಟ್
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
@@ -344,17 +344,22 @@ async def telegram_webhook(request: Request):
                     if split_char:
                         parts = clean_caption.split(split_char)
                         if len(parts) >= 1:
-                            # ಉದಾಹರಣೆಗೆ: Leggings 
                             typed_name = parts[0].strip()
                             product_name = typed_name
                             
-                            # ನೀನು ಬರೆದಿರೋ ಹೆಸರು ನಿನ್ನ ಕಲೆಕ್ಷನ್‌ನ ಯಾವುದಾದರೂ ಕ್ಯಾಟಗರಿಗೆ ಮ್ಯಾಚ್ ಆಗುತ್ತಾ ಅಂತ ನೋಡುತ್ತೆ
+                            # 🔥 ಸ್ಮಾರ್ಟ್ ಮ್ಯಾಚಿಂಗ್ ಲಾಜಿಕ್: ಸ್ಪೆಲ್ಲಿಂಗ್ ಸಿಂಗುಲರ್/ಪ್ಲೂರಲ್ ವ್ಯತ್ಯಾಸ ಇದ್ರೂ ವ್ಯಾಲಿಡ್ ಲಿಸ್ಟ್‌ಗೆ ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ
+                            typed_lower = typed_name.lower().replace(" ", "")
+                            typed_singular = typed_lower.rstrip('s') 
+
                             for cat in VALID_CATEGORIES:
-                                if cat.lower() == typed_name.lower() or typed_name.lower() in cat.lower():
+                                cat_lower = cat.lower().replace(" ", "")
+                                cat_singular = cat_lower.rstrip('s')
+                                
+                                # ಪೂರ್ತಿ ಸಬ್‌ಸ್ಟ್ರಿಂಗ್ ಮ್ಯಾಚ್ ಆದರೆ (ಉದಾ: patialapant -> patialapants)
+                                if (typed_singular in cat_singular) or (cat_singular in typed_singular):
                                     product_category = cat
                                     break
                             
-                            # ಒಂದು ವೇಳೆ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಸಿಗದೇ ಇದ್ದರೆ ಆ ಹೆಸರನ್ನೇ ಕ್ಯಾಟಗರಿಗೂ ಇಡುತ್ತೆ
                             if not product_category:
                                 product_category = typed_name
                                 
@@ -365,15 +370,17 @@ async def telegram_webhook(request: Request):
                             else:
                                 product_price = raw_price
                     else:
-                        # ಒಂದು ವೇಳೆ ಹೈಫನ್ ಇಲ್ಲದೆ ಬರೀ ನಂಬರ್ ಕೊಟ್ಟಿದ್ದರೆ
                         price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_caption)
                         if price_match:
                             product_price = f"₹{price_match.group(1)}"
                             potential_name = clean_caption.replace(price_match.group(0), "").replace("₹", "").strip()
                             if potential_name:
                                 product_name = potential_name
+                                
+                                typed_lower = potential_name.lower().replace(" ", "").rstrip('s')
                                 for cat in VALID_CATEGORIES:
-                                    if cat.lower() == potential_name.lower():
+                                    cat_lower = cat.lower().replace(" ", "").rstrip('s')
+                                    if (typed_lower in cat_lower) or (cat_lower in typed_lower):
                                         product_category = cat
                                         break
                                 if not product_category:
@@ -382,7 +389,7 @@ async def telegram_webhook(request: Request):
                 if not product_price:
                     product_price = "₹1500"
 
-                # 🔥 ಸೂಪರ್ ಲಾಜಿಕ್: ನೀನು ಬರಿ ಇಮೇಜ್ ಕಳಿಸಿದರೆ ನಿನ್ನ 12 ಕ್ಯಾಟಗರಿಯಲ್ಲಿ ಒಂದನ್ನು ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ ಬಾಸ್
+                # ಬರಿ ಇಮೇಜ್ ಕಳಿಸಿದರೆ AI ನಿನ್ನ ಲಿಸ್ಟ್ ಒಳಗಡೆನೇ ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ ಬಾಸ್
                 if not product_name:
                     ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
                     product_name = ai_name
