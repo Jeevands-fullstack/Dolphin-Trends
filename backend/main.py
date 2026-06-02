@@ -177,17 +177,42 @@ def create_booking(payload: BookingPayload):
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
-        admin_message = (
-            f"🛍️ *New Buy Request!*\n\n"
-            f"👗 *Product:* {payload.product_name}\n"
+
+        # 🟢 ಕಸ್ಟಮರ್ ನಂಬರ್ ಫಾರ್ಮ್ಯಾಟ್ ಕ್ಲೀನ್ ಮಾಡಿ Country Code (91) ಸೇರಿಸುವ ಲಾಜಿಕ್
+        c_phone = str(payload.customer_phone).replace("+", "").replace(" ", "").strip()
+        if len(c_phone) == 10:
+            c_phone = f"91{c_phone}"
+
+        # 💌 ಕಸ್ಟಮರ್‌ಗೆ ನೇರವಾಗಿ ತಲುಪಬೇಕಾದ ವೆಲ್ಕಮ್ ಮತ್ತು ಬುಕಿಂಗ್ ಕನ್ಫರ್ಮೇಷನ್ ಮೆಸೇಜ್
+        customer_message = (
+            f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
+            f"Hi {payload.customer_name},\n\n"
+            f"You have selected:\n"
+            f"👗 *{payload.product_name}*\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Price: {payload.price}\n"
-            f"👤 Name: {payload.customer_name}\n"
-            f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Please update here:* 👇\n"
-            f"🔗 {FRONTEND_URL}"
+            f"💰 Price: {payload.price}\n\n"
+            f"📝 *We are currently checking the stock availability for your order. "
+            f"Our team will contact you shortly with confirmation.* 🙏\n\n"
+            f"💥 *Meanwhile, explore our latest collections here:* 👇\n"
+            f"🔗 {FRONTEND_URL}\n\n"
+            f"📞 Contact: 7411255628\n\n"
+            f"Thank you for choosing us! 😊\n"
+            f"*Team Dolphin Trends* 🐬"
         )
-        send_whatsapp_msg(YOUR_PERSONAL_PHONE, admin_message)
+        
+        # 🚀 Green-API ಮೂಲಕ ನಿನ್ನ ಬಿಸಿನೆಸ್ ನಂಬರ್‌ನಿಂದ ಕಸ್ಟಮರ್ ವಾಟ್ಸಾಪ್‌ಗೆ ಆಟೋಮ್ಯಾಟಿಕ್ ಮೆಸೇಜ್ ಶೂಟ್ ಆಗುತ್ತೆ
+        send_whatsapp_msg(c_phone, customer_message)
+
+        # 🛍️ ನಿನಗೆ (ಅಡ್ಮಿನ್‌ಗೆ) ಹೊಸ ಆರ್ಡರ್ ಬಂದ ತಕ್ಷಣ ಬರುವ ಸಣ್ಣ ಅಲರ್ಟ್ ಮೆಸೇಜ್
+        admin_alert = (
+            f"🛍️ *New Order Alert!*\n\n"
+            f"👤 Customer: {payload.customer_name}\n"
+            f"📞 Phone: {payload.customer_phone}\n"
+            f"👗 Product: {payload.product_name} ({payload.size})\n"
+            f"💰 Price: {payload.price}"
+        )
+        send_whatsapp_msg(YOUR_PERSONAL_PHONE, admin_alert)
+
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
