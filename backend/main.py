@@ -40,6 +40,13 @@ ALLOWED_USERS = [int(uid.strip()) for uid in raw_users.split(",") if uid.strip()
 
 YOUR_PERSONAL_PHONE = "917411255628"
 
+# 🔥 ಬಾಸ್, ಇವೇ ನಿನ್ನ ವೆಬ್‌ಸೈಟ್‌ನಲ್ಲಿರೋ ಪಕ್ಕಾ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್!
+VALID_CATEGORIES = [
+    "Leggings", "Kurta Sets", "Jeans", "Patiala Pants", "Kurtha Top", 
+    "Umbrella Sets", "Frocks", "Western Wear", "Gym Pants", "250 Tops", 
+    "350 Tops", "Jeans Tops"
+]
+
 ca = certifi.where()
 db = None
 bookings_table = None
@@ -51,7 +58,7 @@ if MONGO_URL:
     products_table = db["products"]
     bookings_table = db["bookings"]
 
-# 🚀 FastAPI Lifespan Handler (ಹಳೇ @app.on_event ಬದಲು ಹೊಸ ಅಪ್ಡೇಟ್)
+# 🚀 FastAPI Lifespan Handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if TELEGRAM_BOT_TOKEN:
@@ -131,31 +138,46 @@ def send_whatsapp_msg(phone, message):
     except:
         return False
 
+# 🔥 ನಿನ್ನ ಲಿಸ್ಟ್‌ನಲ್ಲಿರೋ ಕ್ಯಾಟಗರಿ ಮಾತ್ರ ಮ್ಯಾಚ್ ಮಾಡಲು AI ಪ್ರಾಂಪ್ಟ್ ಚೇಂಜ್ ಮಾಡಲಾಗಿದೆ ಬಾಸ್!
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
-            return "Premium Dress", "Suit Set", "Curated boutique wear."
+            return "Premium Dress", "Western Wear", "Curated boutique wear."
         response = requests.get(image_url)
         image_bytes = response.content
         model = genai.GenerativeModel('models/gemini-1.5-flash')
+        
+        categories_str = ", ".join(VALID_CATEGORIES)
         prompt = (
-            "Analyze this boutique fashion clothing image. "
-            "1. Provide a simple product name. "
-            "2. Category (one or two words). "
-            "3. Short attractive description (1-2 sentences). "
-            "Format: Name | Category | Description"
+            f"Analyze this boutique fashion clothing image.\n"
+            f"1. Provide a simple product name.\n"
+            f"2. Select exactly ONE category from this strict list only: [{categories_str}]. Do NOT make up new ones.\n"
+            f"3. Short attractive description (1-2 sentences).\n"
+            f"Format: Name | Category | Description"
         )
         cookie_img = {"mime_type": "image/jpeg", "data": image_bytes}
         ai_response = model.generate_content([prompt, cookie_img])
         text_res = ai_response.text.strip()
         if "|" in text_res:
             parts = text_res.split("|")
-            return parts[0].strip(), parts[1].strip(), parts[2].strip() if len(parts) > 2 else "Beautiful outfit."
-        return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+            ai_name = parts[0].strip()
+            ai_cat = parts[1].strip()
+            ai_desc = parts[2].strip() if len(parts) > 2 else "Beautiful outfit."
+            
+            # AI ಕೊಟ್ಟಿರೋ ಕ್ಯಾಟಗರಿ ನಿನ್ನ ಲಿಸ್ಟ್‌ನಲ್ಲಿದೆಯಾ ಅಂತ ಕ್ರಾಸ್ ಚೆಕ್ ಮಾಡುತ್ತೆ
+            matched_cat = "Western Wear"  # Backup ಡಿಫಾಲ್ಟ್
+            for cat in VALID_CATEGORIES:
+                if cat.lower() in ai_cat.lower() or ai_cat.lower() in cat.lower():
+                    matched_cat = cat
+                    break
+            return ai_name, matched_cat, ai_desc
+            
+        return "Premium Dress", "Western Wear", "Beautiful design crafted with rich fabric."
     except Exception as e:
         print("AI Error:", e)
-        return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+        return "Premium Dress", "Western Wear", "Beautiful design crafted with rich fabric."
 
+# 🛒 Routes
 class BookingPayload(BaseModel):
     customer_name: str
     customer_phone: str
@@ -164,7 +186,6 @@ class BookingPayload(BaseModel):
     size: str = "M"
     price: str = "₹1299"
 
-# 🛒 Routes
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -306,32 +327,68 @@ async def telegram_webhook(request: Request):
                 if not permanent_url:
                     permanent_url = telegram_image_url
 
-                product_name = "Premium Dress"
-                product_price = "₹1500"
-                product_category = "Suit Set"
+                product_name = ""
+                product_price = ""
+                product_category = ""
                 product_description = "Curated boutique wear."
 
                 if caption:
                     clean_caption = caption.replace("#edit", "").strip()
-                    lines = [l.strip() for l in clean_caption.split("\n") if l.strip()]
-                    clean_text = " ".join(lines)
-                    price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_text)
+                    
+                    split_char = None
+                    for char in ["-", "–", "—"]:
+                        if char in clean_caption:
+                            split_char = char
+                            break
 
-                    if "-" in clean_caption:
-                        parts = clean_caption.split("-")
-                        if len(parts) >= 3:
-                            product_name = parts[0].strip()
-                            product_price = parts[1].strip()
-                            product_category = parts[2].strip()
-                    elif price_match:
-                        product_price = f"₹{price_match.group(1)}"
-                        product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
+                    if split_char:
+                        parts = clean_caption.split(split_char)
+                        if len(parts) >= 1:
+                            # ಉದಾಹರಣೆಗೆ: Leggings 
+                            typed_name = parts[0].strip()
+                            product_name = typed_name
+                            
+                            # ನೀನು ಬರೆದಿರೋ ಹೆಸರು ನಿನ್ನ ಕಲೆಕ್ಷನ್‌ನ ಯಾವುದಾದರೂ ಕ್ಯಾಟಗರಿಗೆ ಮ್ಯಾಚ್ ಆಗುತ್ತಾ ಅಂತ ನೋಡುತ್ತೆ
+                            for cat in VALID_CATEGORIES:
+                                if cat.lower() == typed_name.lower() or typed_name.lower() in cat.lower():
+                                    product_category = cat
+                                    break
+                            
+                            # ಒಂದು ವೇಳೆ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಸಿಗದೇ ಇದ್ದರೆ ಆ ಹೆಸರನ್ನೇ ಕ್ಯಾಟಗರಿಗೂ ಇಡುತ್ತೆ
+                            if not product_category:
+                                product_category = typed_name
+                                
+                        if len(parts) >= 2:
+                            raw_price = parts[1].strip()
+                            if not raw_price.startswith("₹"):
+                                product_price = f"₹{raw_price}"
+                            else:
+                                product_price = raw_price
+                    else:
+                        # ಒಂದು ವೇಳೆ ಹೈಫನ್ ಇಲ್ಲದೆ ಬರೀ ನಂಬರ್ ಕೊಟ್ಟಿದ್ದರೆ
+                        price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_caption)
+                        if price_match:
+                            product_price = f"₹{price_match.group(1)}"
+                            potential_name = clean_caption.replace(price_match.group(0), "").replace("₹", "").strip()
+                            if potential_name:
+                                product_name = potential_name
+                                for cat in VALID_CATEGORIES:
+                                    if cat.lower() == potential_name.lower():
+                                        product_category = cat
+                                        break
+                                if not product_category:
+                                    product_category = potential_name
 
-                if not caption or product_name == "Premium Dress":
+                if not product_price:
+                    product_price = "₹1500"
+
+                # 🔥 ಸೂಪರ್ ಲಾಜಿಕ್: ನೀನು ಬರಿ ಇಮೇಜ್ ಕಳಿಸಿದರೆ ನಿನ್ನ 12 ಕ್ಯಾಟಗರಿಯಲ್ಲಿ ಒಂದನ್ನು ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ ಬಾಸ್
+                if not product_name:
                     ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
                     product_name = ai_name
                     product_category = ai_cat
-                    product_description = ai_desc
+                    if ai_desc:
+                        product_description = ai_desc
 
                 new_id = str(uuid.uuid4())[:6]
                 products_table.insert_one({
@@ -344,7 +401,7 @@ async def telegram_webhook(request: Request):
                 send_whatsapp_image(permanent_url, product_name)
                 requests.post(
                     f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                    json={"chat_id": chat_id, "text": f"✅ Uploaded!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent!"}
+                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent!"}
                 )
         return {"status": "success"}
     except Exception as e:
@@ -426,7 +483,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awnn"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
                 f"See you soon! 🛍️\n"
                 f"Team Dolphin Trends 🐬"
@@ -450,7 +507,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"*{p_name}* is available but your size is currently out of stock.\n\n"
                 f"Please visit our store to check alternatives!\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn\n"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awnn"
                 f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
@@ -461,5 +518,6 @@ def update_booking_status(booking_id: str, action: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
+@app.head("/")
 def home():
     return {"status": "Dolphin Trends Cloudinary Secure Backend Active!"}
