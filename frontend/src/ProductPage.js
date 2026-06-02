@@ -14,7 +14,6 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const shopAddress = "Dolphin Trends, Rajagopala Nagar, Peenya 2nd Stage, Bangalore - 560058";
   const shopLocation = "https://maps.app.goo.gl/zQeV2fcEv2fY625Z7";
-  const ownerPhone = "919353838835";
 
   // Safe fallback for ID matching
   const currentId = product.product_id || product.id;
@@ -69,14 +68,14 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
       });
 
       if (response.ok) {
-        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + ",\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\n📝 *We are currently checking the stock availability for your order. Our team will contact you shortly with confirmation.* 🙏\n\n💥 *Meanwhile, explore our latest collections here:* 👇\n🔗 https://dolphin-trends-two.vercel.appnn📞 Contact: 7411255628\n\nThank you for choosing us! 😊\n*Team Dolphin Trends* 🐬";
-        window.open("https://wa.me/91" + customerPhone + "?text=" + encodeURIComponent(customerMsg), '_blank');
-
-        const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + customerPhone + "\n\n⚙️ *Please update them here:* 👇\n🔗 https://dolphin-trends-two.vercel.app";
-        window.open("https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), '_blank');
-
+        // ✅ ಹಳೇ window.open(wa.me) ಲೈನ್‌ಗಳನ್ನು ಪೂರ್ತಿಯಾಗಿ ತೆಗೆದುಹಾಕಲಾಗಿದೆ!
+        // ಈಗ ಬ್ಯಾಕೆಂಡ್ ಹಿನ್ನೆಲೆಯಲ್ಲಿ ಕಸ್ಟಮರ್‌ಗೆ ಮತ್ತು ಅಡ್ಮಿನ್‌ಗೆ ಇಬ್ಬರಿಗೂ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಕಳಿಸುತ್ತದೆ.
+        
         setShowBuyForm(false);
-        alert("✅ Booking Request Sent Successfully!");
+        setCustomerName('');
+        setCustomerPhone('');
+        setSelectedSize('');
+        alert("🎉 Order Request Sent Successfully!\nCheck your WhatsApp for confirmation details shortly. 😊");
       } else {
         alert("❌ Failed to register booking on server. Try again.");
       }
@@ -116,7 +115,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
         {/* Top Section */}
         <div className="pp-top">
           
-          {/* Left - Image Box (Updated for Perfect Center Out Of Stock Badge) */}
+          {/* Left - Image Box */}
           <div className="pp-img-box" style={{ 
             position: 'relative', 
             overflow: 'hidden', 
@@ -139,7 +138,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
               }}
             />
             
-            {/* 🔴 Out of stock banner - Absolute Center Overlay */}
+            {/* 🔴 Out of stock banner */}
             {product.available === false && (
               <div style={{
                 position: 'absolute',
@@ -265,7 +264,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
           {reviews.length === 0 ? (
             <p style={{color:'#7a85a0', textAlign:'center', padding:'20px'}}>😊 Innu reviews illa!</p>
           ) : (
-            reviews.map((review, idx) => (
+            <reviews.map((review, idx) => (
               <div key={review.id || idx} style={{background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'15px', marginBottom:'12px'}}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
                   <strong style={{color:'#f0f4ff'}}>{review.name}</strong>
