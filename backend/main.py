@@ -3,6 +3,7 @@ import uuid
 import time
 import requests
 import re
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,16 +13,7 @@ import google.generativeai as genai
 import cloudinary
 import cloudinary.uploader
 
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# 🌐 MongoDB & Global Variables Configuration
 MONGO_URL = os.getenv("MONGO_URL")
 GREEN_API_INSTANCE = os.getenv("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
@@ -43,7 +35,6 @@ cloudinary.config(
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
-# 👥 Render Environment Variable ಇಂದ ಮಲ್ಟಿಪಲ್ ಅಡ್ಮಿನ್ ಐಡಿಗಳನ್ನು ಓದುವ ಲಾಜಿಕ್
 raw_users = os.getenv("ALLOWED_USERS", "2113728041")
 ALLOWED_USERS = [int(uid.strip()) for uid in raw_users.split(",") if uid.strip().isdigit()]
 
@@ -60,8 +51,9 @@ if MONGO_URL:
     products_table = db["products"]
     bookings_table = db["bookings"]
 
-@app.on_event("startup")
-async def startup():
+# 🚀 FastAPI Lifespan Handler (ಹಳೇ @app.on_event ಬದಲು ಹೊಸ ಅಪ್ಡೇಟ್)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     if TELEGRAM_BOT_TOKEN:
         try:
             requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook")
@@ -69,10 +61,22 @@ async def startup():
                 f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook",
                 json={"url": f"{BACKEND_URL}/webhook"}
             )
-            print("Webhook set:", r.text)
+            print("Webhook set successfully:", r.text)
         except Exception as e:
-            print("Webhook setup error:", e)
+            print("Webhook setup error during startup:", e)
+    yield
 
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 🛠️ Helper Functions
 def upload_to_cloudinary(image_source, is_file=False):
     try:
         unique_filename = f"prod_{str(uuid.uuid4())[:8]}"
@@ -160,6 +164,7 @@ class BookingPayload(BaseModel):
     size: str = "M"
     price: str = "₹1299"
 
+# 🛒 Routes
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -178,12 +183,10 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
 
-        # 🟢 ಕಸ್ಟಮರ್ ನಂಬರ್ ಫಾರ್ಮ್ಯಾಟ್ ಕ್ಲೀನ್ ಮಾಡಿ Country Code (91) ಸೇರಿಸುವ ಲಾಜಿಕ್
         c_phone = str(payload.customer_phone).replace("+", "").replace(" ", "").strip()
         if len(c_phone) == 10:
             c_phone = f"91{c_phone}"
 
-        # 💌 ಕಸ್ಟಮರ್‌ಗೆ ನೇರವಾಗಿ ತಲುಪಬೇಕಾದ ವೆಲ್ಕಮ್ ಮತ್ತು ಬುಕಿಂಗ್ ಕನ್ಫರ್ಮೇಷನ್ ಮೆಸೇಜ್
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
@@ -200,10 +203,8 @@ def create_booking(payload: BookingPayload):
             f"*Team Dolphin Trends* 🐬"
         )
         
-        # 🚀 Green-API ಮೂಲಕ ನಿನ್ನ ಬಿಸಿನೆಸ್ ನಂಬರ್‌ನಿಂದ ಕಸ್ಟಮರ್ ವಾಟ್ಸಾಪ್‌ಗೆ ಆಟೋಮ್ಯಾಟಿಕ್ ಮೆಸೇಜ್ ಶೂಟ್ ಆಗುತ್ತೆ
         send_whatsapp_msg(c_phone, customer_message)
 
-        # 🛍️ ನಿನಗೆ (ಅಡ್ಮಿನ್‌ಗೆ) ಹೊಸ ಆರ್ಡರ್ ಬಂದ ತಕ್ಷಣ ಬರುವ ಸಣ್ಣ ಅಲರ್ಟ್ ಮೆಸೇಜ್
         admin_alert = (
             f"🛍️ *New Order Alert!*\n\n"
             f"👤 Customer: {payload.customer_name}\n"
@@ -284,7 +285,6 @@ async def telegram_webhook(request: Request):
             message = data["message"]
             chat_id = message["chat"]["id"]
             
-            # 🔐 ಮಲ್ಟಿಪಲ್ ಅಡ್ಮಿನ್ ಸೆಕ್ಯೂರಿಟಿ ಚೆಕ್ ರೋಬಸ್ಟ್ ಆಗಿದೆ
             if chat_id not in ALLOWED_USERS:
                 print(f"Unauthorized Access From: {chat_id}")
                 return {"status": "Ignored"}
@@ -397,6 +397,8 @@ def get_reviews(product_id: str):
 
 @app.post("/reviews")
 def add_review(review: dict):
+    if db is None:
+        raise HTTPException(status_code=500, detail="DB Missing")
     db["reviews"].insert_one(review)
     review.pop("_id", None)
     return review
@@ -424,7 +426,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
                 f"See you soon! 🛍️\n"
                 f"Team Dolphin Trends 🐬"
@@ -448,7 +450,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"*{p_name}* is available but your size is currently out of stock.\n\n"
                 f"Please visit our store to check alternatives!\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn"
+                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awn\n"
                 f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
