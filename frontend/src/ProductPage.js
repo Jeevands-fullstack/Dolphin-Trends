@@ -264,7 +264,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
           {reviews.length === 0 ? (
             <p style={{color:'#7a85a0', textAlign:'center', padding:'20px'}}>😊 Innu reviews illa!</p>
           ) : (
-            <reviews.map((review, idx) => (
+             reviews.map((review, idx) => (
               <div key={review.id || idx} style={{background:'#0f0f1e', border:'1px solid #1a4fff44', borderRadius:'12px', padding:'15px', marginBottom:'12px'}}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
                   <strong style={{color:'#f0f4ff'}}>{review.name}</strong>
