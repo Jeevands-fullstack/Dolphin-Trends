@@ -38,9 +38,13 @@ if GOOGLE_API_KEY:
 raw_users = os.getenv("ALLOWED_USERS", "2113728041")
 ALLOWED_USERS = [int(uid.strip()) for uid in raw_users.split(",") if uid.strip().isdigit()]
 
-YOUR_PERSONAL_PHONE = "917411255628"
+# 📱 3 Personal Phone Numbers & 1 WhatsApp Group ID Setup via Environment Variables
+YOUR_PERSONAL_PHONE = "917411255628"  # 1st number hardcoded
+SECOND_PERSONAL_PHONE = os.getenv("SECOND_PERSONAL_PHONE", "91XXXXXXXXXX")  # 2nd number from Render
+THIRD_PERSONAL_PHONE = os.getenv("THIRD_PERSONAL_PHONE", "91XXXXXXXXXX")    # 3rd number from Render
+YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "120363293847291048@g.us")  # Group ID from Render
 
-# 🔥 ಬಾಸ್, ಇವೇ ನಿನ್ನ ವೆಬ್‌ಸೈಟ್‌ನಲ್ಲಿರೋ ಪಕ್ಕಾ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್!
+# 🔥 Website ನಲ್ಲಿರೋ ಪಕ್ಕಾ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್!
 VALID_CATEGORIES = [
     "Leggings", "Kurta Sets", "Jeans", "Patiala Pants", "Kurtha Top", 
     "Umbrella Sets", "Frocks", "Western Wear", "Gym Pants", "250 Tops", 
@@ -99,6 +103,7 @@ def upload_to_cloudinary(image_source, is_file=False):
         print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
+# 🔥 ಈ ಫಂಕ್ಷನ್ ಬರೀ ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಮಾತ್ರ ಇಮೇಜ್ ಮತ್ತು ಲಿಂಕ್ ಕಳಿಸುತ್ತೆ
 def send_whatsapp_image(image_url, product_name):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
@@ -111,34 +116,39 @@ def send_whatsapp_image(image_url, product_name):
             f"🔗 {FRONTEND_URL}"
         )
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
+        
         payload = {
-            "chatId": f"{YOUR_PERSONAL_PHONE}@c.us",
+            "chatId": YOUR_WHATSAPP_GROUP_ID,
             "urlFile": image_url,
             "fileName": f"{product_name.replace(' ', '_')}.jpg",
             "caption": caption
         }
-        response = requests.post(url, json=payload, timeout=30)
-        print("WhatsApp Status:", response.status_code, response.text)
-        return response.status_code == 200
+        requests.post(url, json=payload, timeout=30)
+            
+        return True
     except Exception as e:
-        print("WhatsApp Error:", str(e))
+        print("WhatsApp Image Error:", str(e))
         return False
 
-def send_whatsapp_msg(phone, message):
+def send_whatsapp_msg(phone_or_chat_id, message):
     if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
         return False
-    phone = str(phone).replace("+", "").replace(" ", "").strip()
-    if len(phone) == 10:
-        phone = f"91{phone}"
-    chat_id = f"{phone}@c.us"
     url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
     try:
+        if "@g.us" in str(phone_or_chat_id):
+            chat_id = phone_or_chat_id
+        else:
+            phone = str(phone_or_chat_id).replace("+", "").replace(" ", "").strip()
+            if len(phone) == 10:
+                phone = f"91{phone}"
+            chat_id = f"{phone}@c.us"
+            
         requests.post(url, json={"chatId": chat_id, "message": message}, timeout=5)
         return True
-    except:
+    except Exception as e:
+        print("WhatsApp Msg Error:", str(e))
         return False
 
-# 🔥 ನಿನ್ನ ಲಿಸ್ಟ್‌ನಲ್ಲಿರೋ ಕ್ಯಾಟಗರಿ ಮಾತ್ರ ಮ್ಯಾಚ್ ಮಾಡಲು AI ಪ್ರಾಂಪ್ಟ್
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
@@ -164,8 +174,7 @@ def generate_product_details_via_ai(image_url):
             ai_cat = parts[1].strip()
             ai_desc = parts[2].strip() if len(parts) > 2 else "Beautiful outfit."
             
-            # AI ಕೊಟ್ಟಿರೋ ಕ್ಯಾಟಗರಿ ನಿನ್ನ ಲಿಸ್ಟ್‌ನಲ್ಲಿದೆಯಾ ಅಂತ ಕ್ರಾಸ್ ಚೆಕ್ ಮಾಡುತ್ತೆ
-            matched_cat = "Western Wear"  # Backup ಡಿಫಾಲ್ಟ್
+            matched_cat = "Western Wear"
             for cat in VALID_CATEGORIES:
                 if cat.lower() in ai_cat.lower() or ai_cat.lower() in cat.lower():
                     matched_cat = cat
@@ -226,14 +235,22 @@ def create_booking(payload: BookingPayload):
         
         send_whatsapp_msg(c_phone, customer_message)
 
+        # 🔥 ನೀನು ಕೇಳಿದ ಹೊಸ "New Buy Request" ಅಲರ್ಟ್ ಫಾರ್ಮ್ಯಾಟ್ ಇಲ್ಲಿದೆ ಬಾಸ್!
         admin_alert = (
-            f"🛍️ *New Order Alert!*\n\n"
-            f"👤 Customer: {payload.customer_name}\n"
-            f"📞 Phone: {payload.customer_phone}\n"
-            f"👗 Product: {payload.product_name} ({payload.size})\n"
-            f"💰 Price: {payload.price}"
+            f"🛍️ *New Buy Request!*\n\n"
+            f"👗 *Product:* {payload.product_name}\n"
+            f"📏 Size: {payload.size}\n"
+            f"💰 Price: {payload.price}\n"
+            f"👤 Name: {payload.customer_name}\n"
+            f"📞 Phone: {payload.customer_phone}\n\n"
+            f"⚙️ *Please update here:* 👇\n"
+            f"🔗 {FRONTEND_URL}"
         )
-        send_whatsapp_msg(YOUR_PERSONAL_PHONE, admin_alert)
+        
+        # 🎯 ಈ ಮೂರೂ ಪರ್ಸನಲ್ ನಂಬರ್‌ಗಳಿಗೆ ಹೊಸ ಫಾರ್ಮ್ಯಾಟ್‌ನಲ್ಲಿ ಅಲರ್ಟ್ ಹೋಗುತ್ತೆ
+        admin_numbers = [YOUR_PERSONAL_PHONE, SECOND_PERSONAL_PHONE, THIRD_PERSONAL_PHONE]
+        for num in admin_numbers:
+            send_whatsapp_msg(num, admin_alert)
 
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
@@ -347,7 +364,6 @@ async def telegram_webhook(request: Request):
                             typed_name = parts[0].strip()
                             product_name = typed_name
                             
-                            # 🔥 ಸ್ಮಾರ್ಟ್ ಮ್ಯಾಚಿಂಗ್ ಲಾಜಿಕ್: ಸ್ಪೆಲ್ಲಿಂಗ್ ಸಿಂಗುಲರ್/ಪ್ಲೂರಲ್ ವ್ಯತ್ಯಾಸ ಇದ್ರೂ ವ್ಯಾಲಿಡ್ ಲಿಸ್ಟ್‌ಗೆ ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ
                             typed_lower = typed_name.lower().replace(" ", "")
                             typed_singular = typed_lower.rstrip('s') 
 
@@ -355,7 +371,6 @@ async def telegram_webhook(request: Request):
                                 cat_lower = cat.lower().replace(" ", "")
                                 cat_singular = cat_lower.rstrip('s')
                                 
-                                # ಪೂರ್ತಿ ಸಬ್‌ಸ್ಟ್ರಿಂಗ್ ಮ್ಯಾಚ್ ಆದರೆ (ಉದಾ: patialapant -> patialapants)
                                 if (typed_singular in cat_singular) or (cat_singular in typed_singular):
                                     product_category = cat
                                     break
@@ -389,7 +404,6 @@ async def telegram_webhook(request: Request):
                 if not product_price:
                     product_price = "₹1500"
 
-                # ಬರಿ ಇಮೇಜ್ ಕಳಿಸಿದರೆ AI ನಿನ್ನ ಲಿಸ್ಟ್ ಒಳಗಡೆನೇ ಮ್ಯಾಚ್ ಮಾಡುತ್ತೆ ಬಾಸ್
                 if not product_name:
                     ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
                     product_name = ai_name
@@ -408,7 +422,7 @@ async def telegram_webhook(request: Request):
                 send_whatsapp_image(permanent_url, product_name)
                 requests.post(
                     f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent!"}
+                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent to Group!"}
                 )
         return {"status": "success"}
     except Exception as e:
