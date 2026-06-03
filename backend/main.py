@@ -235,7 +235,7 @@ def create_booking(payload: BookingPayload):
         
         send_whatsapp_msg(c_phone, customer_message)
 
-        # 🔥 ನೀನು ಕೇಳಿದ ಹೊಸ "New Buy Request" ಅಲರ್ಟ್ ಫಾರ್ಮ್ಯಾಟ್ ಇಲ್ಲಿದೆ ಬಾಸ್!
+        # 🔥 ಹೊಸ "New Buy Request" ಅಲರ್ಟ್ ಫಾರ್ಮ್ಯಾಟ್
         admin_alert = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -247,7 +247,6 @@ def create_booking(payload: BookingPayload):
             f"🔗 {FRONTEND_URL}"
         )
         
-        # 🎯 ಈ ಮೂರೂ ಪರ್ಸನಲ್ ನಂಬರ್‌ಗಳಿಗೆ ಹೊಸ ಫಾರ್ಮ್ಯಾಟ್‌ನಲ್ಲಿ ಅಲರ್ಟ್ ಹೋಗುತ್ತೆ
         admin_numbers = [YOUR_PERSONAL_PHONE, SECOND_PERSONAL_PHONE, THIRD_PERSONAL_PHONE]
         for num in admin_numbers:
             send_whatsapp_msg(num, admin_alert)
@@ -498,16 +497,20 @@ def update_booking_status(booking_id: str, action: str):
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
 
+        # 🔥 ಇಲ್ಲಿ ಹೊಸ ಪ್ರೊಫೆಷನಲ್ ಮೆಸೇಜ್ ಮತ್ತು ಮ್ಯಾಪ್ ಲಿಂಕ್ ಅಪ್ಡೇಟ್ ಮಾಡಲಾಗಿದೆ ಬಾಸ್!
         if action == "agree":
             msg = (
-                f"Hello {c_name}! ✅\n\n"
-                f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
+                f"🎉 *Order Update from Dolphin Trends!* 🐬\n\n"
+                f"Dear {c_name},\n"
+                f"Good news! Your selected product *{p_name}* is available in our stock. ✅\n\n"
+                f"🛍️ *Please visit our shop to collect your product:* 👇\n\n"
                 f"🏪 *Store Address:*\n"
-                f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awnn"
-                f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
-                f"See you soon! 🛍️\n"
-                f"Team Dolphin Trends 🐬"
+                f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n\n"
+                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68\n"
+                f"⏰ *Timings:* 11:00 AM - 10:00 PM\n\n"
+                f"We look forward to seeing you soon! Thank you for shopping with us. 🙏✨\n\n"
+                f"🌐 *Visit our website:* {FRONTEND_URL}\n"
+                f"*Team Dolphin Trends* 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
@@ -528,7 +531,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"*{p_name}* is available but your size is currently out of stock.\n\n"
                 f"Please visit our store to check alternatives!\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/amrkmppGsdgprtx27?g_st=awnn"
+                f"📍 Location Map: https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68\n"
                 f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
