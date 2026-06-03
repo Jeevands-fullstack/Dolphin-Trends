@@ -38,7 +38,8 @@ function BookingModal({ product, onClose }) {
       });
 
       if (response.ok) {
-        const customerMsg = "🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi " + customerName + ",\n\nYou have selected:\n👗 *" + product.name + "*\n📏 Size: " + selectedSize + "\n💰 Price: " + product.price + "\n\n📝 *We are checking stock availability. Our team will contact you shortly.* 🙏\n\n💥 *Explore collections:*\n🔗 https://dolphin-trends-two.vercel.app\n\n📞 Contact: 7411255628\n\nThank you! 😊\n*Team Dolphin Trends* 🐬";
+        // 📱 ಕಸ್ಟಮರ್‌ಗೆ ಹೋಗೋ ಪಕ್ಕಾ ಪ್ರೊಫೆಷನಲ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ (ಲಿಂಕ್ ಕಳಿಸೋದು ಇಲ್ಲಿ ಸೆಟ್ ಮಾಡಿದೆ)
+        const customerMsg = `🎉 *Welcome to Dolphin Trends!* 🐬\n\nHi ${customerName},\n\nThank you for choosing us! We have received your order request:\n👗 *${product.name}*\n📏 Size: *${selectedSize}*\n💰 Price: *${product.price}*\n\n🎁 *WANT 10% INSTANT DISCOUNT?* 😍\nIt's very simple! Just follow our Instagram page right now:\n🔗 https://www.instagram.com/dolphin_trendsnn*(After following, reply 'DONE' here. Our team will verify and apply your 10% discount immediately before confirming the order! ⚡)*\n\n📝 *Current Status:* We are checking stock availability. Our team will contact you shortly.\n\n📞 Need Help? Contact: 7411255628\n\nThank you! 😊\n*Team Dolphin Trends* 🐬`;
         window.open("https://wa.me/91" + phone + "?text=" + encodeURIComponent(customerMsg), '_blank');
 
         const ownerMsg = "🛍️ *New Buy Request!*\n\n👗 " + product.name + "\n📏 Size: " + selectedSize + "\n💰 " + product.price + "\n👤 " + customerName + "\n📱 " + phone + "\n\n⚙️ *Admin Panel:*\n🔗 https://dolphin-trends-two.vercel.app";
