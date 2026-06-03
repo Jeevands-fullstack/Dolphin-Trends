@@ -41,7 +41,7 @@ function App() {
     'Western Wear', 'Gym Pants','250 Tops','350 Tops','Jeans Tops',
   ];
 
-  // 🔄 ಪ್ರಾಡಕ್ಟ್‌ಗಳನ್ನು ತರುವುದು (ಇಮೇಜ್ ಮಿಸ್‌ಮ್ಯಾಚ್ ತಡೆಯಲು ಲೈವ್ ಟೈಮ್‌ಸ್ಟ್ಯಾಂಪ್ ಫಿಕ್ಸ್ ಮಾಡಲಾಗಿದೆ)
+  // 🔄 ಪ್ರಾಡಕ್ಟ್‌ಗಳನ್ನು ತರುವುದು
   const fetchProducts = () => {
     setLoading(true);
     fetch(`${API}/products?_ts=${Date.now()}`)
@@ -91,12 +91,12 @@ function App() {
     setShowAdmin(true); 
   };
 
-  // 🎯 ಪ್ರಾಡಕ್ಟ್ ಸೇವ್ ಅಥವಾ ಎಡಿಟ್ ಮುಗಿದ ತಕ್ಷಣ ರನ್ ಆಗುವ ಫಂಕ್ಷನ್ (ಪಕ್ಕಾ ಶಾಪ್ ವ್ಯೂಗೆ ಕಳುಹಿಸುತ್ತೆ)
+  // 🎯 ಪ್ರಾಡಕ್ಟ್ ಸೇವ್ ಅಥವಾ ಎಡಿಟ್ ಮುಗಿದ ತಕ್ಷಣ ರನ್ ಆಗುವ ಫಂಕ್ಷನ್
   const handleProductAddedSuccess = () => {
     fetchProducts();
     setEditProductData(null);
     setShowAdmin(false);
-    setActivePage('shop'); // ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ವೆಬ್‌ಸೈಟ್ ಹೋಮ್ ಪೇಜ್‌ಗೆ ರೀಡೈರೆಕ್ಟ್ ಆಗುತ್ತೆ
+    setActivePage('shop'); 
   };
 
   const filtered = activeCategory === 'All' ? products : products.filter(p => p.category === activeCategory);
@@ -111,12 +111,33 @@ function App() {
             <p>Women's Fashion · Bangalore</p>
           </div>
         </div>
+        
+        {/* 📋 Navigation Links - ಇಮೇಜ್‌ನಲ್ಲಿರೋ ಹಾಗೆ Location ಪಕ್ಕದಲ್ಲೇ Instagram ಬಟನ್ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ */}
         <ul className="navbar-links">
           <li><button className={activePage === 'shop' && !showAdmin ? 'active' : ''} onClick={() => { setActivePage('shop'); setShowAdmin(false); }}>🛍️ Shop</button></li>
           <li><button className={activePage === 'branches' ? 'active' : ''} onClick={() => { setActivePage('branches'); setShowAdmin(false); }}>🏪 Branches</button></li>
           <li><button className={activePage === 'contact' ? 'active' : ''} onClick={() => { setActivePage('contact'); setShowAdmin(false); }}>📞 Contact</button></li>
           <li><button className={activePage === 'location' ? 'active' : ''} onClick={() => { setActivePage('location'); setShowAdmin(false); }}>📍 Location</button></li>
+          
+          {/* 📸 ಹೊಸ ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಮೆನು ಬಟನ್ */}
+          <li>
+            <button 
+              className="insta-nav-btn" 
+              onClick={() => window.open('https://www.instagram.com/dolphintrends_blr', '_blank')}
+              style={{
+                background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'transform 0.2s'
+              }}
+            >
+              📸 Instagram
+            </button>
+          </li>
         </ul>
+        
         <div className="navbar-right">
           <button className="admin-btn" onClick={() => isAdminLoggedIn ? (setIsAdminLoggedIn(false) || setShowAdmin(false) || setEditProductData(null) || fetchProducts()) : setShowAdmin(!showAdmin)}>
             {isAdminLoggedIn ? '🔓 Logout' : '🛠️ Admin'}
@@ -211,6 +232,10 @@ function App() {
                 box-shadow: 0 6px 20px rgba(26, 108, 255, 0.5);
                 color: #fff;
               }
+              .insta-nav-btn:hover {
+                transform: scale(1.05);
+                opacity: 0.9;
+              }
             `}</style>
 
             <form onSubmit={handleAdminLoginSubmit} className="login-box" style={{ padding: '40px 35px', borderRadius: '20px', width: '100%', maxWidth: '390px', textAlign: 'center' }}>
@@ -269,7 +294,6 @@ function App() {
                     {filtered.map(product => (
                       <div className={product.available === false ? 'product-card not-available' : 'product-card'} key={product.product_id || product.id} style={{ position: 'relative' }}>
                         
-                        {/* 🛠️ ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಫೋಟೋ ಮೇಲ್ಗಡೆ ಎಡಿಟ್ ಮತ್ತು ಡಿಲೀಟ್ ಬಟನ್ */}
                         {isAdminLoggedIn && (
                           <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px', zIndex: 10, background: 'rgba(11,19,41,0.85)', padding: '6px', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
                             <button onClick={() => handleEditClick(product)} style={{ background: '#f59e0b', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>✏️ Edit</button>
@@ -277,7 +301,6 @@ function App() {
                           </div>
                         )}
 
-                        {/* ⚡ ಅಪ್ಡೇಟ್ ಮಾಡಲಾದ ಇಮೇಜ್ ವ್ಯಾಪರ್ - ಪಕ್ಕಾ ಸೆಂಟರ್ Out Of Stock ಬ್ಯಾನರ್ */}
                         <div 
                           className="product-card-img-wrap" 
                           onClick={() => setFullScreenImage(product.image)} 
@@ -300,7 +323,6 @@ function App() {
                             }}
                           />
 
-                          {/* 🛑 ಸ್ಟಾಕ್ ಇಲ್ಲದಿದ್ದರೆ ಫೋಟೋದ ಪಕ್ಕಾ ಸೆಂಟರ್‌ನಲ್ಲಿ ಬರೆಯಲು: */}
                           {product.available === false && (
                             <div style={{
                               position: 'absolute',
