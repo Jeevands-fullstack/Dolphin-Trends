@@ -21,7 +21,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
-INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends"  # 📸 ನಿನ್ನ ಅಸಲಿ ಇನ್‌ಸ್ಟಾ ಲಿಂಕ್
+INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends"
 
 CLOUDINARY_CLOUD_NAME = "diqwkall4"
 CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "YOUR_API_KEY")
@@ -40,7 +40,7 @@ raw_users = os.getenv("ALLOWED_USERS", "2113728041")
 ALLOWED_USERS = [int(uid.strip()) for uid in raw_users.split(",") if uid.strip().isdigit()]
 
 # 📱 Phone Numbers & WhatsApp Group ID Setup
-YOUR_PERSONAL_PHONE = "917411255628"  # 1st number hardcoded
+YOUR_PERSONAL_PHONE = "917411255628"
 SECOND_PERSONAL_PHONE = os.getenv("SECOND_PERSONAL_PHONE", "91XXXXXXXXXX")
 THIRD_PERSONAL_PHONE = os.getenv("THIRD_PERSONAL_PHONE", "91XXXXXXXXXX")
 YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "120363293847291048@g.us")
@@ -194,7 +194,6 @@ class BookingPayload(BaseModel):
     image_url: str
     size: str = "M"
     price: str = "₹1299"
-    followed_insta: bool = False
 
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
@@ -203,32 +202,7 @@ def create_booking(payload: BookingPayload):
     try:
         booking_id = str(uuid.uuid4())[:8]
         
-        final_price = payload.price
-        discount_applied_status = "No"
-        is_discount_successful = False
-        
-        # 🔒 Number Lock & Auto Discount Logic
-        if payload.followed_insta:
-            # ಚೆಕ್: ಈ ಫೋನ್ ನಂಬರ್ ಮುಂಚೆನೇ ಇನ್‌ಸ್ಟಾ ಡಿಸ್ಕೌಂಟ್ ತಗೊಂಡಿದ್ಯಾ?
-            already_used_discount = bookings_table.find_one({
-                "customer_phone": payload.customer_phone,
-                "insta_discount": True
-            })
-            
-            if already_used_discount:
-                discount_applied_status = "Rejected (Already used once by this number)"
-            else:
-                try:
-                    # ಪ್ರೈಸ್ ಇಂದ ನಂಬರ್ ಮಾತ್ರ ತಗೊಂಡು 10% ಕಟ್ ಮಾಡೋದು
-                    numeric_price = int(re.sub(r'[^\d]', '', payload.price))
-                    discounted_numeric = int(numeric_price * 0.90)
-                    final_price = f"₹{discounted_numeric}"
-                    discount_applied_status = "Yes (10% Insta Discount!)"
-                    is_discount_successful = True
-                except Exception as parse_err:
-                    print("Price Parsing Error:", parse_err)
-
-        # 💾 Database Save
+        # 💾 Database Save (ಮಾಮೂಲಿ ಸಿಂಪಲ್ ಬುಕ್ಕಿಂಗ್ ಸೇವ್ ಆಗುತ್ತೆ)
         booking_data = {
             "booking_id": booking_id,
             "customer_name": payload.customer_name,
@@ -236,8 +210,7 @@ def create_booking(payload: BookingPayload):
             "product_name": payload.product_name,
             "image_url": payload.image_url,
             "size": payload.size,
-            "price": final_price,
-            "insta_discount": is_discount_successful,
+            "price": payload.price,
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
@@ -246,40 +219,31 @@ def create_booking(payload: BookingPayload):
         if len(c_phone) == 10:
             c_phone = f"91{c_phone}"
 
-        # 📱 Dynamic WhatsApp Message for Customer
-        # ಇನ್‌ಸ್ಟಾ ಫಾಲೋ ಆಗಿ ಡಿಸ್ಕೌಂಟ್ ಸಿಕ್ಕಿದ್ರೆ ಮಾತ್ರ ಸ್ಪೆಷಲ್ ಲೈನ್ ಆಡ್ ಆಗುತ್ತೆ
-        insta_status_line = ""
-        if is_discount_successful:
-            insta_status_line = f"💰 Price: {final_price} *(10% Instagram Discount Applied! 😍)*\n📸 Instagram Followed: *Yes*\n"
-        else:
-            insta_status_line = f"💰 Price: {final_price}\n"
-
+        # 📱 ಕಸ್ಟಮರ್‌ಗೆ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಹೋಗೋ ಪ್ರೊಫೆಷನಲ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ (ಇನ್‌ಸ್ಟಾ ಲಿಂಕ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ!)
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
-            f"You have selected:\n"
+            f"Thank you for choosing us! We have received your order request:\n"
             f"👗 *{payload.product_name}*\n"
-            f"📏 Size: {payload.size}\n"
-            f"{insta_status_line}\n"
-            f"📝 *We are currently checking the stock availability for your order. "
-            f"Our team will contact you shortly with confirmation.* 🙏\n\n"
-            f"📸 *Follow our Instagram for more updates:* 👇\n"
+            f"📏 Size: *{payload.size}*\n"
+            f"💰 Price: *{payload.price}*\n\n"
+            f"🎁 *WANT 10% INSTANT DISCOUNT?* 😍\n"
+            f"It's very simple! Just follow our Instagram page right now:\n"
             f"🔗 {INSTAGRAM_URL}\n\n"
-            f"💥 *Explore our latest collections here:* 👇\n"
-            f"🔗 {FRONTEND_URL}\n\n"
-            f"📞 Contact: 7411255628\n\n"
-            f"Thank you for choosing us! 😊\n"
+            f"*(After following, reply 'DONE' here. Our team will verify and apply your 10% discount immediately before confirming the order! ⚡)*\n\n"
+            f"📝 *Current Status:* We are checking stock availability. Our team will contact you shortly.\n\n"
+            f"📞 Need Help? Contact: 7411255628\n\n"
+            f"Thank you! 😊\n"
             f"*Team Dolphin Trends* 🐬"
         )
         send_whatsapp_msg(c_phone, customer_message)
 
-        # 🛍️ Admin Alert Notification
+        # 🛍️ ಅಡ್ಮಿನ್‌ಗೆ ಹೋಗೋ ಅಲರ್ಟ್ ನೋಟಿಫಿಕೇಶನ್
         admin_alert = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Final Price: {final_price}\n"
-            f"📸 Instagram Discount Status: *{discount_applied_status}*\n"
+            f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
             f"⚙️ *Update Status Here:* 👇\n"
@@ -290,7 +254,7 @@ def create_booking(payload: BookingPayload):
         for num in admin_numbers:
             send_whatsapp_msg(num, admin_alert)
 
-        return {"status": "success", "booking_id": booking_id, "final_price": final_price}
+        return {"status": "success", "booking_id": booking_id, "final_price": payload.price}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -533,7 +497,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"🛍️ *Please visit our shop to collect your product:* 👇\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n\n"
-                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68\n\n"
+                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68nn"
                 f"⏰ *Timings:* 11:00 AM - 10:00 PM\n\n"
                 f"We look forward to seeing you soon! Thank you for shopping with us. 🙏\n\n"
                 f"🌐 *Visit website:* {FRONTEND_URL}\n"
