@@ -21,7 +21,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
-INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends" # 📸 ನಿನ್ನ ಅಸಲಿ ಇನ್‌ಸ್ಟಾ ಲಿಂಕ್ ಇಲ್ಲಿ ಹಾಕು ಬಾಸ್
+INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends"  # 📸 ನಿನ್ನ ಅಸಲಿ ಇನ್‌ಸ್ಟಾ ಲಿಂಕ್
 
 CLOUDINARY_CLOUD_NAME = "diqwkall4"
 CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "YOUR_API_KEY")
@@ -39,13 +39,13 @@ if GOOGLE_API_KEY:
 raw_users = os.getenv("ALLOWED_USERS", "2113728041")
 ALLOWED_USERS = [int(uid.strip()) for uid in raw_users.split(",") if uid.strip().isdigit()]
 
-# 📱 3 Personal Phone Numbers & 1 WhatsApp Group ID Setup via Environment Variables
+# 📱 Phone Numbers & WhatsApp Group ID Setup
 YOUR_PERSONAL_PHONE = "917411255628"  # 1st number hardcoded
-SECOND_PERSONAL_PHONE = os.getenv("SECOND_PERSONAL_PHONE", "91XXXXXXXXXX")  # 2nd number from Render
-THIRD_PERSONAL_PHONE = os.getenv("THIRD_PERSONAL_PHONE", "91XXXXXXXXXX")    # 3rd number from Render
-YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "120363293847291048@g.us")  # Group ID from Render
+SECOND_PERSONAL_PHONE = os.getenv("SECOND_PERSONAL_PHONE", "91XXXXXXXXXX")
+THIRD_PERSONAL_PHONE = os.getenv("THIRD_PERSONAL_PHONE", "91XXXXXXXXXX")
+YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "120363293847291048@g.us")
 
-# 🔥 Website ನಲ್ಲಿರೋ ಪಕ್ಕಾ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್!
+# 🔥 Valid Categories List
 VALID_CATEGORIES = [
     "Leggings", "Kurta Sets", "Jeans", "Patiala Pants", "Kurtha Top", 
     "Umbrella Sets", "Frocks", "Western Wear", "Gym Pants", "250 Tops", 
@@ -104,7 +104,6 @@ def upload_to_cloudinary(image_source, is_file=False):
         print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
-# 🔥 ಈ ಫಂಕ್ಷನ್ ಬರೀ ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಮಾತ್ರ ಇಮೇಜ್ ಮತ್ತು ಲಿಂಕ್ ಕಳಿಸುತ್ತೆ
 def send_whatsapp_image(image_url, product_name):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
@@ -127,7 +126,6 @@ def send_whatsapp_image(image_url, product_name):
             "caption": caption
         }
         requests.post(url, json=payload, timeout=30)
-            
         return True
     except Exception as e:
         print("WhatsApp Image Error:", str(e))
@@ -183,13 +181,12 @@ def generate_product_details_via_ai(image_url):
                     matched_cat = cat
                     break
             return ai_name, matched_cat, ai_desc
-            
         return "Premium Dress", "Western Wear", "Beautiful design crafted with rich fabric."
     except Exception as e:
         print("AI Error:", e)
         return "Premium Dress", "Western Wear", "Beautiful design crafted with rich fabric."
 
-# 🛒 Routes
+# 🛒 Routes & Models
 class BookingPayload(BaseModel):
     customer_name: str
     customer_phone: str
@@ -197,7 +194,7 @@ class BookingPayload(BaseModel):
     image_url: str
     size: str = "M"
     price: str = "₹1299"
-    followed_insta: bool = False # 🔥 ಫ್ರಂಟ್‌ಎಂಡ್‌ನಿಂದ ಇನ್‌ಸ್ಟಾ ಫಾಲೋ ಆಗಿದ್ಯಾ ಇಲ್ವಾ ಅಂತ ಚೆಕ್ ಮಾಡೋಕೆ ಹೊಸ ಫೀಲ್ಡ್!
+    followed_insta: bool = False
 
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
@@ -206,20 +203,32 @@ def create_booking(payload: BookingPayload):
     try:
         booking_id = str(uuid.uuid4())[:8]
         
-        # 💸 ಇನ್‌ಸ್ಟಾ ಫಾಲೋ ಮಾಡಿದ್ರೆ ಪ್ರೈಸ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್ ಇಲ್ಲೇ ಚೇಂಜ್ ಆಗುತ್ತೆ ಬಾಸ್!
         final_price = payload.price
-        discount_applied = "No"
+        discount_applied_status = "No"
+        is_discount_successful = False
         
+        # 🔒 Number Lock & Auto Discount Logic
         if payload.followed_insta:
-            try:
-                # ₹ ಸಂಕೇತ ತೆಗೆದು ಕೇವಲ ನಂಬರ್ ತಗೊಂಡು 10% ಕಮ್ಮಿ ಮಾಡೋದು
-                numeric_price = int(re.sub(r'[^\d]', '', payload.price))
-                discounted_numeric = int(numeric_price * 0.90)
-                final_price = f"₹{discounted_numeric}"
-                discount_applied = "Yes (10% Insta Discount!)"
-            except Exception as parse_err:
-                print("Price Parsing Error:", parse_err)
+            # ಚೆಕ್: ಈ ಫೋನ್ ನಂಬರ್ ಮುಂಚೆನೇ ಇನ್‌ಸ್ಟಾ ಡಿಸ್ಕೌಂಟ್ ತಗೊಂಡಿದ್ಯಾ?
+            already_used_discount = bookings_table.find_one({
+                "customer_phone": payload.customer_phone,
+                "insta_discount": True
+            })
+            
+            if already_used_discount:
+                discount_applied_status = "Rejected (Already used once by this number)"
+            else:
+                try:
+                    # ಪ್ರೈಸ್ ಇಂದ ನಂಬರ್ ಮಾತ್ರ ತಗೊಂಡು 10% ಕಟ್ ಮಾಡೋದು
+                    numeric_price = int(re.sub(r'[^\d]', '', payload.price))
+                    discounted_numeric = int(numeric_price * 0.90)
+                    final_price = f"₹{discounted_numeric}"
+                    discount_applied_status = "Yes (10% Insta Discount!)"
+                    is_discount_successful = True
+                except Exception as parse_err:
+                    print("Price Parsing Error:", parse_err)
 
+        # 💾 Database Save
         booking_data = {
             "booking_id": booking_id,
             "customer_name": payload.customer_name,
@@ -228,7 +237,7 @@ def create_booking(payload: BookingPayload):
             "image_url": payload.image_url,
             "size": payload.size,
             "price": final_price,
-            "insta_discount": payload.followed_insta,
+            "insta_discount": is_discount_successful,
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
@@ -237,37 +246,43 @@ def create_booking(payload: BookingPayload):
         if len(c_phone) == 10:
             c_phone = f"91{c_phone}"
 
-        # ಕಸ್ಟಮರ್‌ಗೆ ಹೋಗೋ ಕನ್ಫರ್ಮೆಷನ್ ಮೆಸೇಜ್
+        # 📱 Dynamic WhatsApp Message for Customer
+        # ಇನ್‌ಸ್ಟಾ ಫಾಲೋ ಆಗಿ ಡಿಸ್ಕೌಂಟ್ ಸಿಕ್ಕಿದ್ರೆ ಮಾತ್ರ ಸ್ಪೆಷಲ್ ಲೈನ್ ಆಡ್ ಆಗುತ್ತೆ
+        insta_status_line = ""
+        if is_discount_successful:
+            insta_status_line = f"💰 Price: {final_price} *(10% Instagram Discount Applied! 😍)*\n📸 Instagram Followed: *Yes*\n"
+        else:
+            insta_status_line = f"💰 Price: {final_price}\n"
+
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
             f"You have selected:\n"
             f"👗 *{payload.product_name}*\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Price: {final_price} " + (f"(10% Insta Discount Applied! 😍)" if payload.followed_insta else "") + f"\n\n"
+            f"{insta_status_line}\n"
             f"📝 *We are currently checking the stock availability for your order. "
             f"Our team will contact you shortly with confirmation.* 🙏\n\n"
-            f"📸 *Follow our Instagram for more updates & trends:* 👇\n"
+            f"📸 *Follow our Instagram for more updates:* 👇\n"
             f"🔗 {INSTAGRAM_URL}\n\n"
-            f"💥 *Meanwhile, explore our latest collections here:* 👇\n"
+            f"💥 *Explore our latest collections here:* 👇\n"
             f"🔗 {FRONTEND_URL}\n\n"
             f"📞 Contact: 7411255628\n\n"
             f"Thank you for choosing us! 😊\n"
             f"*Team Dolphin Trends* 🐬"
         )
-        
         send_whatsapp_msg(c_phone, customer_message)
 
-        # ಅಡ್ಮಿನ್‌ಗೆ ಹೋಗೋ ಅಲರ್ಟ್‌ನಲ್ಲಿ ಡಿಸ್ಕೌಂಟ್ ಡೀಟೇಲ್ಸ್ ಕಾಣಿಸುತ್ತೆ
+        # 🛍️ Admin Alert Notification
         admin_alert = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
             f"💰 Final Price: {final_price}\n"
-            f"📸 Insta Discount Applied: {discount_applied}\n"
+            f"📸 Instagram Discount Status: *{discount_applied_status}*\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Please update here:* 👇\n"
+            f"⚙️ *Update Status Here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
         
@@ -347,7 +362,6 @@ async def telegram_webhook(request: Request):
             chat_id = message["chat"]["id"]
             
             if chat_id not in ALLOWED_USERS:
-                print(f"Unauthorized Access From: {chat_id}")
                 return {"status": "Ignored"}
 
             if "photo" in message:
@@ -374,7 +388,6 @@ async def telegram_webhook(request: Request):
 
                 if caption:
                     clean_caption = caption.replace("#edit", "").strip()
-                    
                     split_char = None
                     for char in ["-", "–", "—"]:
                         if char in clean_caption:
@@ -386,27 +399,19 @@ async def telegram_webhook(request: Request):
                         if len(parts) >= 1:
                             typed_name = parts[0].strip()
                             product_name = typed_name
-                            
-                            typed_lower = typed_name.lower().replace(" ", "")
-                            typed_singular = typed_lower.rstrip('s') 
+                            typed_lower = typed_name.lower().replace(" ", "").rstrip('s')
 
                             for cat in VALID_CATEGORIES:
-                                cat_lower = cat.lower().replace(" ", "")
-                                cat_singular = cat_lower.rstrip('s')
-                                
-                                if (typed_singular in cat_singular) or (cat_singular in typed_singular):
+                                cat_lower = cat.lower().replace(" ", "").rstrip('s')
+                                if (typed_lower in cat_lower) or (cat_lower in typed_lower):
                                     product_category = cat
                                     break
-                            
                             if not product_category:
                                 product_category = typed_name
                                 
                         if len(parts) >= 2:
                             raw_price = parts[1].strip()
-                            if not raw_price.startswith("₹"):
-                                product_price = f"₹{raw_price}"
-                            else:
-                                product_price = raw_price
+                            product_price = raw_price if raw_price.startswith("₹") else f"₹{raw_price}"
                     else:
                         price_match = re.search(r'(?:₹\s*)?(\d{3,5})', clean_caption)
                         if price_match:
@@ -414,7 +419,6 @@ async def telegram_webhook(request: Request):
                             potential_name = clean_caption.replace(price_match.group(0), "").replace("₹", "").strip()
                             if potential_name:
                                 product_name = potential_name
-                                
                                 typed_lower = potential_name.lower().replace(" ", "").rstrip('s')
                                 for cat in VALID_CATEGORIES:
                                     cat_lower = cat.lower().replace(" ", "").rstrip('s')
@@ -445,7 +449,7 @@ async def telegram_webhook(request: Request):
                 send_whatsapp_image(permanent_url, product_name)
                 requests.post(
                     f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n• Category: {product_category}\n📲 WhatsApp sent to Group!"}
+                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n📲 WhatsApp Group Notification Sent!"}
                 )
         return {"status": "success"}
     except Exception as e:
@@ -520,47 +524,40 @@ def update_booking_status(booking_id: str, action: str):
         c_name = booking["customer_name"]
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
-        p_price = booking.get("price", "₹1299")
 
         if action == "agree":
             msg = (
                 f"🎉 *Order Update from Dolphin Trends!* 🐬\n\n"
                 f"Dear {c_name},\n"
                 f"Good news! Your selected product *{p_name}* is available in our stock. ✅\n\n"
-                f"🛍 *Please visit our shop to collect your product:* 👇\n\n"
+                f"🛍️ *Please visit our shop to collect your product:* 👇\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n\n"
-                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68n"
+                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68\n\n"
                 f"⏰ *Timings:* 11:00 AM - 10:00 PM\n\n"
-                f"We look forward to seeing you soon! Thank you for shopping with us. 🙏✨\n\n"
-                f"🌐 *Visit our website:* {FRONTEND_URL}\n"
+                f"We look forward to seeing you soon! Thank you for shopping with us. 🙏\n\n"
+                f"🌐 *Visit website:* {FRONTEND_URL}\n"
                 f"*Team Dolphin Trends* 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
-            
         elif action == "disagree":
             msg = (
                 f"Hello {c_name},\n\n"
                 f"Sorry, *{p_name}* is currently out of stock.\n"
-                f"We'll notify you when it's back!\n\n"
                 f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
-            
         elif action == "size_unavail":
             msg = (
                 f"Hello {c_name}! 😊\n\n"
-                f"*{p_name}* is available but your size is currently out of stock.\n\n"
-                f"Please visit our store to check alternatives!\n"
+                f"*{p_name}* is available but your size is currently out of stock.\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68n"
                 f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size Unavailable"}})
-
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
