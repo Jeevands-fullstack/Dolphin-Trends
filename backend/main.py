@@ -21,6 +21,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
+INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends" # 📸 ನಿನ್ನ ಅಸಲಿ ಇನ್‌ಸ್ಟಾ ಲಿಂಕ್ ಇಲ್ಲಿ ಹಾಕು ಬಾಸ್
 
 CLOUDINARY_CLOUD_NAME = "diqwkall4"
 CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "YOUR_API_KEY")
@@ -46,7 +47,7 @@ YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "120363293847291048
 
 # 🔥 Website ನಲ್ಲಿರೋ ಪಕ್ಕಾ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್!
 VALID_CATEGORIES = [
-    "Leggings", "Kurta Sets", "Jeans", "Plazzo Pants", "Kurtha Top", 
+    "Leggings", "Kurta Sets", "Jeans", "Patiala Pants", "Kurtha Top", 
     "Umbrella Sets", "Frocks", "Western Wear", "Gym Pants", "250 Tops", 
     "350 Tops", "Jeans Tops"
 ]
@@ -112,6 +113,8 @@ def send_whatsapp_image(image_url, product_name):
             f"🔥 *New Arrival at Dolphin Trends!* 🐬\n\n"
             f"👗 *Product:* {product_name}\n"
             f"💃 Grab yours before it's gone!\n\n"
+            f"📸 *Follow us on Instagram for 10% Discount:* 👇\n"
+            f"🔗 {INSTAGRAM_URL}\n\n"
             f"💥 *Explore & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
@@ -194,6 +197,7 @@ class BookingPayload(BaseModel):
     image_url: str
     size: str = "M"
     price: str = "₹1299"
+    followed_insta: bool = False # 🔥 ಫ್ರಂಟ್‌ಎಂಡ್‌ನಿಂದ ಇನ್‌ಸ್ಟಾ ಫಾಲೋ ಆಗಿದ್ಯಾ ಇಲ್ವಾ ಅಂತ ಚೆಕ್ ಮಾಡೋಕೆ ಹೊಸ ಫೀಲ್ಡ್!
 
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
@@ -201,6 +205,21 @@ def create_booking(payload: BookingPayload):
         raise HTTPException(status_code=500, detail="DB Connection Missing")
     try:
         booking_id = str(uuid.uuid4())[:8]
+        
+        # 💸 ಇನ್‌ಸ್ಟಾ ಫಾಲೋ ಮಾಡಿದ್ರೆ ಪ್ರೈಸ್ ಕ್ಯಾಲ್ಕುಲೇಷನ್ ಇಲ್ಲೇ ಚೇಂಜ್ ಆಗುತ್ತೆ ಬಾಸ್!
+        final_price = payload.price
+        discount_applied = "No"
+        
+        if payload.followed_insta:
+            try:
+                # ₹ ಸಂಕೇತ ತೆಗೆದು ಕೇವಲ ನಂಬರ್ ತಗೊಂಡು 10% ಕಮ್ಮಿ ಮಾಡೋದು
+                numeric_price = int(re.sub(r'[^\d]', '', payload.price))
+                discounted_numeric = int(numeric_price * 0.90)
+                final_price = f"₹{discounted_numeric}"
+                discount_applied = "Yes (10% Insta Discount!)"
+            except Exception as parse_err:
+                print("Price Parsing Error:", parse_err)
+
         booking_data = {
             "booking_id": booking_id,
             "customer_name": payload.customer_name,
@@ -208,7 +227,8 @@ def create_booking(payload: BookingPayload):
             "product_name": payload.product_name,
             "image_url": payload.image_url,
             "size": payload.size,
-            "price": payload.price,
+            "price": final_price,
+            "insta_discount": payload.followed_insta,
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
@@ -217,30 +237,34 @@ def create_booking(payload: BookingPayload):
         if len(c_phone) == 10:
             c_phone = f"91{c_phone}"
 
+        # ಕಸ್ಟಮರ್‌ಗೆ ಹೋಗೋ ಕನ್ಫರ್ಮೆಷನ್ ಮೆಸೇಜ್
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
             f"You have selected:\n"
             f"👗 *{payload.product_name}*\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Price: {payload.price}\n\n"
+            f"💰 Price: {final_price} " + (f"(10% Insta Discount Applied! 😍)" if payload.followed_insta else "") + f"\n\n"
             f"📝 *We are currently checking the stock availability for your order. "
             f"Our team will contact you shortly with confirmation.* 🙏\n\n"
+            f"📸 *Follow our Instagram for more updates & trends:* 👇\n"
+            f"🔗 {INSTAGRAM_URL}\n\n"
             f"💥 *Meanwhile, explore our latest collections here:* 👇\n"
             f"🔗 {FRONTEND_URL}\n\n"
-            f"📞 Contact: 9353838835\n\n"
+            f"📞 Contact: 7411255628\n\n"
             f"Thank you for choosing us! 😊\n"
             f"*Team Dolphin Trends* 🐬"
         )
         
         send_whatsapp_msg(c_phone, customer_message)
 
-        # 🔥 ಹೊಸ "New Buy Request" ಅಲರ್ಟ್ ಫಾರ್ಮ್ಯಾಟ್
+        # ಅಡ್ಮಿನ್‌ಗೆ ಹೋಗೋ ಅಲರ್ಟ್‌ನಲ್ಲಿ ಡಿಸ್ಕೌಂಟ್ ಡೀಟೇಲ್ಸ್ ಕಾಣಿಸುತ್ತೆ
         admin_alert = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Price: {payload.price}\n"
+            f"💰 Final Price: {final_price}\n"
+            f"📸 Insta Discount Applied: {discount_applied}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
             f"⚙️ *Please update here:* 👇\n"
@@ -251,7 +275,7 @@ def create_booking(payload: BookingPayload):
         for num in admin_numbers:
             send_whatsapp_msg(num, admin_alert)
 
-        return {"status": "success", "booking_id": booking_id}
+        return {"status": "success", "booking_id": booking_id, "final_price": final_price}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -496,17 +520,17 @@ def update_booking_status(booking_id: str, action: str):
         c_name = booking["customer_name"]
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
+        p_price = booking.get("price", "₹1299")
 
-        # 🔥 ಇಲ್ಲಿ ಹೊಸ ಪ್ರೊಫೆಷನಲ್ ಮೆಸೇಜ್ ಮತ್ತು ಮ್ಯಾಪ್ ಲಿಂಕ್ ಅಪ್ಡೇಟ್ ಮಾಡಲಾಗಿದೆ ಬಾಸ್!
         if action == "agree":
             msg = (
                 f"🎉 *Order Update from Dolphin Trends!* 🐬\n\n"
                 f"Dear {c_name},\n"
                 f"Good news! Your selected product *{p_name}* is available in our stock. ✅\n\n"
-                f"🛍️ *Please visit our shop to collect your product:* 👇\n\n"
+                f"🛍 *Please visit our shop to collect your product:* 👇\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n\n"
-                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68\n"
+                f"📍 *Google Map Link:* https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68n"
                 f"⏰ *Timings:* 11:00 AM - 10:00 PM\n\n"
                 f"We look forward to seeing you soon! Thank you for shopping with us. 🙏✨\n\n"
                 f"🌐 *Visit our website:* {FRONTEND_URL}\n"
@@ -531,7 +555,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"*{p_name}* is available but your size is currently out of stock.\n\n"
                 f"Please visit our store to check alternatives!\n"
                 f"📍 Peenya 2nd Stage, Bangalore\n"
-                f"📍 Location Map: https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68\n"
+                f"📍 Location Map: https://maps.app.goo.gl/9C6SgT4zR8Z9PzR68n"
                 f"Thank you! 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
