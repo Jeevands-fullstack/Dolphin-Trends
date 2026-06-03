@@ -123,7 +123,7 @@ function App() {
           <li>
             <button 
               className="insta-nav-btn" 
-              onClick={() => window.open('https://www.instagram.com/dolphintrends_blr', '_blank')}
+              onClick={() => window.open('https://www.instagram.com/dolphin_trends_rajagopalanagar?igsh=MWJ4MGRybGFxOXdiYw==')}
               style={{
                 background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
                 color: '#fff',
