@@ -21,8 +21,8 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
 
   // 🗂️ ಲೈವ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ಕ್ಯಾಟಗರಿಗಳು
   const categories = [
-    'Tops', 'Suit Set', 'Kurthas', 'Umbrella', 'Jeans', 'Kurtha Sets',
-    'Patiala Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
+    'Suit Set', 'Kurtha Tops', 'Umbrella', 'Jeans', 'Kurtha Sets',
+    'Plazzo Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
     'Western Wear', 'Gym Pants', '250 Tops', '350 Tops', 'Jeans Tops', 'Leggings'
   ];
 
