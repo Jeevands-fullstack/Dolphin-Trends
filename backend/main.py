@@ -46,7 +46,7 @@ YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "120363293847291048
 
 # 🔥 Website ನಲ್ಲಿರೋ ಪಕ್ಕಾ ಕ್ಯಾಟಗರಿ ಲಿಸ್ಟ್!
 VALID_CATEGORIES = [
-    "Leggings", "Kurta Sets", "Jeans", "Patiala Pants", "Kurtha Top", 
+    "Leggings", "Kurta Sets", "Jeans", "Plazzo Pants", "Kurtha Top", 
     "Umbrella Sets", "Frocks", "Western Wear", "Gym Pants", "250 Tops", 
     "350 Tops", "Jeans Tops"
 ]
@@ -228,7 +228,7 @@ def create_booking(payload: BookingPayload):
             f"Our team will contact you shortly with confirmation.* 🙏\n\n"
             f"💥 *Meanwhile, explore our latest collections here:* 👇\n"
             f"🔗 {FRONTEND_URL}\n\n"
-            f"📞 Contact: 7411255628\n\n"
+            f"📞 Contact: 9353838835\n\n"
             f"Thank you for choosing us! 😊\n"
             f"*Team Dolphin Trends* 🐬"
         )
