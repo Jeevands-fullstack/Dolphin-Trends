@@ -11,3 +11,4 @@ pillow
 python-dotenv
 dnspython
 cloudinary
+instagrapi
