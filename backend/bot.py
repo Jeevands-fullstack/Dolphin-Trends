@@ -9,6 +9,7 @@ import sys
 import fcntl
 from PIL import Image
 import telebot
+from instagrapi import Client  # 📸 ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಆಟೋಮೇಷನ್ ಲೈಬ್ರರಿ
 
 # ================= SINGLE INSTANCE LOCK =================
 # Ee code multiple instances run aagodannu prevent madthade
@@ -32,6 +33,10 @@ FRONTEND_URL = "https://dolphin-frontend-mvke.onrender.com"
 GREEN_API_ID = os.environ.get("GREEN_API_ID", "")
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "917411255628@c.us")
+
+# 🔒 INSTAGRAM SETTINGS (ಇದನ್ನು ನಿನ್ನ ಸರ್ವರ್ Environment Variables ನಲ್ಲಿ ಸೆಟ್ ಮಾಡು ಬಾಸ್)
+INSTA_USER = os.environ.get("INSTAGRAM_USERNAME", "")
+INSTA_PASS = os.environ.get("INSTAGRAM_PASSWORD", "")
 
 # ================= CLEAN TEXT =================
 
@@ -73,6 +78,58 @@ def send_whatsapp(image_bytes, name, price):
 
     except Exception as e:
         print("WhatsApp Error:", str(e))
+        return False
+
+# ================= INSTAGRAM AUTO-POST (NO PRICE & NO LINK) =================
+
+def send_instagram_direct(image_bytes, name, category):
+    if not INSTA_USER or not INSTA_PASS:
+        print("⚠️ Instagram Username ಅಥವಾ Password ಎನ್ವಿರಾನ್ಮೆಂಟ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡಿಲ್ಲ!")
+        return False
+
+    try:
+        print("📸 Instagrapi ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
+        cl = Client()
+        
+        # ಸೆಷನ್ ಫೈಲ್ ಮ್ಯಾನೇಜ್ಮೆಂಟ್ (ಅಕೌಂಟ್ ಬ್ಲಾಕ್ ಆಗದಂತೆ ತಡೆಯಲು)
+        session_file = "insta_session.json"
+        if os.path.exists(session_file):
+            try:
+                cl.load_settings(session_file)
+                cl.login(INSTA_USER, INSTA_PASS)
+            except Exception:
+                cl.login(INSTA_USER, INSTA_PASS)
+                cl.dump_settings(session_file)
+        else:
+            cl.login(INSTA_USER, INSTA_PASS)
+            cl.dump_settings(session_file)
+
+        # ✨ ಇಲ್ಲಿ ಚೇಂಜ್ ಆಗಿದೆ: ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಹೋಗಲ್ಲ, ಜಸ್ಟ್ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್ ಲುಕ್!
+        caption = (
+            f"✨ {name}\n\n"
+            f"Exclusive collection from Dolphin Trends. ✨\n\n"
+            f"#dolphintrends #womensfashion #bangaloreshopping #kurti #trending"
+        )
+
+        # ಇಮೇಜ್ ಬೈಟ್ಸ್ ಅನ್ನು ತಾತ್ಕಾಲಿಕವಾಗಿ ಫೈಲ್ ಆಗಿ ಸೇವ್ ಮಾಡೋದು
+        temp_path = "temp_insta.jpg"
+        with open(temp_path, "wb") as f:
+            f.write(image_bytes)
+
+        print("🚀 Instagram ಗೆ ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...")
+        media = cl.photo_upload(temp_path, caption=caption)
+        
+        # ಅಪ್ಲೋಡ್ ಆದ ತಕ್ಷಣ ತಾತ್ಕಾಲಿಕ ಫೈಲ್ ಡಿಲೀಟ್ ಮಾಡೋದು
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+        print("✅ Instagram ನಲ್ಲಿ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಪೋಸ್ಟ್ ಆಗಿದೆ!")
+        return True
+
+    except Exception as e:
+        print("❌ Instagrapi Error:", str(e))
+        if os.path.exists("temp_insta.jpg"):
+            os.remove("temp_insta.jpg")
         return False
 
 # ================= TELEGRAM BOT =================
@@ -198,27 +255,19 @@ Respond ONLY in JSON:
         print("UPLOAD RESPONSE:", upload.text)
 
         if upload.status_code in [200, 201]:
+            # 📲 WhatsApp ಮೆಸೇಜ್ ಕಳುಹಿಸುವುದು (ಬೆಲೆಯೊಂದಿಗೆ)
             wa_success = send_whatsapp(final_image, name, "Rs." + price)
 
-            if wa_success:
-                bot.reply_to(
-                    message,
-                    f"✅ Upload successful!\n"
-                    f"📲 WhatsApp message sent!\n\n"
-                    f"🛍️ {name}\n"
-                    f"💰 Rs.{price}\n"
-                    f"📂 {category}\n\n"
-                    f"🌐 {FRONTEND_URL}"
-                )
-            else:
-                bot.reply_to(
-                    message,
-                    f"✅ Website upload successful!\n"
-                    f"⚠️ WhatsApp send failed\n\n"
-                    f"🛍️ {name}\n"
-                    f"💰 Rs.{price}\n"
-                    f"🌐 {FRONTEND_URL}"
-                )
+            # 📸 Instagram ಆಟೋ ಪೋಸ್ಟ್ (ಬೆಲೆ ಇಲ್ಲದೆ)
+            insta_success = send_instagram_direct(final_image, name, category)
+
+            # 📝 ಬಾಟ್‌ಗೆ ರಿಪ್ಲೈ ಮೆಸೇಜ್ ಸೆಟ್ ಮಾಡುವುದು
+            status_msg = f"✅ Website Upload successful!\n"
+            status_msg += f"{'📲 WhatsApp: Sent! ✅' if wa_success else '⚠️ WhatsApp: Failed ❌'}\n"
+            status_msg += f"{'📸 Instagram: Posted! ✅' if insta_success else '⚠️ Instagram: Failed ❌'}\n\n"
+            status_msg += f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n\n🌐 {FRONTEND_URL}"
+
+            bot.reply_to(message, status_msg)
         else:
             bot.reply_to(message, f"❌ Upload failed\nStatus: {upload.status_code}\n{upload.text}")
 
