@@ -214,7 +214,7 @@ def handle_photo(message):
                 # ಒಂದು ವೇಳೆ ಹಳೇ ಲೈಬ್ರರಿ ಇಂಪೋರ್ಟ್ ಆಗಿದ್ರೆ ಬ್ಯಾಕಪ್ ವಿಧಾನ:
                 import google.generativeai as old_genai
                 old_genai.configure(api_key=GEMINI_API_KEY)
-                model = old_genai.GenerativeModel('gemini-1.5-flash')
+                model = old_genai.GenerativeModel('gemini-1.5-flash-latest')
                 image_pil = Image.open(io.BytesIO(image_bytes))
                 response = model.generate_content(["Provide product name, category, and description in JSON format matching women clothing.", image_pil])
                 response_text = response.text.strip()
