@@ -13,6 +13,9 @@ import google.generativeai as genai
 import cloudinary
 import cloudinary.uploader
 
+# 📸 bot.py ನಿಂದ ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಆಟೋಮೇಷನ್ ಫಂಕ್ಷನ್ ಇಂಪೋರ್ಟ್ ಮಾಡಲಾಗಿದೆ
+from bot import send_instagram_direct
+
 # 🌐 MongoDB & Global Variables Configuration
 MONGO_URL = os.getenv("MONGO_URL")
 GREEN_API_INSTANCE = os.getenv("GREEN_API_INSTANCE")
@@ -202,7 +205,6 @@ def create_booking(payload: BookingPayload):
     try:
         booking_id = str(uuid.uuid4())[:8]
         
-        # 💾 Database Save (ಮಾಮೂಲಿ ಸಿಂಪಲ್ ಬುಕ್ಕಿಂಗ್ ಸೇವ್ ಆಗುತ್ತೆ)
         booking_data = {
             "booking_id": booking_id,
             "customer_name": payload.customer_name,
@@ -219,7 +221,6 @@ def create_booking(payload: BookingPayload):
         if len(c_phone) == 10:
             c_phone = f"91{c_phone}"
 
-        # 📱 ಕಸ್ಟಮರ್‌ಗೆ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಹೋಗೋ ಪ್ರೊಫೆಷನಲ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ (ಇನ್‌ಸ್ಟಾ ಲಿಂಕ್ ಆಡ್ ಮಾಡಲಾಗಿದೆ!)
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
@@ -238,7 +239,6 @@ def create_booking(payload: BookingPayload):
         )
         send_whatsapp_msg(c_phone, customer_message)
 
-        # 🛍️ ಅಡ್ಮಿನ್‌ಗೆ ಹೋಗೋ ಅಲರ್ಟ್ ನೋಟಿಫಿಕೇಶನ್
         admin_alert = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -410,10 +410,21 @@ async def telegram_webhook(request: Request):
                     "description": product_description, "available": True
                 })
 
+                # 📲 WhatsApp ಗೆ ಯಥಾಪ್ರಕಾರ ನೋಟಿಫಿಕೇಶನ್ ಹೋಗುತ್ತೆ
                 send_whatsapp_image(permanent_url, product_name)
+                
+                # 📸 🌟 [ಇಲ್ಲಿ ಹೊಸದಾಗಿ ಆಡ್ ಮಾಡಲಾಗಿದೆ]: ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಆಟೋಮ್ಯಾಟಿಕ್ ಅಪ್ಲೋಡ್ ಕಾಲ್
+                try:
+                    # Cloudinary ಇಮೇಜ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ ಬೈಟ್ಸ್ ಪಡೆಯುವುದು
+                    img_data = requests.get(permanent_url).content
+                    # bot.py ನಲ್ಲಿರೋ ಫಂಕ್ಷನ್ ಕಾಲ್ ಮಾಡ್ತೀವಿ (ಬೆಲೆ ಹೋಗಲ್ಲ)
+                    send_instagram_direct(img_data, product_name, product_category)
+                except Exception as inst_err:
+                    print("Webhook Instagram Auto-Post Error:", str(inst_err))
+
                 requests.post(
                     f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n📲 WhatsApp Group Notification Sent!"}
+                    json={"chat_id": chat_id, "text": f"✅ Uploaded to {product_category}!\n• Name: {product_name}\n• Price: {product_price}\n📲 WhatsApp & 📸 Instagram Shared Successfully!"}
                 )
         return {"status": "success"}
     except Exception as e:
