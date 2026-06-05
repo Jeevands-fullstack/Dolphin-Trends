@@ -27,8 +27,8 @@ except IOError:
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-UPLOAD_URL = "https://dolphin-trends-3.onrender.com/products" 
-FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
+UPLOAD_URL = "[https://dolphin-trends-3.onrender.com/products](https://dolphin-trends-3.onrender.com/products)" 
+FRONTEND_URL = "[https://dolphin-trends-two.vercel.app](https://dolphin-trends-two.vercel.app)"
 
 GREEN_API_ID = os.environ.get("GREEN_API_INSTANCE", "") 
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
@@ -56,7 +56,7 @@ def send_whatsapp(image_bytes, name, price):
             f"🌐 *Shop Now:*\n{FRONTEND_URL}"
         )
 
-        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
+        url = f"[https://api.green-api.com/waInstance](https://api.green-api.com/waInstance){GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
 
         payload = {
             "chatId": WHATSAPP_NUMBER,
@@ -92,7 +92,7 @@ def send_instagram_direct(image_bytes, name, category):
         cl.login_by_sessionid(INSTA_SESSION_ID)
         print("✅ Session ID ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ!")
 
-        # ✨ ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಇಲ್ಲದ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್ ಕ್ಯಾಪ್ಶನ್
+        # ✨ ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಇಲ್ಲದ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್倾 ಕ್ಯಾಪ್ಶನ್
         caption = (
             f"✨ {name}\n\n"
             f"Exclusive collection from Dolphin Trends. ✨\n\n"
@@ -155,7 +155,7 @@ def handle_photo(message):
         # ================= DOWNLOAD IMAGE =================
         file_id = message.photo[-1].file_id
         file_info = bot.get_file(file_id)
-        file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_info.file_path}"
+        file_url = f"[https://api.telegram.org/file/bot](https://api.telegram.org/file/bot){TELEGRAM_TOKEN}/{file_info.file_path}"
 
         photo_response = requests.get(file_url)
         image_bytes = photo_response.content
@@ -209,12 +209,11 @@ def handle_photo(message):
                 response = model.generate_content(["Provide product name, category, and description in JSON format matching women clothing.", image_pil])
                 response_text = response.text.strip()
 
+            # 🛠️ [FIXED]: ಲೈನ್ ಬ್ರೇಕ್ ಇಲ್ಲದೆ ಸಿಂಟ್ಯಾಕ್ಸ್ ಕ್ಲೀನ್ ಮಾಡಲಾಗಿದೆ
             if "```json" in response_text:
-                response_text = response_text.split("
-```json")[1].split("```")[0].strip()
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
-                response_text = response_text.split("
-```")[1].split("```")[0].strip()
+                response_text = response_text.split("```")[1].split("```")[0].strip()
 
             try:
                 ai_data = json.loads(response_text)
@@ -227,7 +226,7 @@ def handle_photo(message):
 
                 ai_prompt = f"beautiful young Indian woman wearing {dress_details}, white background, studio fashion photography"
                 formatted_prompt = requests.utils.quote(clean_text(ai_prompt))
-                pollinations_url = f"https://image.pollinations.ai/prompt/{formatted_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
+                pollinations_url = f"[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/){formatted_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
 
                 img_response = requests.get(pollinations_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=60)
 
@@ -269,7 +268,8 @@ def handle_photo(message):
         print("ERROR:", str(e))
         bot.reply_to(message, "❌ Error:\n" + str(e))
 
-        # ================= MAIN =================
+# ================= MAIN =================
+# 🛠️ [FIXED]: ಇನ್ಡೆಂಟೇಷನ್ ಬ್ಲಾಕ್ ಸರಿಪಡಿಸಲಾಗಿದೆ
 
 if __name__ == "__main__":
     print("🤖 Dolphin Bot Starting...")
@@ -285,5 +285,3 @@ if __name__ == "__main__":
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
-
-
