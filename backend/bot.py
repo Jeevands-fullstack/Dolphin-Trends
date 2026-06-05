@@ -27,8 +27,8 @@ except IOError:
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-UPLOAD_URL = "[https://dolphin-trends-3.onrender.com/products](https://dolphin-trends-3.onrender.com/products)" 
-FRONTEND_URL = "[https://dolphin-trends-two.vercel.app](https://dolphin-trends-two.vercel.app)"
+UPLOAD_URL = "https://dolphin-trends-3.onrender.com/products" 
+FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
 GREEN_API_ID = os.environ.get("GREEN_API_INSTANCE", "") 
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
@@ -56,7 +56,7 @@ def send_whatsapp(image_bytes, name, price):
             f"🌐 *Shop Now:*\n{FRONTEND_URL}"
         )
 
-        url = f"[https://api.green-api.com/waInstance](https://api.green-api.com/waInstance){GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
+        url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
 
         payload = {
             "chatId": WHATSAPP_NUMBER,
@@ -74,10 +74,9 @@ def send_whatsapp(image_bytes, name, price):
         print("WhatsApp Error:", str(e))
         return False
 
-# ================= INSTAGRAM AUTO-POST (SESSION ID BASED) =================
+# ================= INSTAGRAM AUTO-POST (SECURE SESSION MODE) =================
 
 def send_instagram_direct(image_bytes, name, category):
-    # ⚡ Render Environment ನಿಂದ ಸೆಷನ್ ಐಡಿ ತಗೊಳ್ಳುತ್ತೆ
     INSTA_SESSION_ID = os.environ.get("INSTAGRAM_SESSION_ID", "").strip()
     
     if not INSTA_SESSION_ID:
@@ -88,11 +87,17 @@ def send_instagram_direct(image_bytes, name, category):
         print("📸 Session ID ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
         cl = Client()
         
-        # ⚡ ಯೂಸರ್‌ನೇಮ್ ಪಾಸ್‌ವರ್ಡ್ ಬದಲು ಡೈರೆಕ್ಟ್ ಆಗಿ ಸೆಷನ್ ಕುಕಿ ಬಳಸಿ ಲಾಗಿನ್ ಆಗೋ ಶಾರ್ಟ್‌ಕಟ್
-        cl.login_by_sessionid(INSTA_SESSION_ID)
-        print("✅ Session ID ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ!")
+        # ⚡ [NEW FIX]: ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಬ್ಲಾಕ್ ಮಾಡದಂತೆ ನಾರ್ಮಲ್ ಬ್ರೌಸರ್ ಯೂಸರ್ ಏಜೆಂಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
+        cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+        
+        # ಕುಕೀಸ್ ಫಾರ್ಮ್ಯಾಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
+        cl.set_settings({"cookies": [{"name": "sessionid", "value": INSTA_SESSION_ID, "domain": ".instagram.com", "path": "/"}]})
+        
+        # ⚡ ಸೆಷನ್ ಆಕ್ಟಿವ್ ಆಗಿದ್ಯಾ ಅಂತ ವೆರಿಫೈ ಮತ್ತು ಸಿಂಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ
+        cl.get_timeline_feed() 
+        print("✅ Session ID ಲಾಗಿನ್ ಮತ್ತು ಸಿಂಕ್ ಯಶಸ್ವಿಯಾಗಿದೆ!")
 
-        # ✨ ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಇಲ್ಲದ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್倾 ಕ್ಯಾಪ್ಶನ್
+        # ✨ ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಇಲ್ಲದ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್ ಕ್ಯಾಪ್ಶನ್
         caption = (
             f"✨ {name}\n\n"
             f"Exclusive collection from Dolphin Trends. ✨\n\n"
@@ -104,6 +109,8 @@ def send_instagram_direct(image_bytes, name, category):
             f.write(image_bytes)
 
         print("🚀 Instagram ಗೆ ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...")
+        # ⚡ ಅಪರಿಚಿತ ಆಕ್ಟಿವಿಟಿ ತರ ಕಾಣದಂತೆ ಅಪ್ಲೋಡ್ ಮುನ್ನ 3 ಸೆಕೆಂಡ್ ವೇಟ್ ಮಾಡುತ್ತದೆ
+        time.sleep(3)
         cl.photo_upload(temp_path, caption=caption)
         
         if os.path.exists(temp_path):
@@ -155,7 +162,7 @@ def handle_photo(message):
         # ================= DOWNLOAD IMAGE =================
         file_id = message.photo[-1].file_id
         file_info = bot.get_file(file_id)
-        file_url = f"[https://api.telegram.org/file/bot](https://api.telegram.org/file/bot){TELEGRAM_TOKEN}/{file_info.file_path}"
+        file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_info.file_path}"
 
         photo_response = requests.get(file_url)
         image_bytes = photo_response.content
@@ -201,7 +208,7 @@ def handle_photo(message):
                 )
                 response_text = response.text.strip()
             except Exception:
-                # ⚡ ಒಂದು ವೇಳೆ ಹಳೇ ಲೈಬ್ರರಿ ಇಂಪೋರ್ಟ್ ಆಗಿದ್ರೆ ಬ್ಯಾಕಪ್ ವಿಧಾನದಲ್ಲಿ ಹಳೇ ಎರರ್ ಸಾಲ್ವ್ ಮಾಡಲಾಗಿದೆ:
+                # ಒಂದು ವೇಳೆ ಹಳೇ ಲೈಬ್ರರಿ ಇಂಪೋರ್ಟ್ ಆಗಿದ್ರೆ ಬ್ಯಾಕಪ್ ವಿಧಾನ:
                 import google.generativeai as old_genai
                 old_genai.configure(api_key=GEMINI_API_KEY)
                 model = old_genai.GenerativeModel('gemini-1.5-flash-latest')
@@ -209,7 +216,6 @@ def handle_photo(message):
                 response = model.generate_content(["Provide product name, category, and description in JSON format matching women clothing.", image_pil])
                 response_text = response.text.strip()
 
-            # 🛠️ [FIXED]: ಲೈನ್ ಬ್ರೇಕ್ ಇಲ್ಲದೆ ಸಿಂಟ್ಯಾಕ್ಸ್ ಕ್ಲೀನ್ ಮಾಡಲಾಗಿದೆ
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
@@ -226,7 +232,7 @@ def handle_photo(message):
 
                 ai_prompt = f"beautiful young Indian woman wearing {dress_details}, white background, studio fashion photography"
                 formatted_prompt = requests.utils.quote(clean_text(ai_prompt))
-                pollinations_url = f"[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/){formatted_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
+                pollinations_url = f"https://image.pollinations.ai/prompt/{formatted_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
 
                 img_response = requests.get(pollinations_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=60)
 
@@ -269,7 +275,6 @@ def handle_photo(message):
         bot.reply_to(message, "❌ Error:\n" + str(e))
 
 # ================= MAIN =================
-# 🛠️ [FIXED]: ಇನ್ಡೆಂಟೇಷನ್ ಬ್ಲಾಕ್ ಸರಿಪಡಿಸಲಾಗಿದೆ
 
 if __name__ == "__main__":
     print("🤖 Dolphin Bot Starting...")
