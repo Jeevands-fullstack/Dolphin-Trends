@@ -269,7 +269,7 @@ def handle_photo(message):
         print("ERROR:", str(e))
         bot.reply_to(message, "❌ Error:\n" + str(e))
 
-# ================= MAIN =================
+        # ================= MAIN =================
 
 if __name__ == "__main__":
     print("🤖 Dolphin Bot Starting...")
@@ -285,3 +285,5 @@ if __name__ == "__main__":
         except Exception as e:
             print("Polling Error:", e)
             time.sleep(10)
+
+
