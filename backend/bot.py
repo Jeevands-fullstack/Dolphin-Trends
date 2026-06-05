@@ -87,11 +87,18 @@ def send_instagram_direct(image_bytes, name, category):
         print("📸 Session ID ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
         cl = Client()
         
-        # ⚡ [NEW FIX]: ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಬ್ಲಾಕ್ ಮಾಡದಂತೆ ನಾರ್ಮಲ್ ಬ್ರೌಸರ್ ಯೂಸರ್ ಏಜೆಂಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
+        # ⚡ ನಾರ್ಮಲ್ ಬ್ರೌಸರ್ ಯೂಸರ್ ಏಜೆಂಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
         cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
         
-        # ಕುಕೀಸ್ ಫಾರ್ಮ್ಯಾಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
-        cl.set_settings({"cookies": [{"name": "sessionid", "value": INSTA_SESSION_ID, "domain": ".instagram.com", "path": "/"}]})
+        # 🛠️ [FIXED]: ಇನ್‌ಸ್ಟಾಗ್ರಾಪಿ ಲೈಬ್ರರಿಗೆ ಒಪ್ಪುವ ಸರಿಯಾದ ಕುಕಿ ಫಾರ್ಮ್ಯಾಟ್ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ
+        cl.set_settings({
+            "uuids": cl.settings.get("uuids", {}),
+            "device_settings": cl.settings.get("device_settings", {}),
+            "user_agent": cl.user_agent,
+            "cookies": {
+                "sessionid": INSTA_SESSION_ID
+            }
+        })
         
         # ⚡ ಸೆಷನ್ ಆಕ್ಟಿವ್ ಆಗಿದ್ಯಾ ಅಂತ ವೆರಿಫೈ ಮತ್ತು ಸಿಂಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ
         cl.get_timeline_feed() 
@@ -109,7 +116,7 @@ def send_instagram_direct(image_bytes, name, category):
             f.write(image_bytes)
 
         print("🚀 Instagram ಗೆ ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...")
-        # ⚡ ಅಪರಿಚಿತ ಆಕ್ಟಿವಿಟಿ ತರ ಕಾಣದಂತೆ ಅಪ್ಲೋಡ್ ಮುನ್ನ 3 ಸೆಕೆಂಡ್ ವೇಟ್ ಮಾಡುತ್ತದೆ
+        # ⚡ ಬ್ಲಾಕ್ ಆಗದಂತೆ ಅಪ್ಲೋಡ್ ಮುನ್ನ 3 ಸೆಕೆಂಡ್ ಗ್ಯಾಪ್
         time.sleep(3)
         cl.photo_upload(temp_path, caption=caption)
         
@@ -208,7 +215,7 @@ def handle_photo(message):
                 )
                 response_text = response.text.strip()
             except Exception:
-                # ಒಂದು ವೇಳೆ ಹಳೇ ಲೈಬ್ರರಿ ಇಂಪೋರ್ಟ್ ಆಗಿದ್ರೆ ಬ್ಯಾಕಪ್ ವಿಧಾನ:
+                # ಬ್ಯಾಕಪ್ ಹಳೇ ಲೈಬ್ರರಿ ವಿಧಾನ:
                 import google.generativeai as old_genai
                 old_genai.configure(api_key=GEMINI_API_KEY)
                 model = old_genai.GenerativeModel('gemini-1.5-flash-latest')
