@@ -12,8 +12,6 @@ import telebot
 from instagrapi import Client  # 📸 ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಆಟೋಮೇಷನ್ ಲೈಬ್ರರಿ
 
 # ================= SINGLE INSTANCE LOCK =================
-# Ee code multiple instances run aagodannu prevent madthade
-
 lock_file = open("/tmp/dolphin_bot.lock", "w")
 try:
     fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -23,7 +21,6 @@ except IOError:
     sys.exit(0)
 
 # ================= SETTINGS =================
-
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
@@ -35,7 +32,6 @@ GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 WHATSAPP_NUMBER = os.environ.get("YOUR_WHATSAPP_GROUP_ID", "120363293847291048@g.us")
 
 # ================= CLEAN TEXT =================
-
 def clean_text(text):
     text = re.sub(r'http\S+', '', text)
     text = re.sub(r'www\S+', '', text)
@@ -44,67 +40,51 @@ def clean_text(text):
     return text.strip()
 
 # ================= WHATSAPP =================
-
 def send_whatsapp(image_bytes, name, price):
     try:
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
         caption = (
             "🛍️ *Dolphin Trends*\n\n"
             f"👕 *Product:* {name}\n"
             f"💰 *Price:* {price}\n\n"
             f"🌐 *Shop Now:*\n{FRONTEND_URL}"
         )
-
         url = f"https://api.green-api.com/waInstance{GREEN_API_ID}/sendFileByBase64/{GREEN_API_TOKEN}"
-
         payload = {
             "chatId": WHATSAPP_NUMBER,
             "file": f"data:image/jpeg;base64,{image_b64}",
             "fileName": "product.jpg",
             "caption": caption
         }
-
         print("📡 Sending to WhatsApp...")
         response = requests.post(url, json=payload, timeout=60)
-        print("WhatsApp Status:", response.status_code)
         return response.status_code == 200
-
     except Exception as e:
         print("WhatsApp Error:", str(e))
         return False
 
-# ================= INSTAGRAM AUTO-POST (SECURE SESSION MODE) =================
-
+# ================= INSTAGRAM AUTO-POST (SECURE JSON MODE) =================
 def send_instagram_direct(image_bytes, name, category):
-    INSTA_SESSION_ID = os.environ.get("INSTAGRAM_SESSION_ID", "").strip()
+    # 🛠️ [CHANGED]: ಇಲ್ಲಿ ನಾವು ಹೊಸ JSON ವೇರಿಯಬಲ್ ರೀಡ್ ಮಾಡ್ತಿದ್ದೀವಿ ಬಾಸ್
+    INSTA_JSON_DATA = os.environ.get("INSTAGRAM_SESSION_JSON", "").strip()
     
-    if not INSTA_SESSION_ID:
-        print("⚠️ INSTAGRAM_SESSION_ID ಎನ್ವಿರಾನ್ಮೆಂಟ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡಿಲ್ಲ ಬಾಸ್!")
+    if not INSTA_JSON_DATA:
+        print("⚠️ INSTAGRAM_SESSION_JSON ಎನ್ವಿರಾನ್ಮೆಂಟ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡಿಲ್ಲ ಬಾಸ್!")
         return False
 
     try:
-        print("📸 Session ID ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
+        print("📸 JSON Settings ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
         cl = Client()
         
-        # ⚡ ನಾರ್ಮಲ್ ಬ್ರೌಸರ್ ಯೂಸರ್ ಏಜೆಂಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
         cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
         
-        # 🛠️ [FIXED]: ಇನ್‌ಸ್ಟಾಗ್ರಾಪಿ ಲೈಬ್ರರಿಗೆ ಒಪ್ಪುವ ಸರಿಯಾದ ಕುಕಿ ಫಾರ್ಮ್ಯಾಟ್ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ
-        cl.set_settings({
-            "uuids": cl.settings.get("uuids", {}),
-            "device_settings": cl.settings.get("device_settings", {}),
-            "user_agent": cl.user_agent,
-            "cookies": {
-                "sessionid": INSTA_SESSION_ID
-            }
-        })
+        # ಬ್ರೌಸರ್‌ನಿಂದ ತಂದ ಪೂರ್ತಿ ಸೆಷನ್ ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಆಗ್ತಿದೆ
+        session_settings = json.loads(INSTA_JSON_DATA)
+        cl.set_settings(session_settings)
         
-        # ⚡ ಸೆಷನ್ ಆಕ್ಟಿವ್ ಆಗಿದ್ಯಾ ಅಂತ ವೆರಿಫೈ ಮತ್ತು ಸಿಂಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ
         cl.get_timeline_feed() 
-        print("✅ Session ID ಲಾಗಿನ್ ಮತ್ತು ಸಿಂಕ್ ಯಶಸ್ವಿಯಾಗಿದೆ!")
+        print("✅ Instagram ಸೆಷನ್ ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿದೆ ಬಾಸ್!")
 
-        # ✨ ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಇಲ್ಲದ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್ ಕ್ಯಾಪ್ಶನ್
         caption = (
             f"✨ {name}\n\n"
             f"Exclusive collection from Dolphin Trends. ✨\n\n"
@@ -116,38 +96,30 @@ def send_instagram_direct(image_bytes, name, category):
             f.write(image_bytes)
 
         print("🚀 Instagram ಗೆ ಫೋಟೋ ಅಪ್ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...")
-        # ⚡ ಬ್ಲಾಕ್ ಆಗದಂತೆ ಅಪ್ಲೋಡ್ ಮುನ್ನ 3 ಸೆಕೆಂಡ್ ಗ್ಯಾಪ್
         time.sleep(3)
         cl.photo_upload(temp_path, caption=caption)
         
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-        print("✅ Instagram ನಲ್ಲಿ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಪೋಸ್ಟ್ ಆಗಿದೆ!")
+        print("✅ Instagram ನಲ್ಲಿ ಸಕ್ಸಸ್‌ಫುಲ್ ಆಗಿ ಪೋಸ್ಟ್ ಆಗಿದೆ!")
         return True
 
     except Exception as e:
-        print("❌ Instagrapi Session Error:", str(e))
+        print("❌ Instagram ಲಾಗಿನ್/ಪೋಸ್ಟ್ ಎರರ್:", str(e))
         if os.path.exists("temp_insta.jpg"):
             os.remove("temp_insta.jpg")
         return False
 
 # ================= TELEGRAM BOT =================
-
 if not TELEGRAM_TOKEN:
-    raise ValueError("❌ TELEGRAM_BOT_TOKEN ಮಿಸ್ ಆಗಿದೆ ಬಾಸ್! Render Env ಚೆಕ್ ಮಾಡು.")
+    raise ValueError("❌ TELEGRAM_BOT_TOKEN ಮಿಸ್ ಆಗಿದೆ ಬಾಸ್!")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    bot.reply_to(
-        message,
-        "✅ Dolphin Trends Bot Ready!\n\n"
-        "📸 Product photo kalsidre auto upload aagthade\n\n"
-        "⚡ Direct mode: photo + caption alli #direct bari\n"
-        "Example: Blue Kurti #direct"
-    )
+    bot.reply_to(message, "✅ Dolphin Trends Bot Ready!")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -156,7 +128,6 @@ def handle_photo(message):
         caption = message.caption or ""
         is_direct = "#direct" in caption.lower()
 
-        # ================= PRICE =================
         price = "499"
         original_price = "799"
 
@@ -166,7 +137,6 @@ def handle_photo(message):
             if 'original:' in line.lower():
                 original_price = line.split(':')[1].strip().replace("₹", "").replace("Rs.", "").strip()
 
-        # ================= DOWNLOAD IMAGE =================
         file_id = message.photo[-1].file_id
         file_info = bot.get_file(file_id)
         file_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_info.file_path}"
@@ -179,9 +149,6 @@ def handle_photo(message):
         category = "Sets"
         description = "Premium fashion collection from Dolphin Trends"
 
-        # =====================================================
-        # DIRECT MODE
-        # =====================================================
         if is_direct:
             bot.reply_to(message, "⚡ Direct upload mode!")
             clean_caption = caption.replace("#direct", "").strip()
@@ -189,33 +156,16 @@ def handle_photo(message):
                 clean_caption = clean_caption.split(part)[0].strip()
             if clean_caption:
                 name = clean_caption
-
-        # =====================================================
-        # AI MODE
-        # =====================================================
         else:
             bot.reply_to(message, "🤖 AI analyzing image...")
-            
-            # ಹೊಸ Google GenAI ಲೈಬ್ರರಿ ಬಳಸುವ ವಿಧಾನ
             try:
                 from google import genai
                 client = genai.Client(api_key=GEMINI_API_KEY)
                 image_pil = Image.open(io.BytesIO(image_bytes))
-
-                prompt = """Analyze this women's clothing photo. Respond ONLY in JSON:
-{
-  "name": "product name",
-  "category": "Sets",
-  "description": "short description",
-  "dress_details": "dress color and style"
-}"""
-                response = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=[prompt, image_pil]
-                )
+                prompt = """Analyze this women's clothing photo. Respond ONLY in JSON:\n{\n  "name": "product name",\n  "category": "Sets",\n  "description": "short description",\n  "dress_details": "dress color and style"\n}"""
+                response = client.models.generate_content(model="gemini-2.0-flash", contents=[prompt, image_pil])
                 response_text = response.text.strip()
             except Exception:
-                # ಬ್ಯಾಕಪ್ ಹಳೇ ಲೈಬ್ರರಿ ವಿಧಾನ:
                 import google.generativeai as old_genai
                 old_genai.configure(api_key=GEMINI_API_KEY)
                 model = old_genai.GenerativeModel('gemini-1.5-flash-latest')
@@ -236,32 +186,19 @@ def handle_photo(message):
                 dress_details = clean_text(ai_data.get("dress_details", "beautiful traditional dress"))
 
                 bot.reply_to(message, "🎨 Generating AI model image...")
-
                 ai_prompt = f"beautiful young Indian woman wearing {dress_details}, white background, studio fashion photography"
                 formatted_prompt = requests.utils.quote(clean_text(ai_prompt))
                 pollinations_url = f"https://image.pollinations.ai/prompt/{formatted_prompt}?width=768&height=1024&seed=42&nologo=true&model=flux"
-
                 img_response = requests.get(pollinations_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=60)
-
                 if img_response.status_code == 200 and len(img_response.content) > 1000:
                     final_image = img_response.content
             except:
                 pass
 
-        # =====================================================
-        # UPLOAD TO BACKEND
-        # =====================================================
         bot.reply_to(message, "🚀 Uploading to website...")
-
         files = {'file': ('image.jpg', final_image, 'image/jpeg')}
-        data = {
-            'name': name,
-            'price': "Rs." + price,
-            'original_price': "Rs." + original_price,
-            'description': description,
-            'category': category
-        }
-
+        data = {'name': name, 'price': "Rs." + price, 'original_price': "Rs." + original_price, 'description': description, 'category': category}
+        
         upload = requests.post(UPLOAD_URL, files=files, data=data, timeout=60)
 
         if upload.status_code in [200, 201]:
@@ -272,17 +209,14 @@ def handle_photo(message):
             status_msg += f"{'📲 WhatsApp: Sent! ✅' if wa_success else '⚠️ WhatsApp: Failed ❌'}\n"
             status_msg += f"{'📸 Instagram: Posted! ✅' if insta_success else '⚠️ Instagram: Failed ❌'}\n\n"
             status_msg += f"🛍️ {name}\n💰 Rs.{price}\n📂 {category}\n\n🌐 {FRONTEND_URL}"
-
             bot.reply_to(message, status_msg)
         else:
             bot.reply_to(message, f"❌ Upload failed\nStatus: {upload.status_code}")
-
     except Exception as e:
         print("ERROR:", str(e))
         bot.reply_to(message, "❌ Error:\n" + str(e))
 
 # ================= MAIN =================
-
 if __name__ == "__main__":
     print("🤖 Dolphin Bot Starting...")
     try:
