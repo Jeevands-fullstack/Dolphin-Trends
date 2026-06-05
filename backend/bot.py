@@ -24,20 +24,15 @@ except IOError:
 
 # ================= SETTINGS =================
 
-# ⚡ [ಇಲ್ಲಿ ಚೇಂಜ್ ಆಗಿದೆ]: ನಿನ್ನ Render Env ವೇರಿಯಬಲ್ ಹೆಸರಿಗೆ ತಕ್ಕಂತೆ TELEGRAM_BOT_TOKEN ಗೆ ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-UPLOAD_URL = "https://dolphin-trends-3.onrender.com/products" # ನಿನ್ನ main.py ನ ಅಪ್ಲೋಡ್ URL ಗೆ ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ
+UPLOAD_URL = "https://dolphin-trends-3.onrender.com/products" 
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 
-GREEN_API_ID = os.environ.get("GREEN_API_INSTANCE", "") # main.py ನ ಹೆಸರಿಗೆ ಮ್ಯಾಚ್ ಮಾಡಲಾಗಿದೆ
+GREEN_API_ID = os.environ.get("GREEN_API_INSTANCE", "") 
 GREEN_API_TOKEN = os.environ.get("GREEN_API_TOKEN", "")
 WHATSAPP_NUMBER = os.environ.get("YOUR_WHATSAPP_GROUP_ID", "120363293847291048@g.us")
-
-# 🔒 INSTAGRAM SETTINGS
-INSTA_USER = os.environ.get("INSTAGRAM_USERNAME", "")
-INSTA_PASS = os.environ.get("INSTAGRAM_PASSWORD", "")
 
 # ================= CLEAN TEXT =================
 
@@ -79,28 +74,23 @@ def send_whatsapp(image_bytes, name, price):
         print("WhatsApp Error:", str(e))
         return False
 
-# ================= INSTAGRAM AUTO-POST (NO PRICE & NO LINK) =================
+# ================= INSTAGRAM AUTO-POST (SESSION ID BASED) =================
 
 def send_instagram_direct(image_bytes, name, category):
-    if not INSTA_USER or not INSTA_PASS:
-        print("⚠️ Instagram Username ಅಥವಾ Password ಎನ್ವಿರಾನ್ಮೆಂಟ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡಿಲ್ಲ!")
+    # ⚡ Render Environment ನಿಂದ ಸೆಷನ್ ಐಡಿ ತಗೊಳ್ಳುತ್ತೆ
+    INSTA_SESSION_ID = os.environ.get("INSTAGRAM_SESSION_ID", "").strip()
+    
+    if not INSTA_SESSION_ID:
+        print("⚠️ INSTAGRAM_SESSION_ID ಎನ್ವಿರಾನ್ಮೆಂಟ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡಿಲ್ಲ ಬಾಸ್!")
         return False
 
     try:
-        print("📸 Instagrapi ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
+        print("📸 Session ID ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
         cl = Client()
         
-        session_file = "insta_session.json"
-        if os.path.exists(session_file):
-            try:
-                cl.load_settings(session_file)
-                cl.login(INSTA_USER, INSTA_PASS)
-            except Exception:
-                cl.login(INSTA_USER, INSTA_PASS)
-                cl.dump_settings(session_file)
-        else:
-            cl.login(INSTA_USER, INSTA_PASS)
-            cl.dump_settings(session_file)
+        # ⚡ ಯೂಸರ್‌ನೇಮ್ ಪಾಸ್‌ವರ್ಡ್ ಬದಲು ಡೈರೆಕ್ಟ್ ಆಗಿ ಸೆಷನ್ ಕುಕಿ ಬಳಸಿ ಲಾಗಿನ್ ಆಗೋ ಶಾರ್ಟ್‌ಕಟ್
+        cl.login_by_sessionid(INSTA_SESSION_ID)
+        print("✅ Session ID ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ!")
 
         # ✨ ಯಾವುದೇ ಬೆಲೆ (Price) ಮತ್ತು ಲಿಂಕ್ ಇಲ್ಲದ ಪ್ಯೂರ್ ಫ್ಯಾಷನ್ ಕ್ಯಾಪ್ಶನ್
         caption = (
@@ -119,11 +109,11 @@ def send_instagram_direct(image_bytes, name, category):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-        print("✅ Instagram ನಲ್ಲಿ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ پೋಸ್ಟ್ ಆಗಿದೆ!")
+        print("✅ Instagram ನಲ್ಲಿ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಪೋಸ್ಟ್ ಆಗಿದೆ!")
         return True
 
     except Exception as e:
-        print("❌ Instagrapi Error:", str(e))
+        print("❌ Instagrapi Session Error:", str(e))
         if os.path.exists("temp_insta.jpg"):
             os.remove("temp_insta.jpg")
         return False
@@ -211,7 +201,7 @@ def handle_photo(message):
                 )
                 response_text = response.text.strip()
             except Exception:
-                # ಒಂದು ವೇಳೆ ಹಳೇ ಲೈಬ್ರರಿ ಇಂಪೋರ್ಟ್ ಆಗಿದ್ರೆ ಬ್ಯಾಕಪ್ ವಿಧಾನ:
+                # ⚡ ಒಂದು ವೇಳೆ ಹಳೇ ಲೈಬ್ರರಿ ಇಂಪೋರ್ಟ್ ಆಗಿದ್ರೆ ಬ್ಯಾಕಪ್ ವಿಧಾನದಲ್ಲಿ ಹಳೇ ಎರರ್ ಸಾಲ್ವ್ ಮಾಡಲಾಗಿದೆ:
                 import google.generativeai as old_genai
                 old_genai.configure(api_key=GEMINI_API_KEY)
                 model = old_genai.GenerativeModel('gemini-1.5-flash-latest')
@@ -220,9 +210,11 @@ def handle_photo(message):
                 response_text = response.text.strip()
 
             if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0].strip()
+                response_text = response_text.split("
+```json")[1].split("```")[0].strip()
             elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0].strip()
+                response_text = response_text.split("
+```")[1].split("```")[0].strip()
 
             try:
                 ai_data = json.loads(response_text)
