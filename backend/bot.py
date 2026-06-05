@@ -63,27 +63,36 @@ def send_whatsapp(image_bytes, name, price):
         print("WhatsApp Error:", str(e))
         return False
 
-# ================= INSTAGRAM AUTO-POST (SECURE JSON MODE) =================
+# ================= INSTAGRAM AUTO-POST (SMART SESSION MODE) =================
 def send_instagram_direct(image_bytes, name, category):
-    # 🛠️ [CHANGED]: ಇಲ್ಲಿ ನಾವು ಹೊಸ JSON ವೇರಿಯಬಲ್ ರೀಡ್ ಮಾಡ್ತಿದ್ದೀವಿ ಬಾಸ್
-    INSTA_JSON_DATA = os.environ.get("INSTAGRAM_SESSION_JSON", "").strip()
+    # ⚡ [UPDATED]: ನಿನ್ನ ಇನ್‌ಸ್ಟಾಗ್ರಾಮ್ ಲಾಗಿನ್ ವಿವರಗಳನ್ನು ಇಲ್ಲಿ ಆಟೋಮ್ಯಾಟಿಕ್ ಸೆಟ್ ಮಾಡಲಾಗಿದೆ ಬಾಸ್
+    INSTA_USERNAME = "7411255628"
+    INSTA_PASSWORD = "9686609754"
     
-    if not INSTA_JSON_DATA:
-        print("⚠️ INSTAGRAM_SESSION_JSON ಎನ್ವಿರಾನ್ಮೆಂಟ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡಿಲ್ಲ ಬಾಸ್!")
-        return False
+    SESSION_FILE = "instagram_session.json"
+    cl = Client()
+    
+    # ಕ್ರೋಮ್ ಬ್ರೌಸರ್ ಯೂಸರ್ ಏಜೆಂಟ್ ಸೆಟ್ ಮಾಡಲಾಗುತ್ತಿದೆ
+    cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
 
     try:
-        print("📸 JSON Settings ಮೂಲಕ Instagram ಗೆ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
-        cl = Client()
-        
-        cl.set_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-        
-        # ಬ್ರೌಸರ್‌ನಿಂದ ತಂದ ಪೂರ್ತಿ ಸೆಷನ್ ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಆಗ್ತಿದೆ
-        session_settings = json.loads(INSTA_JSON_DATA)
-        cl.set_settings(session_settings)
-        
-        cl.get_timeline_feed() 
-        print("✅ Instagram ಸೆಷನ್ ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿದೆ ಬಾಸ್!")
+        # 1. ಫಸ್ಟ್ ಸರ್ವರ್‌ನಲ್ಲಿ ಆಲ್ರೆಡಿ ಸೆಷನ್ ಫೈಲ್ ಇದ್ಯಾ ಅಂತ ಚೆಕ್ ಮಾಡುತ್ತೆ
+        if os.path.exists(SESSION_FILE):
+            print("📸 ಹಳೇ ಸೆಷನ್ ಫೈಲ್ ಸಿಕ್ಕಿದೆ, ಅದರ ಮೂಲಕ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
+            cl.load_settings(SESSION_FILE)
+            try:
+                cl.get_timeline_feed() # ಸೆಷನ್ ಆಕ್ಟಿವ್ ಆಗಿದ್ಯಾ ಅಂತ ಚೆಕ್ ಮಾಡ್ತಿದೆ
+                print("✅ ಹಳೇ ಸೆಷನ್ ಇನ್ನು ವರ್ಕಿಂಗ್ ಆಗಿದೆ ಬಾಸ್!")
+            except Exception:
+                print("⚠️ ಹಳೇ ಸೆಷನ್ ಎಕ್ಸ್‌ಪೈರ್ ಆಗಿದೆ, ಹೊಸದಾಗಿ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
+                cl.login(INSTA_USERNAME, INSTA_PASSWORD)
+                cl.dump_settings(SESSION_FILE) # ಹೊಸ ಸೆಷನ್ ಸೇವ್ ಮಾಡ್ತಿದೆ
+        else:
+            # 2. ಫೈಲ್ ಇಲ್ಲದಿದ್ದರೆ ಫ್ರೆಶ್ ಆಗಿ ಲಾಗಿನ್ ಆಗಿ ಫೈಲ್ ಕ್ರಿಯೇಟ್ ಮಾಡುತ್ತೆ
+            print(f"📸 {INSTA_USERNAME} ಖಾತೆಗೆ ಫ್ರೆಶ್ ಆಗಿ ಲಾಗಿನ್ ಆಗ್ತಿದೆ...")
+            cl.login(INSTA_USERNAME, INSTA_PASSWORD)
+            cl.dump_settings(SESSION_FILE)
+            print("✅ ಹೊಸ ಸೆಷನ್ ಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ಸರ್ವರ್‌ನಲ್ಲಿ ಕ್ರಿಯೇಟ್ ಆಗಿದೆ ಬಾಸ್!")
 
         caption = (
             f"✨ {name}\n\n"
