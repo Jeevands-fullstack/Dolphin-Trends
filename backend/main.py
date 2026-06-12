@@ -154,7 +154,7 @@ def generate_product_details_via_ai(image_url):
             return "Premium Dress", "Western Wear", "Curated boutique wear."
         response = requests.get(image_url)
         image_bytes = response.content
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         categories_str = ", ".join(VALID_CATEGORIES)
         prompt = (
