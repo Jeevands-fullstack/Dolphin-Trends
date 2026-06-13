@@ -13,7 +13,7 @@ import certifi
 import cloudinary
 import cloudinary.uploader
 
-# ಟೆಲಿಗ್ರಾಮ್ ಮಲ್ಟಿಪಲ್ ಇಮೇಜ್ ಗ್ರೂಪ್‌ಗಳ ಕ್ಯಾಪ್ಶನ್ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
+# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳ ಕ್ಯಾಪ್ಶನ್ ಮತ್ತು ಟೈಮರ್ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
 MEDIA_GROUPS = {}
 
 # 🚀 FastAPI Lifespan Handler (Modern Startup/Shutdown)
@@ -99,7 +99,7 @@ if MONGO_URL:
 def upload_to_cloudinary(image_source, is_file=False):
     try:
         if not CLOUDINARY_CLOUD_NAME:
-            print("Cloudinary not configured! Check CLOUDINARY_CLOUD_NAME env var.")
+            print("Cloudinary not configured!")
             return None
         result = cloudinary.uploader.upload(
             image_source,
@@ -114,14 +114,11 @@ def upload_to_cloudinary(image_source, is_file=False):
         print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
-# 🔥 ಪಕ್ಕಾ ವರ್ಕಿಂಗ್ ರೋಬಸ್ಟ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್ ಫಂಕ್ಷನ್
 def send_whatsapp_msg(phone, message):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
             return False
-            
         clean_phone = str(phone).replace("+", "").replace(" ", "").replace("-", "").strip()
-        
         if len(clean_phone) >= 10:
             just_10_digits = clean_phone[-10:]
             chat_id = f"91{just_10_digits}@c.us"
@@ -141,11 +138,11 @@ def send_whatsapp_to_admins(message):
     for phone in ADMIN_PHONES:
         send_whatsapp_msg(phone, message)
 
-# 📸 ಗ್ರೂಪ್‌ಗೆ ಕೇವಲ ಇಮೇಜ್ ಮತ್ತು ಲಿಂಕ್ಸ್ ಮಾತ್ರ ಕಳಿಸುವ ಅಪ್‌ಡೇಟೆಡ್ ಫಂಕ್ಷನ್
+# 📸 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಆಫರ್ ಲಿಂಕ್ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಕೇವಲ ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ)
 def send_whatsapp_group_product(image_url, name, price, description):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
-            print("WhatsApp group not configured (GREEN_API or GROUP_ID missing)")
+            print("WhatsApp group not configured")
             return False
 
         caption = (
@@ -167,6 +164,24 @@ def send_whatsapp_group_product(image_url, name, price, description):
         return response.status_code == 200
     except Exception as e:
         print("WhatsApp Group Error:", str(e))
+        return False
+
+# 🖼️ ಮಧ್ಯದ ಫೋಟೋಗಳಿಗೆ ಬರೀ ಇಮೇಜ್ ಮಾತ್ರ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಯಾವುದೇ ಲಿಂಕ್ ಇರಲ್ಲ)
+def send_empty_caption_whatsapp_group(image_url):
+    try:
+        if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
+            return False
+        url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
+        payload = {
+            "chatId": YOUR_WHATSAPP_GROUP_ID,
+            "urlFile": image_url,
+            "fileName": "dolphin_trends.jpg",
+            "caption": ""
+        }
+        requests.post(url, json=payload, timeout=30)
+        return True
+    except Exception as e:
+        print("Error sending empty caption image:", e)
         return False
 
 def generate_product_details_via_ai(image_url):
@@ -219,7 +234,6 @@ def home():
 def home_head():
     return {}
 
-# 🛒 Bookings Route (ಕಸ್ಟಮರ್ ಮೆಸೇಜ್ ಕಳುಹಿಸುವಿಕೆ ಆಡ್ ಮಾಡಲಾಗಿದೆ)
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -238,7 +252,7 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
 
-        # 1️⃣ ಗ್ರಾಹಕರಿಗೆ ಹೋಗುವ ಕನ್ಫರ್ಮೇಷನ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್
+        # ಕಸ್ಟಮರ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
@@ -255,7 +269,7 @@ def create_booking(payload: BookingPayload):
         )
         send_whatsapp_msg(payload.customer_phone, customer_message)
 
-        # 2️⃣ ಅಡ್ಮಿನ್‌ಗಳಿಗೆ ಹೋಗುವ ಅಲರ್ಟ್ ಮೆಸೇಜ್
+        # ಅಡ್ಮಿನ್ ಅಲರ್ಟ್
         admin_message = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -271,7 +285,6 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ➕ ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಆಡ್ ಮಾಡುವ ರೂಟ್ (ಗ್ರೂಪ್‌ಗೆ ಕಳಿಸುತ್ತದೆ)
 @app.post("/products")
 async def add_product(
     name: str = Form(...),
@@ -291,40 +304,32 @@ async def add_product(
         if file and file.filename and file.filename != "":
             file_bytes = await file.read()
             if file_bytes and len(file_bytes) > 100:
-                print(f"Uploading image: {file.filename}")
                 cloud_image_url = upload_to_cloudinary(file_bytes, is_file=True)
                 if not cloud_image_url:
-                    raise HTTPException(status_code=500, detail="Image upload to Cloudinary failed!")
+                    raise HTTPException(status_code=500, detail="Image upload failed!")
             else:
-                raise HTTPException(status_code=400, detail="Empty file uploaded!")
+                raise HTTPException(status_code=400, detail="Empty file!")
         else:
             raise HTTPException(status_code=400, detail="Please upload a product image!")
 
         new_id = str(uuid.uuid4())[:8]
         product_data = {
-            "id": new_id,
-            "product_id": new_id,
-            "name": name,
-            "price": price,
-            "original_price": original_price or "",
-            "category": category,
-            "description": description or "",
-            "image": cloud_image_url,
-            "available": is_available
+            "id": new_id, "product_id": new_id,
+            "name": name, "price": price, "original_price": original_price or "",
+            "category": category, "description": description or "",
+            "image": cloud_image_url, "available": is_available
         }
         products_table.insert_one(product_data)
 
-        # ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಫೋಟೋ ಮತ್ತು ಆಫರ್ ಲಿಂಕ್ ಕಳುಹಿಸು
+        # ವೆಬ್‌ಸೈಟ್‌ನಿಂದ ಅಪ್ಲೋಡ್ ಮಾಡಿದಾಗಲೂ ಗ್ರೂಪ್‌ಗೆ ಮೆಸೇಜ್ ಹೋಗುತ್ತೆ
         send_whatsapp_group_product(cloud_image_url, name, price, description or "")
 
         return {"status": "success", "action": "created", "product_id": new_id}
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Add product error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📝 ಪ್ರಾಡಕ್ಟ್ ಎಡಿಟ್ ರೂಟ್ (ಗ್ರೂಪ್‌ಗೆ ಮೆಸೇಜ್ ಕಳಿಸದಂತೆ ಹಾಗೇ ಇಡಲಾಗಿದೆ)
 @app.put("/api/products/{product_id}")
 @app.put("/products/{product_id}")
 def update_product(product_id: str, payload: dict):
@@ -438,7 +443,7 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 ಮಲ್ಟಿ-ಇಮೇಜ್ ಗ್ರೂಪಿಂಗ್ ಸಪೋರ್ಟ್ ಮಾಡುವ ಅಪ್‌ಡೇಟೆಡ್ ಟೆಲಿಗ್ರಾಮ್ ವೆಬ್‌ಹುಕ್
+# 🤖 💥 ಮಲ್ಟಿ-ಇಮೇಜ್ ಗ್ರೂಪಿಂಗ್ ಸಪೋರ್ಟ್ ಮಾಡುವ ಸ್ಮಾರ್ಟ್ ಟೆಲಿಗ್ರಾಮ್ ವೆಬ್‌ಹುಕ್
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -452,7 +457,7 @@ async def telegram_webhook(request: Request):
         chat_id = message["chat"]["id"]
 
         if ALLOWED_USERS and chat_id not in ALLOWED_USERS:
-            print(f"Ignored message from unauthorized chat_id: {chat_id}")
+            print(f"Ignored chat_id: {chat_id}")
             return {"status": "Ignored"}
 
         if "photo" not in message:
@@ -461,14 +466,13 @@ async def telegram_webhook(request: Request):
         caption = message.get("caption", "").strip()
         media_group_id = message.get("media_group_id")
         
-        # ಡಿಫಾಲ್ಟ್ ವ್ಯಾಲ್ಯೂಗಳು (ಬ್ಯಾಕಪ್)
         product_name = "Premium Dress"
         product_price = "1500"
         product_category = "Suit Set"
         product_description = "Curated boutique wear."
         has_valid_caption = False
 
-        # ಕ್ಯಾಪ್ಶನ್ ಇದ್ದರೆ ಅದನ್ನು ಪಾರ್ಸ್ ಮಾಡಿ ಸೇವ್ ಮಾಡಿಕೊಳ್ಳಿ
+        # ಕ್ಯಾಪ್ಶನ್ ಪಾರ್ಸಿಂಗ್ ಲಾಜಿಕ್
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
@@ -488,7 +492,6 @@ async def telegram_webhook(request: Request):
                 product_price = price_match.group(1)
                 product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
 
-            # ಗ್ರೂಪ್‌ನ ಮೊದಲ ಫೋಟೋದ ಕ್ಯಾಪ್ಶನ್ ಅನ್ನು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿಯಲ್ಲಿ ಇಡಿ
             if media_group_id:
                 MEDIA_GROUPS[media_group_id] = {
                     "name": product_name,
@@ -498,13 +501,13 @@ async def telegram_webhook(request: Request):
                     "timestamp": time.time()
                 }
 
-        # ಗ್ರೂಪ್‌ನ ಮುಂದಿನ ಫೋಟೋಗಳಿಗೆ ಮೊದಲ ಫೋಟೋದ ಕ್ಯಾಪ್ಶನ್ ಅನ್ನು ಅಪ್ಲೈ ಮಾಡಿ
         elif media_group_id in MEDIA_GROUPS:
             group_data = MEDIA_GROUPS[media_group_id]
             product_name = group_data["name"]
             product_price = group_data["price"]
             product_category = group_data["category"]
             product_description = group_data["description"]
+            group_data["timestamp"] = time.time()  # ಇತ್ತೀಚಿನ ಫೋಟೋ ಟೈಮ್ ಅಪ್ಡೇಟ್
             has_valid_caption = True
 
         file_id = message["photo"][-1]["file_id"]
@@ -523,7 +526,6 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
-        # ಏನೂ ಕ್ಯಾಪ್ಶನ್ ಸಿಗದಿದ್ದರೆ ಮಾತ್ರ Gemini AI ರನ್ ಮಾಡಿ
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -532,6 +534,7 @@ async def telegram_webhook(request: Request):
 
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
 
+        # ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ ಮಾಡಿ
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
@@ -540,28 +543,29 @@ async def telegram_webhook(request: Request):
             "description": product_description, "available": True
         })
 
-        send_whatsapp_group_product(permanent_url, product_name, product_price_display, product_description)
+        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ (ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ಸ್)
+        if media_group_id and media_group_id in MEDIA_GROUPS:
+            # ಬಾಕಿ ಇರೋ ಫೋಟೋಗಳು ಒಟ್ಟಿಗೆ ಅಪ್ಲೋಡ್ ಆಗುವವರೆಗೆ 1.5 ಸೆಕೆಂಡ್ ಕಾಯಿರಿ
+            time.sleep(1.5) 
+            
+            current_time = time.time()
+            # ಒಂದು ವೇಳೆ ಈ ಫೋಟೋ ಬಂದ ನಂತರ 1.2 ಸೆಕೆಂಡ್ ವರೆಗೆ ಬೇರೆ ಫೋಟೋ ಬಂದಿಲ್ಲ ಅಂದ್ರೆ ಇದುವೇ ಕೊನೆ ಫೋಟೋ!
+            if current_time - MEDIA_GROUPS[media_group_id]["timestamp"] >= 1.2:
+                send_whatsapp_group_product(permanent_url, product_name, product_price_display, product_description)
+            else:
+                send_empty_caption_whatsapp_group(permanent_url)
+        else:
+            # ಸಿಂಗಲ್ ಫೋಟೋ ಕಳಿಸಿದ್ರೆ ನಾರ್ಮಲ್ ಆಗಿ ಲಿಂಕ್ ಜೊತೆ ಹೋಗುತ್ತೆ
+            send_whatsapp_group_product(permanent_url, product_name, product_price_display, product_description)
 
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
             json={
                 "chat_id": chat_id,
-                "text": (
-                    f"✅ Product Uploaded Successfully!\n\n"
-                    f"Name: {product_name}\n"
-                    f"Price: {product_price_display}\n"
-                    f"Category: {product_category}\n"
-                    f"WhatsApp group notified!"
-                )
+                "text": f"✅ Product Saved: {product_name} ({product_price_display})"
             },
             timeout=5
         )
-
-        # ಹಳೆಯ ಮೀಡಿಯಾ ಗ್ರೂಪ್ ಮೆಮೊರಿ ಕ್ಲೀನ್ ಅಪ್ (60 ಸೆಕೆಂಡ್‌ಗಿಂತ ಹಳೆಯದಾಗಿದ್ದರೆ)
-        current_time = time.time()
-        expired_groups = [gid for gid, gdata in MEDIA_GROUPS.items() if current_time - gdata["timestamp"] > 60]
-        for gid in expired_groups:
-            MEDIA_GROUPS.pop(gid, None)
 
         return {"status": "success"}
     except Exception as e:
