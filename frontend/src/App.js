@@ -37,7 +37,7 @@ function App() {
 
   const categories = [
     'All', 'Leggings', 'Kurta Sets', 'Jeans',
-    'Palazzo Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
+    'Plazzo Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
     'Western Wear', 'Gym Pants','250 Tops','350 Tops','Jeans Tops',
   ];
 
