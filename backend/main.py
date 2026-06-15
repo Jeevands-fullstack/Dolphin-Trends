@@ -258,7 +258,7 @@ def _try_google_ai(image_url):
 def _local_fallback_details():
     """AI work ಆಗದಿದ್ದರೆ random boutique descriptions"""
     names = [
-         "Designer Gown"
+         "Premium Dress"
     ]
     categories = [
         "Suit Set"
