@@ -5,6 +5,7 @@ import time
 import asyncio
 import requests
 import re
+import random
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Form, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +18,7 @@ import cloudinary.uploader
 # 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳನ್ನು ಪಕ್ಕಾ ಆಗಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಅಪ್ಡೇಟೆಡ್ ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
 MEDIA_GROUPS = {}
 
-# 🚀 FastAPI Lifespan Handler (Modern Startup/Shutdown)
+# 🚀 FastAPI Lifespan Handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if TELEGRAM_BOT_TOKEN:
@@ -139,7 +140,7 @@ def send_whatsapp_to_admins(message):
     for phone in ADMIN_PHONES:
         send_whatsapp_msg(phone, message)
 
-# 📸 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಆಫರ್ ಲಿಂಕ್ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಕೇವಲ ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ)
+# 📸 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಆಫರ್ ಲಿಂಕ್ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಕೇವಲ ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ)
 def send_whatsapp_group_product(image_url, user_caption=None):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
@@ -169,7 +170,7 @@ def send_whatsapp_group_product(image_url, user_caption=None):
         print("WhatsApp Group Error:", str(e))
         return False
 
-# 🖼️ ಮಧ್ಯದ ಫೋಟೋಗಳಿಗೆ ಬರೀ ಇಮೇಜ್ ಮಾತ್ರ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಯಾವುದೇ ಲಿಂಕ್ ಇರಲ್ಲ)
+# 🖼️ ಮಧ್ಯದ ಫೋಟೋಗಳಿಗೆ ಬರೀ ಇಮೇಜ್ ಮಾತ್ರ ಕಳಿಸುವ ಫಂಕ್ಷನ್
 def send_empty_caption_whatsapp_group(image_url):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
@@ -188,12 +189,12 @@ def send_empty_caption_whatsapp_group(image_url):
         print("Error sending empty caption image:", e)
         return False
 
-# 🤖 AI Function - Multiple Model Fallback (FIXED)
-def generate_product_details_via_ai(image_url):
+# 🤖 Google AI Function - Try Multiple Models
+def _try_google_ai(image_url):
+    """Google AI try ಮಾಡುತ್ತದೆ, None ಅಥವಾ result return ಮಾಡುತ್ತದೆ"""
     try:
         if not GOOGLE_API_KEY:
-            print("⚠️ GOOGLE_API_KEY not set, using fallback")
-            return "Premium Dress", "Suit Set", "Curated boutique wear."
+            return None
         
         import google.generativeai as genai
         genai.configure(api_key=GOOGLE_API_KEY)
@@ -202,16 +203,17 @@ def generate_product_details_via_ai(image_url):
         image_bytes = response.content
         
         if not image_bytes:
-            print("⚠️ Empty image bytes, using fallback")
-            return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+            return None
         
-        # ✅ ಹೊಸ working model names - multiple fallback options
+        # ✅ ನಿಮ್ಮ API key ಗೆ ಕೆಲಸ ಮಾಡುವ models
         model_names = [
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-exp',
             'gemini-1.5-flash',
-            'gemini-1.5-flash-8b',
+            'gemini-1.5-flash-001',
+            'gemini-1.5-flash-002',
             'gemini-1.5-pro',
+            'gemini-1.5-pro-001',
+            'gemini-pro',
+            'gemini-pro-vision',
         ]
         
         prompt = (
@@ -223,10 +225,8 @@ def generate_product_details_via_ai(image_url):
         )
         cookie_img = {"mime_type": "image/jpeg", "data": image_bytes}
         
-        # ✅ ಪ್ರತಿ model ಅನ್ನು try ಮಾಡಿ
         for model_name in model_names:
             try:
-                print(f"🔄 Trying AI model: {model_name}")
                 model = genai.GenerativeModel(model_name)
                 ai_response = model.generate_content([prompt, cookie_img])
                 text_res = ai_response.text.strip()
@@ -240,17 +240,53 @@ def generate_product_details_via_ai(image_url):
                         parts[2].strip() if len(parts) > 2 else "Beautiful outfit."
                     )
                 return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
-            except Exception as model_error:
-                print(f"❌ Model {model_name} failed: {str(model_error)[:100]}")
+            except Exception as e:
+                error_msg = str(e)
+                if "429" in error_msg:
+                    print(f"⚠️ Quota exceeded for {model_name}")
+                elif "404" in error_msg:
+                    print(f"⚠️ Model {model_name} not found")
+                else:
+                    print(f"❌ Model {model_name} error: {error_msg[:100]}")
                 continue
         
-        # ಎಲ್ಲಾ models fail ಆದರೆ fallback
-        print("⚠️ All AI models failed, using fallback")
-        return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
-        
-    except Exception as e:
-        print(f"AI Error: {e}")
-        return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+        return None
+    except:
+        return None
+
+# 🆕 Local Fallback (AI ಇಲ್ಲದಿದ್ದರೂ work ಆಗುತ್ತದೆ)
+def _local_fallback_details():
+    """AI work ಆಗದಿದ್ದರೆ random boutique descriptions"""
+    names = [
+        "Premium Suit Set", "Designer Anarkali", "Elegant Salwar",
+        "Royal Palazzo Set", "Festive Kurti", "Silk Saree",
+        "Embroidered Dress", "Traditional Lehenga", "Designer Gown"
+    ]
+    categories = [
+        "Suit Set", "Anarkali", "Salwar", "Palazzo", 
+        "Kurti", "Saree", "Lehenga", "Dress", "Gown"
+    ]
+    descriptions = [
+        "Beautiful design crafted with rich fabric and intricate detailing.",
+        "Premium quality outfit perfect for festive occasions and celebrations.",
+        "Elegant boutique wear with modern styling and comfortable fit.",
+        "Trendy designer collection featuring fine craftsmanship.",
+        "Stylish ethnic wear made from soft, breathable fabric.",
+        "Gorgeous outfit with traditional charm and contemporary appeal."
+    ]
+    return random.choice(names), random.choice(categories), random.choice(descriptions)
+
+# 🤖 Main AI Function (Smart Wrapper)
+def generate_product_details_via_ai(image_url):
+    """AI try ಮಾಡುತ್ತದೆ, fail ಆದರೆ local fallback ಬಳಸುತ್ತದೆ"""
+    # ಮೊದಲು Google AI try ಮಾಡಿ
+    ai_result = _try_google_ai(image_url)
+    if ai_result:
+        return ai_result
+    
+    # Fail ಆದರೆ fallback ಬಳಸಿ
+    print("⚠️ Using local fallback (random boutique details)")
+    return _local_fallback_details()
 
 # 🆕 Async helper: Media group delay processing (Non-Blocking)
 async def process_media_group_delayed(media_group_id, delay=3.0):
@@ -304,7 +340,7 @@ def home():
 def home_head():
     return {}
 
-# 🔍 Optional: Available AI models ನೋಡಲು
+# 🔍 Available AI models ನೋಡಲು diagnostic endpoint
 @app.get("/api/list-models")
 def list_available_models():
     """Google API ನಲ್ಲಿ ಯಾವ models ಲಭ್ಯ ಎಂದು ತೋರಿಸುತ್ತದೆ"""
@@ -320,7 +356,7 @@ def list_available_models():
             methods = list(m.supported_generation_methods) if hasattr(m, 'supported_generation_methods') else []
             if 'generateContent' in methods:
                 available.append(m.name)
-        return {"available_models": available}
+        return {"available_models": available, "count": len(available)}
     except Exception as e:
         return {"error": str(e)}
 
@@ -575,6 +611,7 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
+        # AI ಅಥವಾ Fallback - ಯಾವಾಗಲೂ work ಆಗುತ್ತದೆ
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -583,7 +620,7 @@ async def telegram_webhook(request: Request):
 
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
 
-        # ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ (ಪ್ರತಿ photo ಗೆ save ಆಗುತ್ತದೆ)
+        # ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
