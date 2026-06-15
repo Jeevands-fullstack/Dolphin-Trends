@@ -13,7 +13,7 @@ import certifi
 import cloudinary
 import cloudinary.uploader
 
-# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳ ಕ್ಯಾಪ್ಶನ್ ಮತ್ತು ಟೈಮರ್ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
+# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳನ್ನು ಪಕ್ಕಾ ಆಗಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಅಪ್ಡೇಟೆಡ್ ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
 MEDIA_GROUPS = {}
 
 # 🚀 FastAPI Lifespan Handler (Modern Startup/Shutdown)
@@ -152,7 +152,6 @@ def send_whatsapp_group_product(image_url, user_caption=None):
             f"🔗 {FRONTEND_URL}"
         )
         
-        # ನೀವು ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಏನಾದರೂ ಬರೆದಿದ್ದರೆ ಅದು ಮೊದಲು ಬರುತ್ತದೆ, ಇಲ್ಲದಿದ್ದರೆ ಬರೀ ಲಿಂಕ್ ಮಾತ್ರ ಹೋಗುತ್ತದೆ
         caption = f"{user_caption}\n\n{links_text}".strip() if user_caption else links_text
 
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
@@ -163,7 +162,7 @@ def send_whatsapp_group_product(image_url, user_caption=None):
             "caption": caption
         }
         response = requests.post(url, json=payload, timeout=30)
-        print("WhatsApp Group Status:", response.status_code, response.text)
+        print("WhatsApp Group Status (With Links):", response.status_code)
         return response.status_code == 200
     except Exception as e:
         print("WhatsApp Group Error:", str(e))
@@ -181,7 +180,8 @@ def send_empty_caption_whatsapp_group(image_url):
             "fileName": "dolphin_trends.jpg",
             "caption": ""
         }
-        requests.post(url, json=payload, timeout=30)
+        response = requests.post(url, json=payload, timeout=30)
+        print("WhatsApp Group Status (Empty Caption):", response.status_code)
         return True
     except Exception as e:
         print("Error sending empty caption image:", e)
@@ -196,7 +196,6 @@ def generate_product_details_via_ai(image_url):
         response = requests.get(image_url, timeout=10)
         image_bytes = response.content
         
-        # 👑 Fixed Gemini Model name to latest working version
         model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
         prompt = (
@@ -230,10 +229,7 @@ def home():
     return {
         "status": "Dolphin Trends Backend Active!",
         "mongo": "connected" if products_table is not None else "not connected",
-        "cloudinary": "configured" if CLOUDINARY_CLOUD_NAME else "missing",
-        "telegram_allowed_users": ALLOWED_USERS,
-        "whatsapp_admins": len(ADMIN_PHONES),
-        "whatsapp_group": "configured" if YOUR_WHATSAPP_GROUP_ID else "missing"
+        "cloudinary": "configured" if CLOUDINARY_CLOUD_NAME else "missing"
     }
 
 @app.head("/")
@@ -336,23 +332,17 @@ async def add_product(
 @app.put("/api/products/{product_id}")
 @app.put("/products/{product_id}")
 def update_product(product_id: str, payload: dict):
-    if not product_id or product_id == "undefined":
-        raise HTTPException(status_code=400, detail="Invalid ID")
     if products_table is None:
         raise HTTPException(status_code=500, detail="DB missing")
-    result = products_table.update_one(
+    products_table.update_one(
         {"$or": [{"product_id": product_id}, {"id": product_id}]},
         {"$set": payload}
     )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Product not found")
     return {"status": "success"}
 
 @app.delete("/api/products/{product_id}")
 @app.delete("/products/{product_id}")
 def delete_product(product_id: str):
-    if not product_id or product_id == "undefined":
-        raise HTTPException(status_code=400, detail="Invalid ID")
     if products_table is None:
         raise HTTPException(status_code=500, detail="DB missing")
     products_table.delete_one({"$or": [{"product_id": product_id}, {"id": product_id}]})
@@ -366,7 +356,7 @@ def get_products():
 
 @app.get("/reviews/{product_id}")
 def get_reviews(product_id: str):
-    if db is None or not product_id or product_id == "undefined":
+    if db is None:
         return []
     return list(db["reviews"].find({"product_id": product_id}, {"_id": 0}))
 
@@ -389,13 +379,9 @@ def get_bookings():
 @app.delete("/api/admin/bookings/{booking_id}")
 @app.delete("/bookings/{booking_id}")
 def delete_booking(booking_id: str):
-    if not booking_id or booking_id == "undefined":
-        raise HTTPException(status_code=400, detail="Invalid Booking ID")
     if bookings_table is None:
         raise HTTPException(status_code=500, detail="DB missing")
-    result = bookings_table.delete_one({"booking_id": booking_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Booking not found")
+    bookings_table.delete_one({"booking_id": booking_id})
     return {"success": True}
 
 @app.post("/api/admin/update-booking")
@@ -432,21 +418,11 @@ def update_booking_status(booking_id: str, action: str):
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
 
-        elif action == "size_unavail":
-            msg = (
-                f"Hello {c_name}! 😊\n\n"
-                f"*{p_name}* is available but your size is out of stock.\n"
-                f"Please visit our store to check alternative sizes!\n"
-                f"📍 Peenya 2nd Stage, Bangalore\nTeam Dolphin Trends 🐬"
-            )
-            send_whatsapp_msg(c_phone, msg)
-            bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size Unavailable"}})
-
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 💥 ಮೋಡರ್ನ್ ಟೆಲಿಗ್ರಾಮ್ ವೆಬ್‌ಹುಕ್ (Fixed Gemini + Clean WhatsApp Caption Logic)
+# 🤖 💥 ಪಕ್ಕಾ ಮಾಸ್ಟರ್ ವೆಬ್‌ಹುಕ್ (Fixed Grouping Logic)
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -460,7 +436,6 @@ async def telegram_webhook(request: Request):
         chat_id = message["chat"]["id"]
 
         if ALLOWED_USERS and chat_id not in ALLOWED_USERS:
-            print(f"Ignored chat_id: {chat_id}")
             return {"status": "Ignored"}
 
         if "photo" not in message:
@@ -475,7 +450,7 @@ async def telegram_webhook(request: Request):
         product_description = "Curated boutique wear."
         has_valid_caption = False
 
-        # ಕ್ಯಾಪ್ಶನ್ ಪಾರ್ಸಿಂಗ್ ಲಾಜಿಕ್
+        # ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
@@ -495,25 +470,29 @@ async def telegram_webhook(request: Request):
                 product_price = price_match.group(1)
                 product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
 
+            # ಗ್ರೂಪ್ ಮೆಮೊರಿಯಲ್ಲಿ ಡೇಟಾ ಸೇವ್ ಮಾಡಿ ಮತ್ತು ಈ ಗ್ರೂಪ್ ಆಕ್ಟಿವ್ ಆಗಿದೆ ಎಂದು ಟೈಮ್ ಸೆಟ್ ಮಾಡಿ
             if media_group_id:
                 MEDIA_GROUPS[media_group_id] = {
                     "name": product_name,
                     "price": product_price,
                     "category": product_category,
                     "description": product_description,
-                    "timestamp": time.time(),
-                    "user_caption": caption  # ಒರಿಜಿನಲ್ ಯೂಸರ್ ಟೆಕ್ಸ್ಟ್ ಅನ್ನು ಸ್ಟೋರ್ ಮಾಡಿಕೊಳ್ಳಿ
+                    "user_caption": caption,
+                    "last_received": time.time(),
+                    "processed_urls": []
                 }
 
         elif media_group_id in MEDIA_GROUPS:
+            # ಕ್ಯಾಪ್ಶನ್ ಇಲ್ಲದ ಮುಂದಿನ ಫೋಟೋಗಳು ಬಂದಾಗ ಹಳೆ ಡೇಟಾ ತಗೋಳಿ
             group_data = MEDIA_GROUPS[media_group_id]
             product_name = group_data["name"]
             product_price = group_data["price"]
             product_category = group_data["category"]
             product_description = group_data["description"]
-            group_data["timestamp"] = time.time()  # ಇತ್ತೀಚಿನ ಫೋಟೋ ಟೈಮ್ ಅಪ್ಡೇಟ್
+            group_data["last_received"] = time.time() # ಟೈಮರ್ ರೀಸೆಟ್
             has_valid_caption = True
 
+        # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್ ಲಾಜಿಕ್
         file_id = message["photo"][-1]["file_id"]
         file_info = requests.get(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile",
@@ -530,7 +509,6 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
-        # ವೆಬ್‌ಸೈಟ್‌ಗಾಗಿ ಆಟೋಮ್ಯಾಟಿಕ್ AI ವಿವರಗಳನ್ನು ಜನರೇಟ್ ಮಾಡಿಕೊಳ್ಳುವುದು (ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಅಪ್ಲೋಡ್)
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -539,7 +517,7 @@ async def telegram_webhook(request: Request):
 
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
 
-        # ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ ಮಾಡಿ
+        # ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
@@ -548,31 +526,45 @@ async def telegram_webhook(request: Request):
             "description": product_description, "available": True
         })
 
-        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ (ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ಸ್, ಉಳಿದವಕ್ಕೆ ಬರೀ ಇಮೇಜ್)
-        if media_group_id and media_group_id in MEDIA_GROUPS:
-            # ಬಾಕಿ ಇರೋ ಫೋಟೋಗಳು ಒಟ್ಟಿಗೆ ಅಪ್ಲೋಡ್ ಆಗುವವರೆಗೆ 1.5 ಸೆಕೆಂಡ್ ಕಾಯಿರಿ
-            time.sleep(1.5) 
+        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ ಲಾಜಿಕ್ 🔥
+        if media_group_id:
+            # ಈ ಫೋಟೋ ಯುಆರ್‌ಎಲ್ ಅನ್ನು ಲಿಸ್ಟ್‌ಗೆ ಸೇರಿಸಿ
+            if media_group_id not in MEDIA_GROUPS:
+                MEDIA_GROUPS[media_group_id] = {
+                    "name": product_name, "price": product_price, "category": product_category,
+                    "description": product_description, "user_caption": caption,
+                    "last_received": time.time(), "processed_urls": []
+                }
             
-            current_time = time.time()
-            # ಒಂದು ವೇಳೆ ಈ ಫೋಟೋ ಬಂದ ನಂತರ 1.2 ಸೆಕೆಂಡ್ ವರೆಗೆ ಬೇರೆ ಫೋಟೋ ಬಂದಿಲ್ಲ ಅಂದ್ರೆ ಇದುವೇ ಕೊನೆ ಫೋಟೋ!
-            if current_time - MEDIA_GROUPS[media_group_id]["timestamp"] >= 1.2:
-                # ಕೊನೆಯ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ ಹೋಗುತ್ತೆ
-                user_text = MEDIA_GROUPS[media_group_id].get("user_caption", "")
-                send_whatsapp_group_product(permanent_url, user_caption=user_text)
-            else:
-                # ಮಧ್ಯದ ಫೋಟೋಗಳಿಗೆ ಯಾವುದೇ ವಿವರ ಇಲ್ಲದೆ ಬರೀ ಇಮೇಜ್ ಮಾತ್ರ ಶೇರ್ ಆಗುತ್ತೆ
-                send_empty_caption_whatsapp_group(permanent_url)
+            MEDIA_GROUPS[media_group_id]["processed_urls"].append(permanent_url)
+            
+            # ಇಡೀ ಗ್ರೂಪ್‌ನ ಫೋಟೋಗಳು ಬರುವವರೆಗೆ 2 ಸೆಕೆಂಡ್ ವೇಟ್ ಮಾಡಿ ಆಮೇಲೆ ಡಿಸಿಷನ್ ತಗೊಳ್ಳುತ್ತೆ
+            time.sleep(2.0)
+            
+            # ಚೆಕ್ ಮಾಡಿ: ಈ ಗ್ರೂಪ್‌ಗೆ ಕೊನೆಯದಾಗಿ ಫೋಟೋ ಬಂದು 1.8 ಸೆಕೆಂಡ್ ಕಳೆದಿದ್ದರೆ, ಅಂದರೆ ಇನ್ನು ಯಾವುದೇ ಹೊಸ ಫೋಟೋ ಬಂದಿಲ್ಲ ಎಂದರ್ಥ!
+            if time.time() - MEDIA_GROUPS[media_group_id]["last_received"] >= 1.8:
+                urls = MEDIA_GROUPS[media_group_id]["processed_urls"]
+                if urls:
+                    # ಮೊದಲ ಎಲ್ಲಾ ಫೋಟೋಗಳನ್ನು ಬರೀ ಇಮೇಜ್ ಆಗಿ ಕಳುಹಿಸಿ (ಯಾವುದೇ ಕ್ಯಾಪ್ಶನ್ ಇಲ್ಲದೆ)
+                    for url in urls[:-1]:
+                        send_empty_caption_whatsapp_group(url)
+                        time.sleep(0.5) # ವಾಟ್ಸಾಪ್ ಬ್ಲಾಕ್ ಆಗದಿರಲು ಸಣ್ಣ ಗ್ಯಾಪ್
+                    
+                    # ಕೇವಲ ಕೊನೆಯ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ ಮತ್ತು ಟೆಕ್ಸ್ಟ್ ಕಳುಹಿಸಿ!
+                    last_url = urls[-1]
+                    user_text = MEDIA_GROUPS[media_group_id].get("user_caption", "")
+                    send_whatsapp_group_product(last_url, user_caption=user_text)
+                    
+                    # ಮೆಮೊರಿ ಕ್ಲಿಯರ್ ಮಾಡಿ
+                    MEDIA_GROUPS.pop(media_group_id, None)
         else:
-            # ಸಿಂಗಲ್ ಫೋಟೋ ಕಳಿಸಿದ್ರೆ ಮಾಮೂಲಿಯಾಗಿ ಲಿಂಕ್ ಜೊತೆ ಹೋಗುತ್ತೆ
+            # ಒಂದೇ ಒಂದು ಸಿಂಗಲ್ ಫೋಟೋ ಕಳುಹಿಸಿದರೆ ಡೈರೆಕ್ಟ್ ಆಗಿ ಲಿಂಕ್ ಜೊತೆ ಹೋಗುತ್ತೆ
             send_whatsapp_group_product(permanent_url, user_caption=caption if caption else None)
 
         # ಟೆಲಿಗ್ರಾಮ್ ಕನ್ಫರ್ಮೇಷನ್
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": f"✅ Product Saved: {product_name} ({product_price_display})"
-            },
+            json={"chat_id": chat_id, "text": f"✅ Saved to Website & WhatsApp: {product_name}"},
             timeout=5
         )
 
