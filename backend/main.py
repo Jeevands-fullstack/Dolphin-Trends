@@ -188,16 +188,31 @@ def send_empty_caption_whatsapp_group(image_url):
         print("Error sending empty caption image:", e)
         return False
 
+# 🤖 AI Function - Multiple Model Fallback (FIXED)
 def generate_product_details_via_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
+            print("⚠️ GOOGLE_API_KEY not set, using fallback")
             return "Premium Dress", "Suit Set", "Curated boutique wear."
+        
         import google.generativeai as genai
         genai.configure(api_key=GOOGLE_API_KEY)
+        
         response = requests.get(image_url, timeout=10)
         image_bytes = response.content
         
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        if not image_bytes:
+            print("⚠️ Empty image bytes, using fallback")
+            return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+        
+        # ✅ ಹೊಸ working model names - multiple fallback options
+        model_names = [
+            'gemini-2.0-flash',
+            'gemini-2.0-flash-exp',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-8b',
+            'gemini-1.5-pro',
+        ]
         
         prompt = (
             "Analyze this boutique fashion clothing image. "
@@ -207,17 +222,37 @@ def generate_product_details_via_ai(image_url):
             "Format: Name | Category | Description"
         )
         cookie_img = {"mime_type": "image/jpeg", "data": image_bytes}
-        ai_response = model.generate_content([prompt, cookie_img])
-        text_res = ai_response.text.strip()
-        if "|" in text_res:
-            parts = text_res.split("|")
-            return parts[0].strip(), parts[1].strip(), parts[2].strip() if len(parts) > 2 else "Beautiful outfit."
+        
+        # ✅ ಪ್ರತಿ model ಅನ್ನು try ಮಾಡಿ
+        for model_name in model_names:
+            try:
+                print(f"🔄 Trying AI model: {model_name}")
+                model = genai.GenerativeModel(model_name)
+                ai_response = model.generate_content([prompt, cookie_img])
+                text_res = ai_response.text.strip()
+                print(f"✅ AI Success with {model_name}")
+                
+                if "|" in text_res:
+                    parts = text_res.split("|")
+                    return (
+                        parts[0].strip(),
+                        parts[1].strip(),
+                        parts[2].strip() if len(parts) > 2 else "Beautiful outfit."
+                    )
+                return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+            except Exception as model_error:
+                print(f"❌ Model {model_name} failed: {str(model_error)[:100]}")
+                continue
+        
+        # ಎಲ್ಲಾ models fail ಆದರೆ fallback
+        print("⚠️ All AI models failed, using fallback")
         return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
+        
     except Exception as e:
-        print("AI Error:", e)
+        print(f"AI Error: {e}")
         return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
 
-# 🆕 Async helper: Media group delay processing (non-blocking)
+# 🆕 Async helper: Media group delay processing (Non-Blocking)
 async def process_media_group_delayed(media_group_id, delay=3.0):
     """ಎಲ್ಲಾ photos ಬರುವವರೆಗೆ wait ಮಾಡಿ, ಆಮೇಲೆ WhatsApp ಗೆ ಕಳುಹಿಸಿ"""
     try:
@@ -268,6 +303,26 @@ def home():
 @app.head("/")
 def home_head():
     return {}
+
+# 🔍 Optional: Available AI models ನೋಡಲು
+@app.get("/api/list-models")
+def list_available_models():
+    """Google API ನಲ್ಲಿ ಯಾವ models ಲಭ್ಯ ಎಂದು ತೋರಿಸುತ್ತದೆ"""
+    try:
+        if not GOOGLE_API_KEY:
+            return {"error": "GOOGLE_API_KEY missing"}
+        import google.generativeai as genai
+        genai.configure(api_key=GOOGLE_API_KEY)
+        
+        models = genai.list_models()
+        available = []
+        for m in models:
+            methods = list(m.supported_generation_methods) if hasattr(m, 'supported_generation_methods') else []
+            if 'generateContent' in methods:
+                available.append(m.name)
+        return {"available_models": available}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
