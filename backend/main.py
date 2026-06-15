@@ -2,6 +2,7 @@ import os
 import io
 import uuid
 import time
+import asyncio
 import requests
 import re
 from contextlib import asynccontextmanager
@@ -216,6 +217,38 @@ def generate_product_details_via_ai(image_url):
         print("AI Error:", e)
         return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
 
+# 🆕 Async helper: Media group delay processing (non-blocking)
+async def process_media_group_delayed(media_group_id, delay=3.0):
+    """ಎಲ್ಲಾ photos ಬರುವವರೆಗೆ wait ಮಾಡಿ, ಆಮೇಲೆ WhatsApp ಗೆ ಕಳುಹಿಸಿ"""
+    try:
+        await asyncio.sleep(delay)
+    except asyncio.CancelledError:
+        return
+    
+    if media_group_id not in MEDIA_GROUPS:
+        return
+    
+    group_data = MEDIA_GROUPS.pop(media_group_id, None)
+    if not group_data:
+        return
+    
+    urls = group_data.get("processed_urls", [])
+    if not urls:
+        return
+    
+    print(f"📤 Processing media group {media_group_id} with {len(urls)} images")
+    
+    # 📸 ಮೊದಲ N-1 photos: ಬರೀ image (link ಇಲ್ಲ)
+    for url in urls[:-1]:
+        send_empty_caption_whatsapp_group(url)
+        await asyncio.sleep(0.5)
+    
+    # 🎯 ಕೊನೆಯ photo: link ಜೊತೆ
+    last_url = urls[-1]
+    user_text = group_data.get("user_caption", "")
+    send_whatsapp_group_product(last_url, user_caption=user_text)
+    print(f"✅ Media group processed successfully!")
+
 class BookingPayload(BaseModel):
     customer_name: str
     customer_phone: str
@@ -422,7 +455,7 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 💥 ಪಕ್ಕಾ ಮಾಸ್ಟರ್ ವೆಬ್‌ಹುಕ್ (Fixed Grouping Logic)
+# 🤖 💥 ಪಕ್ಕಾ ಮಾಸ್ಟರ್ ವೆಬ್‌ಹುಕ್ (Fixed Grouping Logic - Async Non-Blocking)
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -470,28 +503,6 @@ async def telegram_webhook(request: Request):
                 product_price = price_match.group(1)
                 product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
 
-            # ಗ್ರೂಪ್ ಮೆಮೊರಿಯಲ್ಲಿ ಡೇಟಾ ಸೇವ್ ಮಾಡಿ ಮತ್ತು ಈ ಗ್ರೂಪ್ ಆಕ್ಟಿವ್ ಆಗಿದೆ ಎಂದು ಟೈಮ್ ಸೆಟ್ ಮಾಡಿ
-            if media_group_id:
-                MEDIA_GROUPS[media_group_id] = {
-                    "name": product_name,
-                    "price": product_price,
-                    "category": product_category,
-                    "description": product_description,
-                    "user_caption": caption,
-                    "last_received": time.time(),
-                    "processed_urls": []
-                }
-
-        elif media_group_id in MEDIA_GROUPS:
-            # ಕ್ಯಾಪ್ಶನ್ ಇಲ್ಲದ ಮುಂದಿನ ಫೋಟೋಗಳು ಬಂದಾಗ ಹಳೆ ಡೇಟಾ ತಗೋಳಿ
-            group_data = MEDIA_GROUPS[media_group_id]
-            product_name = group_data["name"]
-            product_price = group_data["price"]
-            product_category = group_data["category"]
-            product_description = group_data["description"]
-            group_data["last_received"] = time.time() # ಟೈಮರ್ ರೀಸೆಟ್
-            has_valid_caption = True
-
         # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್ ಲಾಜಿಕ್
         file_id = message["photo"][-1]["file_id"]
         file_info = requests.get(
@@ -517,7 +528,7 @@ async def telegram_webhook(request: Request):
 
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
 
-        # ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್
+        # ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ (ಪ್ರತಿ photo ಗೆ save ಆಗುತ್ತದೆ)
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
@@ -526,39 +537,42 @@ async def telegram_webhook(request: Request):
             "description": product_description, "available": True
         })
 
-        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ ಲಾಜಿಕ್ 🔥
+        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ ಲಾಜಿಕ್ (Async Non-Blocking) 🔥
         if media_group_id:
-            # ಈ ಫೋಟೋ ಯುಆರ್‌ಎಲ್ ಅನ್ನು ಲಿಸ್ಟ್‌ಗೆ ಸೇರಿಸಿ
+            # Group data initialize/update ಮಾಡಿ
             if media_group_id not in MEDIA_GROUPS:
                 MEDIA_GROUPS[media_group_id] = {
-                    "name": product_name, "price": product_price, "category": product_category,
-                    "description": product_description, "user_caption": caption,
-                    "last_received": time.time(), "processed_urls": []
+                    "name": product_name,
+                    "price": product_price,
+                    "category": product_category,
+                    "description": product_description,
+                    "user_caption": caption,
+                    "processed_urls": [],
+                    "task": None
                 }
             
+            # URL add ಮಾಡಿ
             MEDIA_GROUPS[media_group_id]["processed_urls"].append(permanent_url)
             
-            # ಇಡೀ ಗ್ರೂಪ್‌ನ ಫೋಟೋಗಳು ಬರುವವರೆಗೆ 2 ಸೆಕೆಂಡ್ ವೇಟ್ ಮಾಡಿ ಆಮೇಲೆ ಡಿಸಿಷನ್ ತಗೊಳ್ಳುತ್ತೆ
-            time.sleep(2.0)
+            # ಹೊಸ caption ಬಂದರೆ update ಮಾಡಿ
+            if caption:
+                MEDIA_GROUPS[media_group_id]["user_caption"] = caption
+                MEDIA_GROUPS[media_group_id]["name"] = product_name
+                MEDIA_GROUPS[media_group_id]["price"] = product_price
+                MEDIA_GROUPS[media_group_id]["category"] = product_category
+                MEDIA_GROUPS[media_group_id]["description"] = product_description
             
-            # ಚೆಕ್ ಮಾಡಿ: ಈ ಗ್ರೂಪ್‌ಗೆ ಕೊನೆಯದಾಗಿ ಫೋಟೋ ಬಂದು 1.8 ಸೆಕೆಂಡ್ ಕಳೆದಿದ್ದರೆ, ಅಂದರೆ ಇನ್ನು ಯಾವುದೇ ಹೊಸ ಫೋಟೋ ಬಂದಿಲ್ಲ ಎಂದರ್ಥ!
-            if time.time() - MEDIA_GROUPS[media_group_id]["last_received"] >= 1.8:
-                urls = MEDIA_GROUPS[media_group_id]["processed_urls"]
-                if urls:
-                    # ಮೊದಲ ಎಲ್ಲಾ ಫೋಟೋಗಳನ್ನು ಬರೀ ಇಮೇಜ್ ಆಗಿ ಕಳುಹಿಸಿ (ಯಾವುದೇ ಕ್ಯಾಪ್ಶನ್ ಇಲ್ಲದೆ)
-                    for url in urls[:-1]:
-                        send_empty_caption_whatsapp_group(url)
-                        time.sleep(0.5) # ವಾಟ್ಸಾಪ್ ಬ್ಲಾಕ್ ಆಗದಿರಲು ಸಣ್ಣ ಗ್ಯಾಪ್
-                    
-                    # ಕೇವಲ ಕೊನೆಯ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ ಮತ್ತು ಟೆಕ್ಸ್ಟ್ ಕಳುಹಿಸಿ!
-                    last_url = urls[-1]
-                    user_text = MEDIA_GROUPS[media_group_id].get("user_caption", "")
-                    send_whatsapp_group_product(last_url, user_caption=user_text)
-                    
-                    # ಮೆಮೊರಿ ಕ್ಲಿಯರ್ ಮಾಡಿ
-                    MEDIA_GROUPS.pop(media_group_id, None)
+            # ❌ ಹಳೆ task cancel ಮಾಡಿ
+            old_task = MEDIA_GROUPS[media_group_id].get("task")
+            if old_task and not old_task.done():
+                old_task.cancel()
+            
+            # ✅ ಹೊಸ async task ಶುರು ಮಾಡಿ (3 sec ನಂತರ process)
+            MEDIA_GROUPS[media_group_id]["task"] = asyncio.create_task(
+                process_media_group_delayed(media_group_id, delay=3.0)
+            )
         else:
-            # ಒಂದೇ ಒಂದು ಸಿಂಗಲ್ ಫೋಟೋ ಕಳುಹಿಸಿದರೆ ಡೈರೆಕ್ಟ್ ಆಗಿ ಲಿಂಕ್ ಜೊತೆ ಹೋಗುತ್ತೆ
+            # ಒಂದೇ ಒಂದು photo: ನೇರವಾಗಿ link ಜೊತೆ ಕಳುಹಿಸಿ
             send_whatsapp_group_product(permanent_url, user_caption=caption if caption else None)
 
         # ಟೆಲಿಗ್ರಾಮ್ ಕನ್ಫರ್ಮೇಷನ್
