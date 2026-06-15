@@ -15,7 +15,7 @@ import certifi
 import cloudinary
 import cloudinary.uploader
 
-# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳನ್ನು ಪಕ್ಕಾ ಆಗಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಅಪ್ಡೇಟೆಡ್ ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
+# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳನ್ನು ಪಕ್ಕಾ ಆಗಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
 MEDIA_GROUPS = {}
 
 # 🚀 FastAPI Lifespan Handler
@@ -189,6 +189,108 @@ def send_empty_caption_whatsapp_group(image_url):
         print("Error sending empty caption image:", e)
         return False
 
+# 🆕 Smart Category Detection - ನಿಮ್ಮ website categories ಗೆ match ಮಾಡಿ
+def detect_category_from_name(name):
+    """Name ನಲ್ಲಿ ಯಾವ category keyword ಇದೆ ಎಂದು ಪತ್ತೆ ಮಾಡಿ - ನಿಮ್ಮ website categories ಗೆ"""
+    if not name:
+        return None
+    
+    name_lower = name.lower()
+    
+    # ✅ ನಿಮ್ಮ website ನ ಎಲ್ಲಾ categories
+    category_map = {
+        # Leggings
+        "leggings": "Leggings",
+        "legging": "Leggings",
+        "leggins": "Leggings",
+        "leggins": "Leggings",
+        
+        # Kurta Sets
+        "kurta set": "Kurta Sets",
+        "kurti set": "Kurta Sets",
+        "kurtaset": "Kurta Sets",
+        "kurtiset": "Kurta Sets",
+        
+        # Jeans
+        "jeans": "Jeans",
+        "jean": "Jeans",
+        "jeans": "Jeans",
+        
+        # Patiala Pants
+        "plazzo Pants": "Patiala Pants",
+        "plazzo pants": "Plazzo Pants",
+        "plazzo pant": "Plazzo Pants",
+        
+        # Kurtha Top
+        "kurtha": "Kurtha Top",
+        "kurta top": "Kurtha Top",
+        "kurti top": "Kurtha Top",
+        "kurti": "Kurtha Top",
+        "kurtis": "Kurtha Top",
+        
+        # Umbrella Sets
+        "umbrella": "Umbrella Sets",
+        "umbrella set": "Umbrella Sets",
+        
+        # Frocks
+        "frock": "Frocks",
+        "frocks": "Frocks",
+        "frock set": "Frocks",
+        "gown": "Frocks",
+        "gowns": "Frocks",
+        
+        # Western Wear
+        "western": "Western Wear",
+        "western wear": "Western Wear",
+        "western dress": "Western Wear",
+        "indo western": "Western Wear",
+        "indowestern": "Western Wear",
+        
+        # Gym Pants
+        "gym": "Gym Pants",
+        "gym pant": "Gym Pants",
+        "gym pants": "Gym Pants",
+        "track pant": "Gym Pants",
+        "track pants": "Gym Pants",
+        "jogger": "Gym Pants",
+        "joggers": "Gym Pants",
+        
+        # 250 Tops
+        "250 top": "250 Tops",
+        "250 tops": "250 Tops",
+        
+        # 350 Tops
+        "350 top": "350 Tops",
+        "350 tops": "350 Tops",
+        
+        # Jeans Tops
+        "jeans top": "Jeans Tops",
+        "jeans tops": "Jeans Tops",
+        "denim top": "Jeans Tops",
+        "denim tops": "Jeans Tops",
+        
+        # ಬೇರೆ common words
+        "top": "Kurtha Top",
+        "tops": "Kurtha Top",
+        "t-shirt": "Western Wear",
+        "tshirt": "Western Wear",
+        "shirt": "Western Wear",
+        "shirts": "Western Wear",
+        "palazzo": "Patiala Pants",
+        "shrug": "Western Wear",
+        "jacket": "Western Wear",
+        "blazer": "Western Wear",
+    }
+    
+    # Sort by length (longest first)
+    sorted_keywords = sorted(category_map.keys(), key=len, reverse=True)
+    
+    for keyword in sorted_keywords:
+        if keyword in name_lower:
+            return category_map[keyword]
+    
+    return None
+
 # 🤖 Google AI Function - Try Multiple Models
 def _try_google_ai(image_url):
     """Google AI try ಮಾಡುತ್ತದೆ, None ಅಥವಾ result return ಮಾಡುತ್ತದೆ"""
@@ -205,7 +307,6 @@ def _try_google_ai(image_url):
         if not image_bytes:
             return None
         
-        # ✅ ನಿಮ್ಮ API key ಗೆ ಕೆಲಸ ಮಾಡುವ models
         model_names = [
             'gemini-1.5-flash',
             'gemini-1.5-flash-001',
@@ -254,38 +355,22 @@ def _try_google_ai(image_url):
     except:
         return None
 
-# 🆕 Local Fallback (AI ಇಲ್ಲದಿದ್ದರೂ work ಆಗುತ್ತದೆ)
+# 🆕 Local Fallback
 def _local_fallback_details():
-    """AI work ಆಗದಿದ್ದರೆ random boutique descriptions"""
-    names = [
-         "Premium Dress"
-    ]
-    categories = [
-        "Suit Set"
-    ]
-    descriptions = [
-        "Beautiful design crafted with rich fabric and intricate detailing.",
-        "Premium quality outfit perfect for festive occasions and celebrations.",
-        "Elegant boutique wear with modern styling and comfortable fit.",
-        "Trendy designer collection featuring fine craftsmanship.",
-        "Stylish ethnic wear made from soft, breathable fabric.",
-        "Gorgeous outfit with traditional charm and contemporary appeal."
-    ]
-    return random.choice(names), random.choice(categories), random.choice(descriptions)
+    """AI work ಆಗದಿದ್ದರೆ default values"""
+    return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
 
-# 🤖 Main AI Function (Smart Wrapper)
+# 🤖 Main AI Function
 def generate_product_details_via_ai(image_url):
     """AI try ಮಾಡುತ್ತದೆ, fail ಆದರೆ local fallback ಬಳಸುತ್ತದೆ"""
-    # ಮೊದಲು Google AI try ಮಾಡಿ
     ai_result = _try_google_ai(image_url)
     if ai_result:
         return ai_result
     
-    # Fail ಆದರೆ fallback ಬಳಸಿ
-    print("⚠️ Using local fallback (random boutique details)")
+    print("⚠️ Using local fallback")
     return _local_fallback_details()
 
-# 🆕 Async helper: Media group delay processing (Non-Blocking)
+# 🆕 Async helper: Media group delay processing
 async def process_media_group_delayed(media_group_id, delay=3.0):
     """ಎಲ್ಲಾ photos ಬರುವವರೆಗೆ wait ಮಾಡಿ, ಆಮೇಲೆ WhatsApp ಗೆ ಕಳುಹಿಸಿ"""
     try:
@@ -337,7 +422,7 @@ def home():
 def home_head():
     return {}
 
-# 🔍 Available AI models ನೋಡಲು diagnostic endpoint
+# 🔍 Available AI models endpoint
 @app.get("/api/list-models")
 def list_available_models():
     """Google API ನಲ್ಲಿ ಯಾವ models ಲಭ್ಯ ಎಂದು ತೋರಿಸುತ್ತದೆ"""
@@ -398,7 +483,7 @@ def create_booking(payload: BookingPayload):
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ * Plz update our website Admin Panel:* {FRONTEND_URL}"
+            f"⚙️ *Plz update in Admin Panel Boss:* {FRONTEND_URL}"
         )
         send_whatsapp_to_admins(admin_message)
 
@@ -520,7 +605,7 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
-                f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
+                f"Good news! *{p_name}* is available at Dolphin Trends🐬 plz visit our shop and collect your product 🛍️!\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
                 f"📍 Map: https://maps.google.com\n"
@@ -543,7 +628,7 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 💥 ಪಕ್ಕಾ ಮಾಸ್ಟರ್ ವೆಬ್‌ಹುಕ್ (Fixed Grouping Logic - Async Non-Blocking)
+# 🤖 💥 ಪಕ್ಕಾ ಮಾಸ್ಟರ್ ವೆಬ್‌ಹುಕ್
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -571,7 +656,7 @@ async def telegram_webhook(request: Request):
         product_description = "Curated boutique wear."
         has_valid_caption = False
 
-        # ✅ ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್ - ಬರೀ price ಇದ್ದರೆ AI trigger
+        # ✅ ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್ - ನಿಮ್ಮ website categories ಗೆ match
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
@@ -580,6 +665,7 @@ async def telegram_webhook(request: Request):
             price_match = re.search(r'(?:Rs\.?\s*|₹\s*)?(\d{3,5})', clean_text)
 
             if "-" in clean_caption:
+                # Format: "Name - Price - Category"
                 parts = clean_caption.split("-")
                 if len(parts) >= 3:
                     product_name = parts[0].strip()
@@ -589,14 +675,24 @@ async def telegram_webhook(request: Request):
                         product_description = parts[3].strip()
             elif price_match:
                 product_price = price_match.group(1)
-                # ✅ FIX: ಬರೀ price ಇದ್ದರೆ AI/Fallback trigger
+                # ✅ ಬರೀ price ಅಥವಾ price + name handle ಮಾಡಿ
                 remaining_text = clean_text.replace(price_match.group(0), "").replace("₹", "").replace("Rs", "").replace("rs", "").strip()
                 if remaining_text and len(remaining_text) > 2:
                     product_name = remaining_text
-                else:
-                    # ಬರೀ price ಮಾತ್ರ - AI ಗೆ trigger
-                    has_valid_caption = False
-                    print("🔄 Only price detected, AI/Fallback will generate name & category")
+                    # ✅ Name ನಿಂದ category auto-detect
+                    detected_cat = detect_category_from_name(product_name)
+                    if detected_cat:
+                        product_category = detected_cat
+                        print(f"✅ Auto-detected: {detected_cat} from {product_name}")
+                # ಬರೀ price ಮಾತ್ರ ಇದ್ದರೆ default ("Premium Dress" + "Suit Set") ಉಳಿಯುತ್ತದೆ
+            else:
+                # ✅ ಬರೀ name ಇದೆ (price ಇಲ್ಲ, dash ಇಲ್ಲ)
+                product_name = clean_text
+                detected_cat = detect_category_from_name(product_name)
+                if detected_cat:
+                    product_category = detected_cat
+                    print(f"✅ Auto-detected: {detected_cat} from {product_name}")
+                # Category detect ಆಗಲಿಲ್ಲ ಎಂದಾದರೆ default ("Suit Set") ಉಳಿಯುತ್ತದೆ
 
         # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್ ಲಾಜಿಕ್
         file_id = message["photo"][-1]["file_id"]
@@ -615,7 +711,7 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
-        # AI ಅಥವಾ Fallback - ಯಾವಾಗಲೂ work ಆಗುತ್ತದೆ
+        # AI ಅಥವಾ Fallback
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -674,7 +770,7 @@ async def telegram_webhook(request: Request):
         # ಟೆಲಿಗ್ರಾಮ್ ಕನ್ಫರ್ಮೇಷನ್
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": f"✅ Saved to Website & WhatsApp: {product_name}"},
+            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | Category: {product_category}"},
             timeout=5
         )
 
