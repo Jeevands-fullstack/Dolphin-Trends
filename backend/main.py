@@ -139,18 +139,21 @@ def send_whatsapp_to_admins(message):
         send_whatsapp_msg(phone, message)
 
 # 📸 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಆಫರ್ ಲಿಂಕ್ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಕೇವಲ ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ)
-def send_whatsapp_group_product(image_url, name, price, description):
+def send_whatsapp_group_product(image_url, user_caption=None):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
             print("WhatsApp group not configured")
             return False
 
-        caption = (
+        links_text = (
             f"📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
             f"🔗 {INSTAGRAM_URL}\n\n"
             f"💥 *Explore & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
+        
+        # ನೀವು ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಏನಾದರೂ ಬರೆದಿದ್ದರೆ ಅದು ಮೊದಲು ಬರುತ್ತದೆ, ಇಲ್ಲದಿದ್ದರೆ ಬರೀ ಲಿಂಕ್ ಮಾತ್ರ ಹೋಗುತ್ತದೆ
+        caption = f"{user_caption}\n\n{links_text}".strip() if user_caption else links_text
 
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
@@ -192,7 +195,10 @@ def generate_product_details_via_ai(image_url):
         genai.configure(api_key=GOOGLE_API_KEY)
         response = requests.get(image_url, timeout=10)
         image_bytes = response.content
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        
+        # 👑 Fixed Gemini Model name to latest working version
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        
         prompt = (
             "Analyze this boutique fashion clothing image. "
             "1. Provide a simple product name. "
@@ -252,7 +258,6 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
 
-        # ಕಸ್ಟಮರ್ ವಾಟ್ಸಾಪ್ ಮೆಸೇಜ್
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
@@ -269,7 +274,6 @@ def create_booking(payload: BookingPayload):
         )
         send_whatsapp_msg(payload.customer_phone, customer_message)
 
-        # ಅಡ್ಮಿನ್ ಅಲರ್ಟ್
         admin_message = (
             f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -321,8 +325,7 @@ async def add_product(
         }
         products_table.insert_one(product_data)
 
-        # ವೆಬ್‌ಸೈಟ್‌ನಿಂದ ಅಪ್ಲೋಡ್ ಮಾಡಿದಾಗಲೂ ಗ್ರೂಪ್‌ಗೆ ಮೆಸೇಜ್ ಹೋಗುತ್ತೆ
-        send_whatsapp_group_product(cloud_image_url, name, price, description or "")
+        send_whatsapp_group_product(cloud_image_url, f"👗 *{name}* - {price}")
 
         return {"status": "success", "action": "created", "product_id": new_id}
     except HTTPException:
@@ -443,7 +446,7 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 💥 ಮಲ್ಟಿ-ಇಮೇಜ್ ಗ್ರೂಪಿಂಗ್ ಸಪೋರ್ಟ್ ಮಾಡುವ ಸ್ಮಾರ್ಟ್ ಟೆಲಿಗ್ರಾಮ್ ವೆಬ್‌ಹುಕ್
+# 🤖 💥 ಮೋಡರ್ನ್ ಟೆಲಿಗ್ರಾಮ್ ವೆಬ್‌ಹುಕ್ (Fixed Gemini + Clean WhatsApp Caption Logic)
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -498,7 +501,8 @@ async def telegram_webhook(request: Request):
                     "price": product_price,
                     "category": product_category,
                     "description": product_description,
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
+                    "user_caption": caption  # ಒರಿಜಿನಲ್ ಯೂಸರ್ ಟೆಕ್ಸ್ಟ್ ಅನ್ನು ಸ್ಟೋರ್ ಮಾಡಿಕೊಳ್ಳಿ
                 }
 
         elif media_group_id in MEDIA_GROUPS:
@@ -526,6 +530,7 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
+        # ವೆಬ್‌ಸೈಟ್‌ಗಾಗಿ ಆಟೋಮ್ಯಾಟಿಕ್ AI ವಿವರಗಳನ್ನು ಜನರೇಟ್ ಮಾಡಿಕೊಳ್ಳುವುದು (ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಅಪ್ಲೋಡ್)
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -543,7 +548,7 @@ async def telegram_webhook(request: Request):
             "description": product_description, "available": True
         })
 
-        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ (ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ಸ್)
+        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ (ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ಸ್, ಉಳಿದವಕ್ಕೆ ಬರೀ ಇಮೇಜ್)
         if media_group_id and media_group_id in MEDIA_GROUPS:
             # ಬಾಕಿ ಇರೋ ಫೋಟೋಗಳು ಒಟ್ಟಿಗೆ ಅಪ್ಲೋಡ್ ಆಗುವವರೆಗೆ 1.5 ಸೆಕೆಂಡ್ ಕಾಯಿರಿ
             time.sleep(1.5) 
@@ -551,13 +556,17 @@ async def telegram_webhook(request: Request):
             current_time = time.time()
             # ಒಂದು ವೇಳೆ ಈ ಫೋಟೋ ಬಂದ ನಂತರ 1.2 ಸೆಕೆಂಡ್ ವರೆಗೆ ಬೇರೆ ಫೋಟೋ ಬಂದಿಲ್ಲ ಅಂದ್ರೆ ಇದುವೇ ಕೊನೆ ಫೋಟೋ!
             if current_time - MEDIA_GROUPS[media_group_id]["timestamp"] >= 1.2:
-                send_whatsapp_group_product(permanent_url, product_name, product_price_display, product_description)
+                # ಕೊನೆಯ ಫೋಟೋಗೆ ಮಾತ್ರ ಲಿಂಕ್ ಹೋಗುತ್ತೆ
+                user_text = MEDIA_GROUPS[media_group_id].get("user_caption", "")
+                send_whatsapp_group_product(permanent_url, user_caption=user_text)
             else:
+                # ಮಧ್ಯದ ಫೋಟೋಗಳಿಗೆ ಯಾವುದೇ ವಿವರ ಇಲ್ಲದೆ ಬರೀ ಇಮೇಜ್ ಮಾತ್ರ ಶೇರ್ ಆಗುತ್ತೆ
                 send_empty_caption_whatsapp_group(permanent_url)
         else:
-            # ಸಿಂಗಲ್ ಫೋಟೋ ಕಳಿಸಿದ್ರೆ ನಾರ್ಮಲ್ ಆಗಿ ಲಿಂಕ್ ಜೊತೆ ಹೋಗುತ್ತೆ
-            send_whatsapp_group_product(permanent_url, product_name, product_price_display, product_description)
+            # ಸಿಂಗಲ್ ಫೋಟೋ ಕಳಿಸಿದ್ರೆ ಮಾಮೂಲಿಯಾಗಿ ಲಿಂಕ್ ಜೊತೆ ಹೋಗುತ್ತೆ
+            send_whatsapp_group_product(permanent_url, user_caption=caption if caption else None)
 
+        # ಟೆಲಿಗ್ರಾಮ್ ಕನ್ಫರ್ಮೇಷನ್
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
             json={
