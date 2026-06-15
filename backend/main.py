@@ -258,7 +258,7 @@ def _try_google_ai(image_url):
 def _local_fallback_details():
     """AI work ಆಗದಿದ್ದರೆ random boutique descriptions"""
     names = [
-        "Premium Dress"
+         "Designer Gown"
     ]
     categories = [
         "Suit Set"
@@ -392,14 +392,13 @@ def create_booking(payload: BookingPayload):
         send_whatsapp_msg(payload.customer_phone, customer_message)
 
         admin_message = (
-            f"🛍️ *New Buy Request BOSS!*\n\n"
+            f"🛍️ *New Buy Request!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Plz Update our website 
-            Admin Panel:* {FRONTEND_URL}"
+            f"⚙️ *Admin Panel:* {FRONTEND_URL}"
         )
         send_whatsapp_to_admins(admin_message)
 
