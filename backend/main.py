@@ -258,13 +258,13 @@ def _try_google_ai(image_url):
 def _local_fallback_details():
     """AI work ಆಗದಿದ್ದರೆ random boutique descriptions"""
     names = [
-        "Premium Suit Set", "Designer Anarkali", "Elegant Salwar",
-        "Royal Palazzo Set", "Festive Kurti", "Silk Saree",
-        "Embroidered Dress", "Traditional Lehenga", "Designer Gown"
+        "Premium Suit Set", "Leggins", "Krutha Sets",
+        "Royal Plazzo Pants", "Festive Kurti", "Jeans",
+        "Jeans Tops", "Umbrella Sets", "Frocks"
     ]
     categories = [
-        "Suit Set", "Anarkali", "Salwar", "Palazzo", 
-        "Kurti", "Saree", "Lehenga", "Dress", "Gown"
+        "Suit Set", "Leggins", "Kurtha Sets", "Plazzo Pants", 
+        "Kurtha Tops", "Umbrella Sets", "Jeans", "Jeans Top", "Frocks"
     ]
     descriptions = [
         "Beautiful design crafted with rich fabric and intricate detailing.",
