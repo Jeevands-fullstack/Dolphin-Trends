@@ -258,13 +258,10 @@ def _try_google_ai(image_url):
 def _local_fallback_details():
     """AI work ಆಗದಿದ್ದರೆ random boutique descriptions"""
     names = [
-        "Premium Suit Set", "Leggins", "Krutha Sets",
-        "Royal Plazzo Pants", "Festive Kurti", "Jeans",
-        "Jeans Tops", "Umbrella Sets", "Frocks"
+        "Premium Dress"
     ]
     categories = [
-        "Suit Set", "Leggins", "Kurtha Sets", "Plazzo Pants", 
-        "Kurtha Tops", "Umbrella Sets", "Jeans", "Jeans Top", "Frocks"
+        "Suit Set"
     ]
     descriptions = [
         "Beautiful design crafted with rich fabric and intricate detailing.",
@@ -395,13 +392,14 @@ def create_booking(payload: BookingPayload):
         send_whatsapp_msg(payload.customer_phone, customer_message)
 
         admin_message = (
-            f"🛍️ *New Buy Request!*\n\n"
+            f"🛍️ *New Buy Request BOSS!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Admin Panel:* {FRONTEND_URL}"
+            f"⚙️ *Plz Update our website 
+            Admin Panel:* {FRONTEND_URL}"
         )
         send_whatsapp_to_admins(admin_message)
 
@@ -574,7 +572,7 @@ async def telegram_webhook(request: Request):
         product_description = "Curated boutique wear."
         has_valid_caption = False
 
-        # ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್
+        # ✅ ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್ - ಬರೀ price ಇದ್ದರೆ AI trigger
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
@@ -592,7 +590,14 @@ async def telegram_webhook(request: Request):
                         product_description = parts[3].strip()
             elif price_match:
                 product_price = price_match.group(1)
-                product_name = clean_text.replace(price_match.group(0), "").replace("₹", "").strip() or product_name
+                # ✅ FIX: ಬರೀ price ಇದ್ದರೆ AI/Fallback trigger
+                remaining_text = clean_text.replace(price_match.group(0), "").replace("₹", "").replace("Rs", "").replace("rs", "").strip()
+                if remaining_text and len(remaining_text) > 2:
+                    product_name = remaining_text
+                else:
+                    # ಬರೀ price ಮಾತ್ರ - AI ಗೆ trigger
+                    has_valid_caption = False
+                    print("🔄 Only price detected, AI/Fallback will generate name & category")
 
         # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್ ಲಾಜಿಕ್
         file_id = message["photo"][-1]["file_id"]
