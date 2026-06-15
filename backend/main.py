@@ -392,13 +392,13 @@ def create_booking(payload: BookingPayload):
         send_whatsapp_msg(payload.customer_phone, customer_message)
 
         admin_message = (
-            f"🛍️ *New Buy Request!*\n\n"
+            f"🛍️ *New Buy Request Boss!*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Admin Panel:* {FRONTEND_URL}"
+            f"⚙️ * Plz update our website Admin Panel:* {FRONTEND_URL}"
         )
         send_whatsapp_to_admins(admin_message)
 
