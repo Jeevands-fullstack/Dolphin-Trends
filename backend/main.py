@@ -140,36 +140,38 @@ def send_whatsapp_to_admins(message):
     for phone in ADMIN_PHONES:
         send_whatsapp_msg(phone, message)
 
-def send_whatsapp_group_product(image_url, user_caption=None):
+def send_whatsapp_group_product(image_url):
+    """✅ WhatsApp group ಗೆ Image + Instagram + Website link ಮಾತ್ರ ಕಳಿಸಿ"""
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
             print("WhatsApp group not configured")
             return False
 
-        links_text = (
-            f"📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
-            f"🔗 dolphin_trends_rajagopalanagar\n\n"
-            f"💥 *Explore & order here:* 👇\n"
-            f"🔗 {FRONTEND_URL}"
+        # ✅ ಕೇವಲ Image + 2 Links ಮಾತ್ರ
+        caption = (
+            "📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
+            "🔗 dolphin_trends_rajagopalanagar\n\n"
+            "💥 *Explore & order here:* 👇\n"
+            "🔗 https://dolphin-trends-two.vercel.app"
         )
-        
-        caption = f"{user_caption}\n\n{links_text}".strip() if user_caption else links_text
 
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": YOUR_WHATSAPP_GROUP_ID,
             "urlFile": image_url,
-            "fileName": "dolphin_trends_arrival.jpg",
+            "fileName": "dolphin_trends.jpg",
             "caption": caption
         }
         response = requests.post(url, json=payload, timeout=30)
-        print("WhatsApp Group Status (With Links):", response.status_code)
+        print("WhatsApp Group Status (Image + Links):", response.status_code)
         return response.status_code == 200
     except Exception as e:
         print("WhatsApp Group Error:", str(e))
         return False
 
+
 def send_empty_caption_whatsapp_group(image_url):
+    """✅ Middle photos - ಬರೀ image ಮಾತ್ರ, caption ಇಲ್ಲ"""
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
             return False
@@ -181,11 +183,12 @@ def send_empty_caption_whatsapp_group(image_url):
             "caption": ""
         }
         response = requests.post(url, json=payload, timeout=30)
-        print("WhatsApp Group Status (Empty Caption):", response.status_code)
+        print("WhatsApp Group Status (Empty):", response.status_code)
         return True
     except Exception as e:
         print("Error sending empty caption image:", e)
         return False
+
 
 # 🆕 Updated Category Detection - ಎಲ್ಲಾ website categories ಗೆ match
 def detect_category_from_name(name):
