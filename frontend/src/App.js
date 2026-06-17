@@ -45,7 +45,7 @@ function App() {
     'Kurta Sets', 
     'Kurtha Top', 
     'Jeans',
-    'Patiala Pants', 
+    'Plazzo Pants', 
     'Umbrella Sets', 
     'Frocks',
     'Western Wear', 
