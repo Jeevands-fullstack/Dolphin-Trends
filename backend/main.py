@@ -623,7 +623,7 @@ def update_booking_status(booking_id: str, action: str):
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
 
-        elif action == "size_no_stock":
+        elif action == "size_unavail" or action == "size_no_stock":
             # 🆕 Size No Stock - Customer ಗೆ WhatsApp message
             msg = (
                 f"Hello {c_name}! 😊\n\n"
