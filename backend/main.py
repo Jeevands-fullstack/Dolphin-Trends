@@ -150,7 +150,7 @@ def send_whatsapp_group_product(image_url):
 
         # ✅ ಕೇವಲ Image + 2 Links ಮಾತ್ರ (ಬೇರೆ ಯಾವುದೇ text ಇಲ್ಲ)
         caption = (
-            "*🎉 Offer 🎉:👇*\n"
+            "* Offer 🎉*\n"
             "📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
             "🔗 dolphin_trends_rajagopalanagar\n\n"
             "💥 *Explore & order here:* 👇\n"
@@ -635,11 +635,11 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
-                f"Good news😎! *{p_name}* is available at Dolphin Trends!\n\n"
+                f"Good news🥳 *{p_name}* is available at Dolphin Trends!\n\n"
                 f"🛍️ Please visit our shop to collect your product👇\n\n"
                 f"🏪 *Store Address:*\n"
-                f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Map: https://share.google/R7wIgSLcxBTaEPLC5\n"
+                f"Rajgopal Nagar Main Road, Peenya 2nd Stage, Bangalore\n"
+                f" 📞 Phone : 9353344035\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
                 f"See you soon! 🛍️\nTeam Dolphin Trends 🐬"
             )
@@ -650,7 +650,9 @@ def update_booking_status(booking_id: str, action: str):
             msg = (
                 f"Hello {c_name},\n\n"
                 f"Sorry 😔, *{p_name}* is currently out of stock.\n"
-                f"We'll notify you when it's back 😇! 💥\n\nTeam Dolphin Trends 🐬"
+                f"We'll notify you when it's back 😇💥"
+                f"Thank you for choosing us..🫶\n"
+                f" Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
@@ -660,7 +662,8 @@ def update_booking_status(booking_id: str, action: str):
                 f"Hello {c_name}! 😊\n\n"
                 f"*{p_name}* is available but your size is out of stock.\n\n"
                 f"Please visit our store to check alternative sizes 😇!\n\n"
-                f"📍Rajagopalnagar, Peenya 2nd Stage, Bangalore\n"
+                f" Store Address : Rajagopalnagar main road, Peenya 2nd Stage, Bangalore\n"
+                f" Thank you for choosing us..🫶\n
                 f"Team Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
