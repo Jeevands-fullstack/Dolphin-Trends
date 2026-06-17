@@ -8,25 +8,37 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
-  const [category, setCategory] = useState('Tops');
+  const [category, setCategory] = useState('Suit Set');
   const [available, setAvailable] = useState(true);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // 📥 Bookings States (ನಿನ್ನ ಹಳೇ ಕೋಡ್‌ನಿಂದ)
+  // 📥 Bookings States
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [adminFullScreenImg, setAdminFullScreenImg] = useState(null);
 
-  // 🗂️ ಲೈವ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಮ್ಯಾಚ್ ಆಗುವ ಕ್ಯಾಟಗರಿಗಳು
+  // ✅ FIX: Backend categories ಗೆ match ಆಗುವ categories
   const categories = [
-    'Suit Set', 'Kurtha Tops', 'Umbrella', 'Jeans', 'Kurtha Sets',
-    'Plazzo Pants', 'Kurtha Top', 'Umbrella Sets', 'Frocks',
-    'Western Wear', 'Gym Pants', '250 Tops', '350 Tops', 'Jeans Tops', 'Leggings'
+    'Suit Set',
+    'Kurta Sets',
+    'Kurtha Top',
+    'Jeans',
+    'Patiala Pants',
+    'Umbrella Sets',
+    'Frocks',
+    'Western Wear',
+    'Gym Pants',
+    '250 Tops',
+    '350 Tops',
+    'Jeans Tops',
+    'Leggings',
+    'Formal Pants',
+    'Formal Shirt'
   ];
 
-  // 🔄 എഡിറ്റ് മോഡ് ಲೋಡ್ ಮಾಡುವುದು (Product Name ಇವಾಗ ಪೂರ್ತಿ ಅನ್‌ಲಾಕ್ ಆಗಿದೆ!)
+  // 🔄 Edit Mode Load
   useEffect(() => {
     if (editData) {
       setName(editData.name || '');
@@ -35,7 +47,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
       setPrice(p);
       const op = String(editData.original_price || '').replace('₹', '').trim();
       setOriginalPrice(op);
-      setCategory(editData.category || 'Tops');
+      setCategory(editData.category || 'Suit Set');
       setAvailable(editData.available !== false);
       setImagePreview(editData.image || null);
       setImageFile(null); 
@@ -44,14 +56,14 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
       setDescription('Beautiful design crafted with rich fabric.');
       setPrice('');
       setOriginalPrice('');
-      setCategory('Tops');
+      setCategory('Suit Set');
       setAvailable(true);
       setImagePreview(null);
       setImageFile(null);
     }
   }, [editData]);
 
-  // 📥 Bookings ಲೋಡ್ ಮಾಡುವ ಎಫೆಕ್ಟ್
+  // 📥 Bookings Load
   useEffect(() => { 
     fetchBookings(); 
   }, []);
@@ -60,46 +72,60 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     setBookingsLoading(true);
     try {
       const response = await fetch(`${API}/bookings`);
-      if (response.ok) setBookings(await response.json());
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data);
+      }
     } catch (e) { 
-      console.error(e); 
+      console.error("Fetch bookings error:", e); 
     } finally { 
       setBookingsLoading(false); 
     }
   };
 
-  // 🟢 🟡 🔴 Booking Actions (Agree / No Stock / Size No Stock)
+  // 🟢 🟡 🔴 Booking Actions
   const handleBookingAction = async (bookingId, action) => {
     let confirmMsg = "AGREE madbekka?";
     if (action === "disagree") confirmMsg = "DRESS NO STOCK madbekka?";
     if (action === "size_unavail") confirmMsg = "SIZE NO STOCK madbekka?";
     if (!window.confirm(confirmMsg)) return;
+    
     try {
-      const r = await fetch(`${API}/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, { method: 'POST' });
+      const r = await fetch(
+        `${API}/api/admin/update-booking?booking_id=${bookingId}&action=${action}`, 
+        { method: 'POST' }
+      );
       if (r.ok) { 
-        alert('✅ Notification Sent!'); 
+        alert('✅ Customer notified via WhatsApp!'); 
         fetchBookings(); 
       } else {
-        alert('❌ Failed');
+        const error = await r.json().catch(() => ({}));
+        alert(`❌ Failed: ${error.detail || 'Unknown error'}`);
       }
-    } catch { 
+    } catch (err) { 
+      console.error("Booking action error:", err);
       alert('❌ Server Error'); 
     }
   };
 
   // 🗑️ Delete Booking
   const handleDeleteBooking = async (bookingId) => {
-    if (!bookingId) { alert('❌ Invalid Booking ID!'); return; }
+    if (!bookingId) { 
+      alert('❌ Invalid Booking ID!'); 
+      return; 
+    }
     if (!window.confirm('⚠️ Booking delete madbekka?')) return;
+    
     try {
       const r = await fetch(`${API}/bookings/${bookingId}`, { method: 'DELETE' });
       if (r.ok) { 
         alert('🗑️ Booking Deleted!'); 
         fetchBookings(); 
       } else {
-        alert(`❌ Delete failed!`);
+        alert('❌ Delete failed!');
       }
-    } catch { 
+    } catch (err) { 
+      console.error("Delete error:", err);
       alert('❌ Server Error!'); 
     }
   };
@@ -107,6 +133,13 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
+    // ✅ File size check (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('⚠️ File too large! Max 5MB allowed.');
+      return;
+    }
+    
     setImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => { setImagePreview(reader.result); };
@@ -116,17 +149,30 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
   // 🚀 Product Save/Update Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !price) { alert('⚠️ Name mattu Price haki!'); return; }
+    
+    if (!name || !price) { 
+      alert('⚠️ Name mattu Price haki!'); 
+      return; 
+    }
+    
+    if (parseFloat(price) <= 0) {
+      alert('⚠️ Price valid number irbeku!');
+      return;
+    }
+    
     setSubmitting(true);
 
     const formattedPrice = price.startsWith('₹') ? price : `₹${price}`;
-    const formattedOriginalPrice = originalPrice ? (originalPrice.startsWith('₹') ? originalPrice : `₹${originalPrice}`) : '';
+    const formattedOriginalPrice = originalPrice 
+      ? (originalPrice.startsWith('₹') ? originalPrice : `₹${originalPrice}`) 
+      : '';
 
     try {
       if (editData) {
         const productId = editData.product_id || editData.id;
+        
         if (imageFile) {
-          // ಇಮೇಜ್ ಚೇಂಜ್ ಮಾಡಿದ್ರೆ Multipart ಫಾರ್ಮ್ ಕಳುಹಿಸುವುದು
+          // Image change - new POST request
           const imgForm = new FormData();
           imgForm.append('name', name);
           imgForm.append('price', formattedPrice);
@@ -136,15 +182,20 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
           imgForm.append('available', String(available));
           imgForm.append('file', imageFile);
           
-          const r = await fetch(`${API}/products`, { method: 'POST', body: imgForm });
+          const r = await fetch(`${API}/products`, { 
+            method: 'POST', 
+            body: imgForm 
+          });
+          
           if (r.ok) {
             alert('🔄 Product & Image Updated!');
             if (onProductAdded) onProductAdded();
+            if (onCancelEdit) onCancelEdit();
           } else {
             alert('❌ Update failed!');
           }
         } else {
-          // ಬರೀ ಟೆಕ್ಸ್ಟ್ ಚೇಂಜ್ ಆದ್ರೆ PUT ರಿಕ್ವೆಸ್ಟ್
+          // Text only change - PUT request
           const updatePayload = {
             name: name,
             price: formattedPrice,
@@ -153,20 +204,29 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
             category: category,
             available: available
           };
+          
           const r = await fetch(`${API}/products/${productId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatePayload)
           });
+          
           if (r.ok) {
             alert('🔄 Product Details Updated!');
             if (onProductAdded) onProductAdded();
+            if (onCancelEdit) onCancelEdit();
           } else {
             alert('❌ Update failed!');
           }
         }
       } else {
-        // ADD MODE: ಹೊಸ ಪ್ರಾಡಕ್ಟ್ ಸೇವಿಂಗ್
+        // ADD MODE - New product
+        if (!imageFile) {
+          alert('⚠️ Photo upload madbeku!');
+          setSubmitting(false);
+          return;
+        }
+
         const dataToSend = new FormData();
         dataToSend.append('name', name);
         dataToSend.append('price', formattedPrice);
@@ -174,25 +234,31 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
         dataToSend.append('description', description);
         dataToSend.append('category', category);
         dataToSend.append('available', String(available));
-        if (imageFile) dataToSend.append('file', imageFile);
+        dataToSend.append('file', imageFile);
 
-        const r = await fetch(`${API}/products`, { method: 'POST', body: dataToSend });
+        const r = await fetch(`${API}/products`, { 
+          method: 'POST', 
+          body: dataToSend 
+        });
+        
         if (r.ok) {
-          alert('✅ Product saved!');
+          alert('✅ Product saved! (Website only - WhatsApp NOT sent)');
+          // Reset form
           setName('');
           setDescription('Beautiful design crafted with rich fabric.');
           setPrice('');
           setOriginalPrice('');
-          setCategory('Tops');
+          setCategory('Suit Set');
           setAvailable(true);
           setImagePreview(null);
           setImageFile(null);
           if (onProductAdded) onProductAdded();
         } else {
-          alert(`❌ Save failed!`);
+          alert('❌ Save failed!');
         }
       }
-    } catch { 
+    } catch (err) { 
+      console.error("Submit error:", err);
       alert('❌ Server Error!'); 
     } finally { 
       setSubmitting(false); 
@@ -203,14 +269,18 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     <div style={{ background: '#0b1329', padding: '20px', minHeight: '100vh', boxSizing: 'border-box' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
 
-        {/* 🛠️ Product ಫಾರ್ಮ್ ಸೆಕ್ಷನ್ */}
+        {/* 🛠️ Product Form Section */}
         <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px', marginBottom: '30px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(26,108,255,0.1)', paddingBottom: '15px', textAlign: 'center' }}>
             <h2 style={{ margin: 0, color: '#4d9fff', fontSize: '1.4rem' }}>
               {editData ? '🔄 Edit Product Details' : '🛠️ Admin Panel - Add Product'}
             </h2>
             {editData && (
-              <button type="button" onClick={onCancelEdit} style={{ background: '#6b7c96', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', marginTop: '5px' }}>
+              <button 
+                type="button" 
+                onClick={onCancelEdit} 
+                style={{ background: '#6b7c96', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', marginTop: '5px' }}
+              >
                 Cancel Edit
               </button>
             )}
@@ -219,11 +289,31 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div>
               <label style={lbl}>Dress Photo {editData && '(Change madbekidre new file choose madi)'}</label>
-              <input type="file" accept="image/*" onChange={handleFileChange} required={!editData} style={{ width: '100%', color: '#fff' }} />
-              {imagePreview && <img src={imagePreview} alt="preview" style={{ width: '100px', borderRadius: '8px', marginTop: '10px' }} />}
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileChange} 
+                required={!editData} 
+                style={{ width: '100%', color: '#fff' }} 
+              />
+              {imagePreview && (
+                <img 
+                  src={imagePreview} 
+                  alt="preview" 
+                  style={{ 
+                    width: '100px', 
+                    height: '100px',
+                    objectFit: 'cover',
+                    borderRadius: '8px', 
+                    marginTop: '10px',
+                    cursor: 'zoom-in'
+                  }} 
+                  onClick={() => setAdminFullScreenImg(imagePreview)}
+                />
+              )}
             </div>
 
-            {/* 🏷️ Product Name - ಈಗ ಪೂರ್ತಿ ಎಡಿಟ್ ಆಗುತ್ತೆ! */}
+            {/* 🏷️ Product Name */}
             <div>
               <label style={lbl}>Product Name</label>
               <input 
@@ -238,48 +328,103 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
 
             <div>
               <label style={lbl}>Description</label>
-              <textarea style={{ ...inp, height: '80px', resize: 'vertical', fontFamily: 'sans-serif' }} placeholder="Product details..." value={description} onChange={e => setDescription(e.target.value)} required />
+              <textarea 
+                style={{ ...inp, height: '80px', resize: 'vertical', fontFamily: 'sans-serif' }} 
+                placeholder="Product details..." 
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                required 
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ width: '100%' }}>
                 <label style={lbl}>Selling Price (₹)</label>
-                <input style={inp} type="number" placeholder="500" value={price} onChange={e => setPrice(e.target.value)} required />
+                <input 
+                  style={inp} 
+                  type="number" 
+                  placeholder="500" 
+                  value={price} 
+                  onChange={e => setPrice(e.target.value)} 
+                  required 
+                  min="0"
+                />
               </div>
               <div style={{ width: '100%' }}>
-                <label style={lbl}>Original Price (₹)</label>
-                <input style={inp} type="number" placeholder="800" value={originalPrice} onChange={e => setOriginalPrice(e.target.value)} />
+                <label style={lbl}>Original Price (₹) <span style={{ color: '#7a85a0' }}>(Optional)</span></label>
+                <input 
+                  style={inp} 
+                  type="number" 
+                  placeholder="800" 
+                  value={originalPrice} 
+                  onChange={e => setOriginalPrice(e.target.value)} 
+                  min="0"
+                />
               </div>
             </div>
 
             <div>
               <label style={lbl}>Category</label>
-              <select style={inp} value={category} onChange={e => setCategory(e.target.value)}>
-                {categories.map(c => <option key={c} value={c} style={{ background: '#0f1a35' }}>{c}</option>)}
+              <select 
+                style={inp} 
+                value={category} 
+                onChange={e => setCategory(e.target.value)}
+              >
+                {categories.map(c => (
+                  <option key={c} value={c} style={{ background: '#0f1a35' }}>{c}</option>
+                ))}
               </select>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0', background: '#0b0b18', padding: '12px', borderRadius: '9px', border: '1px solid rgba(26,108,255,0.2)' }}>
-              <input type="checkbox" id="available_box" checked={available} onChange={e => setAvailable(e.target.checked)} style={{ width: '19px', height: '19px', cursor: 'pointer' }} />
+              <input 
+                type="checkbox" 
+                id="available_box" 
+                checked={available} 
+                onChange={e => setAvailable(e.target.checked)} 
+                style={{ width: '19px', height: '19px', cursor: 'pointer' }} 
+              />
               <label htmlFor="available_box" style={{ color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
                 ✅ Available (Untick madidre Out of Stock agthade)
               </label>
             </div>
 
-            <button type="submit" disabled={submitting} style={{ width: '100%', padding: '14px', background: editData ? '#e11d48' : '#1a6cff', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '16px', cursor: submitting ? 'not-allowed' : 'pointer' }}>
-              {submitting ? 'Saving...' : editData ? '🔄 Update Product' : '✅ Save Product'}
+            <button 
+              type="submit" 
+              disabled={submitting} 
+              style={{ 
+                width: '100%', 
+                padding: '14px', 
+                background: editData ? '#e11d48' : '#1a6cff', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '10px', 
+                fontWeight: 'bold', 
+                fontSize: '16px', 
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                opacity: submitting ? 0.7 : 1
+              }}
+            >
+              {submitting ? '⏳ Saving...' : editData ? '🔄 Update Product' : '✅ Save Product'}
             </button>
           </form>
         </div>
 
-        {/* 📥 Customer Bookings ಟೇಬಲ್ ಸೆಕ್ಷನ್ (ಯಥಾವತ್ತಾಗಿ ಮರಳಿ ತರಲಾಗಿದೆ) */}
+        {/* 📥 Customer Bookings Table */}
         <div style={{ background: '#0f1a35', border: '1px solid rgba(26,108,255,0.2)', borderRadius: '16px', padding: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ color: '#4d9fff', margin: 0, fontSize: '1.3rem' }}>📥 Customer Bookings</h2>
-            <button onClick={fetchBookings} style={{ padding: '8px 16px', background: '#1a6cff', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>🔄 Refresh</button>
+            <button 
+              onClick={fetchBookings} 
+              style={{ padding: '8px 16px', background: '#1a6cff', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              🔄 Refresh
+            </button>
           </div>
 
-          {bookingsLoading ? <p style={{ color: '#7a85a0' }}>Loading Bookings...</p> : (
+          {bookingsLoading ? (
+            <p style={{ color: '#7a85a0', textAlign: 'center', padding: '20px' }}>Loading Bookings...</p>
+          ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -291,12 +436,18 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                 </thead>
                 <tbody>
                   {bookings.length === 0 ? (
-                    <tr><td colSpan="5" style={{ padding: '30px', textAlign: 'center', color: '#7a85a0' }}>Yaav bookings bandilla!</td></tr>
+                    <tr>
+                      <td colSpan="5" style={{ padding: '30px', textAlign: 'center', color: '#7a85a0' }}>
+                        🕐 Yaav bookings bandilla!
+                      </td>
+                    </tr>
                   ) : bookings.map(b => (
                     <tr key={b.booking_id} style={{ borderBottom: '1px solid rgba(26,108,255,0.1)' }}>
                       <td style={{ padding: '12px' }}>
                         {b.image_url && (
-                          <img src={b.image_url} alt="product"
+                          <img 
+                            src={b.image_url} 
+                            alt="product"
                             style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', cursor: 'zoom-in' }}
                             onClick={() => setAdminFullScreenImg(b.image_url)}
                             onError={e => { e.target.style.display='none'; }}
@@ -312,9 +463,19 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                         <div style={{ color: '#7a85a0', fontSize: '0.8rem' }}>📞 {b.customer_phone}</div>
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold',
-                          background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : b.status === 'Approved' ? 'rgba(16,185,129,0.2)' : b.status === 'Size Unavailable' ? 'rgba(59,130,246,0.2)' : 'rgba(239,68,68,0.2)',
-                          color: b.status === 'Pending' ? '#f59e0b' : b.status === 'Approved' ? '#10b981' : b.status === 'Size Unavailable' ? '#3b82f6' : '#ef4444'
+                        <span style={{ 
+                          padding: '4px 12px', 
+                          borderRadius: '20px', 
+                          fontSize: '0.8rem', 
+                          fontWeight: 'bold',
+                          background: b.status === 'Pending' ? 'rgba(245,158,11,0.2)' : 
+                                      b.status === 'Approved' ? 'rgba(16,185,129,0.2)' : 
+                                      b.status === 'Size No Stock' ? 'rgba(59,130,246,0.2)' : 
+                                      'rgba(239,68,68,0.2)',
+                          color: b.status === 'Pending' ? '#f59e0b' : 
+                                 b.status === 'Approved' ? '#10b981' : 
+                                 b.status === 'Size No Stock' ? '#3b82f6' : 
+                                 '#ef4444'
                         }}>
                           {b.status || 'Pending'}
                         </span>
@@ -323,12 +484,32 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                           {b.status === 'Pending' && (
                             <>
-                              <button onClick={() => handleBookingAction(b.booking_id, 'agree')} style={{ padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Agree</button>
-                              <button onClick={() => handleBookingAction(b.booking_id, 'size_unavail')} style={{ padding: '5px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Size No Stock</button>
-                              <button onClick={() => handleBookingAction(b.booking_id, 'disagree')} style={{ padding: '5px 10px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>No Stock</button>
+                              <button 
+                                onClick={() => handleBookingAction(b.booking_id, 'agree')} 
+                                style={{ padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                              >
+                                Agree
+                              </button>
+                              <button 
+                                onClick={() => handleBookingAction(b.booking_id, 'size_unavail')} 
+                                style={{ padding: '5px 10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                              >
+                                Size No Stock
+                              </button>
+                              <button 
+                                onClick={() => handleBookingAction(b.booking_id, 'disagree')} 
+                                style={{ padding: '5px 10px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                              >
+                                No Stock
+                              </button>
                             </>
                           )}
-                          <button onClick={() => handleDeleteBooking(b.booking_id)} style={{ padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>🗑️ Delete</button>
+                          <button 
+                            onClick={() => handleDeleteBooking(b.booking_id)} 
+                            style={{ padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                          >
+                            🗑️ Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -343,18 +524,48 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
 
       {/* 🔍 Full Screen Image Viewer */}
       {adminFullScreenImg && (
-        <div onClick={() => setAdminFullScreenImg(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999, cursor: 'zoom-out' }}>
-          <img src={adminFullScreenImg} alt="Full View" style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px' }} />
+        <div 
+          onClick={() => setAdminFullScreenImg(null)}
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            background: 'rgba(0,0,0,0.9)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 99999, 
+            cursor: 'zoom-out' 
+          }}
+        >
+          <img 
+            src={adminFullScreenImg} 
+            alt="Full View" 
+            style={{ maxWidth: '95%', maxHeight: '90vh', borderRadius: '8px' }} 
+          />
         </div>
       )}
     </div>
   );
 }
 
-const lbl = { display: 'block', color: '#7a85a0', fontSize: '0.85rem', marginBottom: '5px', marginTop: '5px' };
-const inp = { width: '100%', padding: '11px', marginBottom: '5px', borderRadius: '8px', border: '1px solid rgba(26,108,255,0.3)', background: '#060a15', color: '#fff', boxSizing: 'border-box', fontSize: '0.9rem' };
+const lbl = { 
+  display: 'block', 
+  color: '#7a85a0', 
+  fontSize: '0.85rem', 
+  marginBottom: '5px', 
+  marginTop: '5px' 
+};
+
+const inp = { 
+  width: '100%', 
+  padding: '11px', 
+  marginBottom: '5px', 
+  borderRadius: '8px', 
+  border: '1px solid rgba(26,108,255,0.3)', 
+  background: '#060a15', 
+  color: '#fff', 
+  boxSizing: 'border-box', 
+  fontSize: '0.9rem' 
+};
 
 export default Admin;
-
-            
