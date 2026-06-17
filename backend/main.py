@@ -226,9 +226,9 @@ def detect_category_from_name(name):
         "jean": "Jeans",
         "denim": "Jeans",
         
-        "patiala": "Patiala Pants",
-        "patiala pants": "Patiala Pants",
-        "patiala pant": "Patiala Pants",
+        "plazzo": "Plazzo Pants",
+        "plazzo pants": "Plazzo Pants",
+        "plazzo pant": "Plazzo Pants",
         
         "kurtha": "Kurtha Top",
         "kurta top": "Kurtha Top",
