@@ -148,7 +148,7 @@ def send_whatsapp_group_product(image_url, user_caption=None):
 
         links_text = (
             f"📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
-            f"🔗 {INSTAGRAM_URL}\n\n"
+            f"🔗 dolphin_trends_rajagopalanagar\n\n"
             f"💥 *Explore & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
