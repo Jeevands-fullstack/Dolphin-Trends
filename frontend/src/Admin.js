@@ -25,7 +25,7 @@ function Admin({ onProductAdded, editData, onCancelEdit }) {
     'Kurta Sets',
     'Kurtha Top',
     'Jeans',
-    'Patiala Pants',
+    'Plazzo Pants',
     'Umbrella Sets',
     'Frocks',
     'Western Wear',
