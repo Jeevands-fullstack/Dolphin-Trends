@@ -148,7 +148,7 @@ def send_whatsapp_group_product(image_url, user_caption=None):
 
         links_text = (
             f"📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
-            f"🔗 dolphin_trends_rajagopalanagar\n\n"
+            f"🔗 {INSTAGRAM_URL}\n\n"
             f"💥 *Explore & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
@@ -311,6 +311,7 @@ def _try_google_ai(image_url):
             return None
         
         model_names = [
+            'gemini-1.5-flash-latest',  # ✅ Added as default best working
             'gemini-1.5-flash',
             'gemini-1.5-flash-001',
             'gemini-1.5-flash-002',
@@ -622,17 +623,17 @@ def update_booking_status(booking_id: str, action: str):
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
 
-      elif action == "size_no_stock":
-    # 🆕 Size No Stock - Customer ಗೆ WhatsApp message
-    msg = (
-        f"Hello {c_name}! 😊\n\n"
-        f"*{p_name}* is available but your size is out of stock.\n"
-        f"Please visit our store to check alternative sizes!\n"
-        f"📍 Peenya 2nd Stage, Bangalore\n"
-        f"Team Dolphin Trends 🐬"
-    )
-    send_whatsapp_msg(c_phone, msg)
-    bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size No Stock"}})
+        elif action == "size_no_stock":
+            # 🆕 Size No Stock - Customer ಗೆ WhatsApp message
+            msg = (
+                f"Hello {c_name}! 😊\n\n"
+                f"*{p_name}* is available but your size is out of stock.\n"
+                f"Please visit our store to check alternative sizes!\n"
+                f"📍 Peenya 2nd Stage, Bangalore\n"
+                f"Team Dolphin Trends 🐬"
+            )
+            send_whatsapp_msg(c_phone, msg)
+            bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size No Stock"}})
 
         return {"status": "success"}
     except Exception as e:
