@@ -15,7 +15,7 @@ import certifi
 import cloudinary
 import cloudinary.uploader
 
-# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್‌ಗಳನ್ನು ಪಕ್ಕಾ ಆಗಿ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
+# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್ ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಗ್ಲೋಬಲ್ ಮೆಮೊರಿ
 MEDIA_GROUPS = {}
 
 # 🚀 FastAPI Lifespan Handler
@@ -140,7 +140,6 @@ def send_whatsapp_to_admins(message):
     for phone in ADMIN_PHONES:
         send_whatsapp_msg(phone, message)
 
-# 📸 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್‌ಗೆ ಆಫರ್ ಲಿಂಕ್ ಕಳಿಸುವ ಫಂಕ್ಷನ್ (ಕೇವಲ ಕೊನೆ ಫೋಟೋಗೆ ಮಾತ್ರ)
 def send_whatsapp_group_product(image_url, user_caption=None):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
@@ -149,7 +148,7 @@ def send_whatsapp_group_product(image_url, user_caption=None):
 
         links_text = (
             f"📸 *If you follow our instagram page and get extra 10% discount:* 👇\n"
-            f"🔗 {INSTAGRAM_URL}\n\n"
+            f"🔗 dolphin_trends_rajagopalanagar\n\n"
             f"💥 *Explore & order here:* 👇\n"
             f"🔗 {FRONTEND_URL}"
         )
@@ -170,7 +169,6 @@ def send_whatsapp_group_product(image_url, user_caption=None):
         print("WhatsApp Group Error:", str(e))
         return False
 
-# 🖼️ ಮಧ್ಯದ ಫೋಟೋಗಳಿಗೆ ಬರೀ ಇಮೇಜ್ ಮಾತ್ರ ಕಳಿಸುವ ಫಂಕ್ಷನ್
 def send_empty_caption_whatsapp_group(image_url):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
@@ -189,64 +187,70 @@ def send_empty_caption_whatsapp_group(image_url):
         print("Error sending empty caption image:", e)
         return False
 
-# 🆕 Smart Category Detection - ನಿಮ್ಮ website categories ಗೆ match ಮಾಡಿ
+# 🆕 Updated Category Detection - ಎಲ್ಲಾ website categories ಗೆ match
 def detect_category_from_name(name):
-    """Name ನಲ್ಲಿ ಯಾವ category keyword ಇದೆ ಎಂದು ಪತ್ತೆ ಮಾಡಿ - ನಿಮ್ಮ website categories ಗೆ"""
+    """Name ನಲ್ಲಿ ಯಾವ category keyword ಇದೆ ಎಂದು ಪತ್ತೆ ಮಾಡಿ"""
     if not name:
         return None
     
     name_lower = name.lower()
     
-    # ✅ ನಿಮ್ಮ website ನ ಎಲ್ಲಾ categories
     category_map = {
-        # Leggings
+        # ✅ NEW: Formal categories
+        "formal pant": "Formal Pants",
+        "formal pants": "Formal Pants",
+        "formalpant": "Formal Pants",
+        "formalpants": "Formal Pants",
+        "formal trouser": "Formal Pants",
+        "formal trousers": "Formal Pants",
+        
+        "formal shirt": "Formal Shirt",
+        "formal shirts": "Formal Shirt",
+        "formalshirt": "Formal Shirt",
+        "formalshirts": "Formal Shirt",
+        "office shirt": "Formal Shirt",
+        "office shirts": "Formal Shirt",
+        
+        # Existing categories
         "leggings": "Leggings",
         "legging": "Leggings",
-        "leggins": "Leggings",
-        "leggins": "Leggings",
+        "churidar": "Leggings",
+        "churidhar": "Leggings",
         
-        # Kurta Sets
         "kurta set": "Kurta Sets",
         "kurti set": "Kurta Sets",
         "kurtaset": "Kurta Sets",
         "kurtiset": "Kurta Sets",
         
-        # Jeans
         "jeans": "Jeans",
         "jean": "Jeans",
-        "jeans": "Jeans",
+        "denim": "Jeans",
         
-        # Patiala Pants
-        "plazzo Pants": "Patiala Pants",
-        "plazzo pants": "Plazzo Pants",
-        "plazzo pant": "Plazzo Pants",
+        "patiala": "Patiala Pants",
+        "patiala pants": "Patiala Pants",
+        "patiala pant": "Patiala Pants",
         
-        # Kurtha Top
         "kurtha": "Kurtha Top",
         "kurta top": "Kurtha Top",
         "kurti top": "Kurtha Top",
         "kurti": "Kurtha Top",
         "kurtis": "Kurtha Top",
         
-        # Umbrella Sets
         "umbrella": "Umbrella Sets",
         "umbrella set": "Umbrella Sets",
         
-        # Frocks
         "frock": "Frocks",
         "frocks": "Frocks",
         "frock set": "Frocks",
         "gown": "Frocks",
         "gowns": "Frocks",
         
-        # Western Wear
         "western": "Western Wear",
         "western wear": "Western Wear",
         "western dress": "Western Wear",
         "indo western": "Western Wear",
         "indowestern": "Western Wear",
         
-        # Gym Pants
         "gym": "Gym Pants",
         "gym pant": "Gym Pants",
         "gym pants": "Gym Pants",
@@ -255,31 +259,31 @@ def detect_category_from_name(name):
         "jogger": "Gym Pants",
         "joggers": "Gym Pants",
         
-        # 250 Tops
         "250 top": "250 Tops",
         "250 tops": "250 Tops",
         
-        # 350 Tops
         "350 top": "350 Tops",
         "350 tops": "350 Tops",
         
-        # Jeans Tops
         "jeans top": "Jeans Tops",
         "jeans tops": "Jeans Tops",
         "denim top": "Jeans Tops",
         "denim tops": "Jeans Tops",
         
-        # ಬೇರೆ common words
         "top": "Kurtha Top",
         "tops": "Kurtha Top",
         "t-shirt": "Western Wear",
         "tshirt": "Western Wear",
-        "shirt": "Western Wear",
-        "shirts": "Western Wear",
+        "shirt": "Formal Shirt",  # ✅ CHANGED: Default shirt → Formal Shirt
+        "shirts": "Formal Shirt",  # ✅ CHANGED
         "palazzo": "Patiala Pants",
         "shrug": "Western Wear",
         "jacket": "Western Wear",
         "blazer": "Western Wear",
+        "pant": "Formal Pants",  # ✅ NEW: Default pant → Formal Pants
+        "pants": "Formal Pants",  # ✅ NEW
+        "trouser": "Formal Pants",  # ✅ NEW
+        "trousers": "Formal Pants",  # ✅ NEW
     }
     
     # Sort by length (longest first)
@@ -291,9 +295,8 @@ def detect_category_from_name(name):
     
     return None
 
-# 🤖 Google AI Function - Try Multiple Models
+# 🤖 Google AI Function
 def _try_google_ai(image_url):
-    """Google AI try ಮಾಡುತ್ತದೆ, None ಅಥವಾ result return ಮಾಡುತ್ತದೆ"""
     try:
         if not GOOGLE_API_KEY:
             return None
@@ -355,24 +358,18 @@ def _try_google_ai(image_url):
     except:
         return None
 
-# 🆕 Local Fallback
 def _local_fallback_details():
-    """AI work ಆಗದಿದ್ದರೆ default values"""
     return "Premium Dress", "Suit Set", "Beautiful design crafted with rich fabric."
 
-# 🤖 Main AI Function
 def generate_product_details_via_ai(image_url):
-    """AI try ಮಾಡುತ್ತದೆ, fail ಆದರೆ local fallback ಬಳಸುತ್ತದೆ"""
     ai_result = _try_google_ai(image_url)
     if ai_result:
         return ai_result
-    
     print("⚠️ Using local fallback")
     return _local_fallback_details()
 
 # 🆕 Async helper: Media group delay processing
 async def process_media_group_delayed(media_group_id, delay=3.0):
-    """ಎಲ್ಲಾ photos ಬರುವವರೆಗೆ wait ಮಾಡಿ, ಆಮೇಲೆ WhatsApp ಗೆ ಕಳುಹಿಸಿ"""
     try:
         await asyncio.sleep(delay)
     except asyncio.CancelledError:
@@ -422,10 +419,8 @@ def home():
 def home_head():
     return {}
 
-# 🔍 Available AI models endpoint
 @app.get("/api/list-models")
 def list_available_models():
-    """Google API ನಲ್ಲಿ ಯಾವ models ಲಭ್ಯ ಎಂದು ತೋರಿಸುತ್ತದೆ"""
     try:
         if not GOOGLE_API_KEY:
             return {"error": "GOOGLE_API_KEY missing"}
@@ -483,7 +478,7 @@ def create_booking(payload: BookingPayload):
             f"💰 Price: {payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *Plz update in Admin Panel Boss:* {FRONTEND_URL}"
+            f"⚙️ *Plz Update in Admin Panel Boss:* {FRONTEND_URL}"
         )
         send_whatsapp_to_admins(admin_message)
 
@@ -491,6 +486,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# 🆕 Admin Panel Upload - WhatsApp ಗೆ ಕಳಿಸುವುದಿಲ್ಲ!
 @app.post("/products")
 async def add_product(
     name: str = Form(...),
@@ -527,7 +523,8 @@ async def add_product(
         }
         products_table.insert_one(product_data)
 
-        send_whatsapp_group_product(cloud_image_url, f"👗 *{name}* - {price}")
+        # ❌ WhatsApp group ಗೆ ಕಳಿಸುವುದಿಲ್ಲ! (Admin panel upload)
+        print(f"✅ Admin panel product added: {name} - WhatsApp NOT sent")
 
         return {"status": "success", "action": "created", "product_id": new_id}
     except HTTPException:
@@ -605,10 +602,11 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
-                f"Good news! *{p_name}* is available at Dolphin Trends🐬 plz visit our shop and collect your product 🛍️!\n\n"
+                f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
+                f"🛍️ Please visit our shop to collect your product👇\n\n"
                 f"🏪 *Store Address:*\n"
                 f"Rajgopal Nagar, Main Road, Peenya 2nd Stage, Bangalore\n"
-                f"📍 Map: https://maps.google.com\n"
+                f"📍 Map: https://share.google/R7wIgSLcxBTaEPLC5\n"
                 f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
                 f"See you soon! 🛍️\nTeam Dolphin Trends 🐬"
             )
@@ -624,11 +622,23 @@ def update_booking_status(booking_id: str, action: str):
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
 
+      elif action == "size_no_stock":
+    # 🆕 Size No Stock - Customer ಗೆ WhatsApp message
+    msg = (
+        f"Hello {c_name}! 😊\n\n"
+        f"*{p_name}* is available but your size is out of stock.\n"
+        f"Please visit our store to check alternative sizes!\n"
+        f"📍 Peenya 2nd Stage, Bangalore\n"
+        f"Team Dolphin Trends 🐬"
+    )
+    send_whatsapp_msg(c_phone, msg)
+    bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size No Stock"}})
+
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 💥 ಪಕ್ಕಾ ಮಾಸ್ಟರ್ ವೆಬ್‌ಹುಕ್
+# 🤖 💥 Telegram Bot Webhook - Same price for all media group photos
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -656,7 +666,7 @@ async def telegram_webhook(request: Request):
         product_description = "Curated boutique wear."
         has_valid_caption = False
 
-        # ✅ ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್ - ನಿಮ್ಮ website categories ಗೆ match
+        # ✅ ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
@@ -665,7 +675,6 @@ async def telegram_webhook(request: Request):
             price_match = re.search(r'(?:Rs\.?\s*|₹\s*)?(\d{3,5})', clean_text)
 
             if "-" in clean_caption:
-                # Format: "Name - Price - Category"
                 parts = clean_caption.split("-")
                 if len(parts) >= 3:
                     product_name = parts[0].strip()
@@ -675,16 +684,13 @@ async def telegram_webhook(request: Request):
                         product_description = parts[3].strip()
             elif price_match:
                 product_price = price_match.group(1)
-                # ✅ ಬರೀ price ಅಥವಾ price + name handle ಮಾಡಿ
                 remaining_text = clean_text.replace(price_match.group(0), "").replace("₹", "").replace("Rs", "").replace("rs", "").strip()
                 if remaining_text and len(remaining_text) > 2:
                     product_name = remaining_text
-                    # ✅ Name ನಿಂದ category auto-detect
                     detected_cat = detect_category_from_name(product_name)
                     if detected_cat:
                         product_category = detected_cat
                         print(f"✅ Auto-detected: {detected_cat} from {product_name}")
-                # ಬರೀ price ಮಾತ್ರ ಇದ್ದರೆ default ("Premium Dress" + "Suit Set") ಉಳಿಯುತ್ತದೆ
             else:
                 # ✅ ಬರೀ name ಇದೆ (price ಇಲ್ಲ, dash ಇಲ್ಲ)
                 product_name = clean_text
@@ -692,9 +698,32 @@ async def telegram_webhook(request: Request):
                 if detected_cat:
                     product_category = detected_cat
                     print(f"✅ Auto-detected: {detected_cat} from {product_name}")
-                # Category detect ಆಗಲಿಲ್ಲ ಎಂದಾದರೆ default ("Suit Set") ಉಳಿಯುತ್ತದೆ
 
-        # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್ ಲಾಜಿಕ್
+        # 🆕 Media group handling - ಎಲ್ಲಾ photos ಗೆ ಅದೇ price/name ಬಳಸಿ
+        if media_group_id:
+            # ಹೊಸ group ಆಗಿದ್ದರೆ initialize ಮಾಡಿ
+            if media_group_id not in MEDIA_GROUPS:
+                MEDIA_GROUPS[media_group_id] = {
+                    "name": product_name,
+                    "price": product_price,
+                    "category": product_category,
+                    "description": product_description,
+                    "user_caption": caption,
+                    "processed_urls": [],
+                    "task": None,
+                    "db_saved": False
+                }
+            
+            # ✅ ಹೊಸ caption ಬಂದರೆ data update ಮಾಡಿ (ಎಲ್ಲಾ photos ಗೆ ಇದು apply ಆಗುತ್ತದೆ)
+            if caption:
+                MEDIA_GROUPS[media_group_id]["name"] = product_name
+                MEDIA_GROUPS[media_group_id]["price"] = product_price
+                MEDIA_GROUPS[media_group_id]["category"] = product_category
+                MEDIA_GROUPS[media_group_id]["description"] = product_description
+                MEDIA_GROUPS[media_group_id]["user_caption"] = caption
+                print(f"📝 Caption applied to all photos: {product_name} | {product_price} | {product_category}")
+
+        # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್
         file_id = message["photo"][-1]["file_id"]
         file_info = requests.get(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile",
@@ -711,7 +740,7 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
-        # AI ಅಥವಾ Fallback
+        # AI/Fallback
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -720,7 +749,18 @@ async def telegram_webhook(request: Request):
 
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
 
-        # ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್
+        # 🆕 Media group ಆಗಿದ್ದರೆ, group ನ data ಬಳಸಿ (ಎಲ್ಲಾ photos ಗೆ ಅದೇ price)
+        if media_group_id and media_group_id in MEDIA_GROUPS:
+            group_data = MEDIA_GROUPS[media_group_id]
+            product_name = group_data["name"]
+            product_price = group_data["price"]
+            product_category = group_data["category"]
+            product_description = group_data["description"]
+            product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
+            group_data["processed_urls"].append(permanent_url)
+            print(f"📸 Photo {len(group_data['processed_urls'])} added to group | Using shared data: {product_name} | {product_price}")
+
+        # 💾 ವೆಬ್‌ಸೈಟ್ ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ - ಪ್ರತಿ photo ಗೆ save ಆಗುತ್ತದೆ
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
@@ -729,37 +769,12 @@ async def telegram_webhook(request: Request):
             "description": product_description, "available": True
         })
 
-        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ ಲಾಜಿಕ್ (Async Non-Blocking) 🔥
+        # 🔥 ವಾಟ್ಸಾಪ್ ಗ್ರೂಪ್ ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರಿಂಗ್ ಲಾಜಿಕ್ (Async Non-Blocking)
         if media_group_id:
-            # Group data initialize/update ಮಾಡಿ
-            if media_group_id not in MEDIA_GROUPS:
-                MEDIA_GROUPS[media_group_id] = {
-                    "name": product_name,
-                    "price": product_price,
-                    "category": product_category,
-                    "description": product_description,
-                    "user_caption": caption,
-                    "processed_urls": [],
-                    "task": None
-                }
-            
-            # URL add ಮಾಡಿ
-            MEDIA_GROUPS[media_group_id]["processed_urls"].append(permanent_url)
-            
-            # ಹೊಸ caption ಬಂದರೆ update ಮಾಡಿ
-            if caption:
-                MEDIA_GROUPS[media_group_id]["user_caption"] = caption
-                MEDIA_GROUPS[media_group_id]["name"] = product_name
-                MEDIA_GROUPS[media_group_id]["price"] = product_price
-                MEDIA_GROUPS[media_group_id]["category"] = product_category
-                MEDIA_GROUPS[media_group_id]["description"] = product_description
-            
-            # ❌ ಹಳೆ task cancel ಮಾಡಿ
             old_task = MEDIA_GROUPS[media_group_id].get("task")
             if old_task and not old_task.done():
                 old_task.cancel()
             
-            # ✅ ಹೊಸ async task ಶುರು ಮಾಡಿ (3 sec ನಂತರ process)
             MEDIA_GROUPS[media_group_id]["task"] = asyncio.create_task(
                 process_media_group_delayed(media_group_id, delay=3.0)
             )
@@ -770,7 +785,7 @@ async def telegram_webhook(request: Request):
         # ಟೆಲಿಗ್ರಾಮ್ ಕನ್ಫರ್ಮೇಷನ್
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | Category: {product_category}"},
+            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | ₹{product_price.replace('₹','')} | {product_category}"},
             timeout=5
         )
 
