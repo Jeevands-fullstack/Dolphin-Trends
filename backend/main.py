@@ -14,7 +14,8 @@ from pymongo import MongoClient
 import certifi
 import cloudinary
 import cloudinary.uploader
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+import telebot  # 🆕 pyTelegramBotAPI
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton  # 🆕
 
 # 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್ ಟ್ರ್ಯಾಕ್
 MEDIA_GROUPS = {}
@@ -22,6 +23,7 @@ MEDIA_GROUPS = {}
 # 🚀 FastAPI Lifespan Handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 🆕 Bot 1 (Upload) Webhook
     if TELEGRAM_BOT_TOKEN:
         try:
             requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook", timeout=5)
@@ -30,15 +32,30 @@ async def lifespan(app: FastAPI):
                 json={"url": f"{BACKEND_URL}/webhook"},
                 timeout=5
             )
-            print("Webhook set successfully:", r.text)
+            print(f"✅ Upload Bot webhook set")
         except Exception as e:
-            print("Webhook setup error:", e)
+            print(f"Upload Bot webhook error: {e}")
+    
+    # 🆕 Bot 2 (Chat) Webhook
+    if TELEGRAM_CHAT_BOT_TOKEN:
+        try:
+            requests.get(f"https://api.telegram.org/bot{TELEGRAM_CHAT_BOT_TOKEN}/deleteWebhook", timeout=5)
+            r = requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_CHAT_BOT_TOKEN}/setWebhook",
+                json={"url": f"{BACKEND_URL}/webhook"},
+                timeout=5
+            )
+            print(f"✅ Chat Bot webhook set")
+        except Exception as e:
+            print(f"Chat Bot webhook error: {e}")
             
-    print(f"Allowed Telegram Users: {ALLOWED_USERS}")
-    print(f"Admin WhatsApp Numbers: {ADMIN_PHONES}")
-    print(f"WhatsApp Group ID: {YOUR_WHATSAPP_GROUP_ID}")
-    print(f"Telegram Admin Chat ID: {ADMIN_TELEGRAM_CHAT_ID}")
-    print(f"Cloudinary configured: {bool(CLOUDINARY_CLOUD_NAME)}")
+    print(f"📸 Upload Bot: {bool(TELEGRAM_BOT_TOKEN)}")
+    print(f"💬 Chat Bot: {bool(TELEGRAM_CHAT_BOT_TOKEN)}")
+    print(f"👥 Upload Bot Chat ID: {ADMIN_TELEGRAM_CHAT_ID}")
+    print(f"👥 Chat Bot Chat ID: {ADMIN_CHAT_BOT_CHAT_ID}")
+    print(f"📞 Admin Phones: {ADMIN_PHONES}")
+    print(f"📱 WhatsApp Group: {bool(YOUR_WHATSAPP_GROUP_ID)}")
+    print(f"☁️ Cloudinary: {bool(CLOUDINARY_CLOUD_NAME)}")
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -56,8 +73,15 @@ MONGO_URL = os.getenv("MONGO_URL")
 GREEN_API_INSTANCE = os.getenv("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+# 🆕 Bot 1: Image Upload Bot
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-ADMIN_TELEGRAM_CHAT_ID = os.getenv("ADMIN_TELEGRAM_CHAT_ID")  # 🆕 Chat Box ಗಾಗಿ
+ADMIN_TELEGRAM_CHAT_ID = os.getenv("ADMIN_TELEGRAM_CHAT_ID")
+
+# 🆕 Bot 2: Chat Box Bot
+TELEGRAM_CHAT_BOT_TOKEN = os.getenv("TELEGRAM_CHAT_BOT_TOKEN")
+ADMIN_CHAT_BOT_CHAT_ID = os.getenv("ADMIN_CHAT_BOT_CHAT_ID")
+
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
 INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends_rajagopalanagar?igsh=MWJ4MGRybGFxOXdiYw=="
@@ -89,7 +113,7 @@ ca = certifi.where()
 db = None
 bookings_table = None
 products_table = None
-chat_messages_table = None  # 🆕 Chat messages
+chat_messages_table = None
 
 if MONGO_URL:
     try:
@@ -97,10 +121,10 @@ if MONGO_URL:
         db = client["dolphin_trends_db"]
         products_table = db["products"]
         bookings_table = db["bookings"]
-        chat_messages_table = db["chat_messages"]  # 🆕
-        print("MongoDB Connected Successfully!")
+        chat_messages_table = db["chat_messages"]
+        print("✅ MongoDB Connected!")
     except Exception as e:
-        print(f"MongoDB Connection Error: {e}")
+        print(f"❌ MongoDB Error: {e}")
 
 # 🛠️ Helper Functions
 def upload_to_cloudinary(image_source, is_file=False):
@@ -108,27 +132,20 @@ def upload_to_cloudinary(image_source, is_file=False):
         if not CLOUDINARY_CLOUD_NAME:
             return None
         result = cloudinary.uploader.upload(
-            image_source,
-            folder="dolphin_trends",
-            resource_type="image",
-            timeout=30
+            image_source, folder="dolphin_trends", resource_type="image", timeout=30
         )
         return result.get("secure_url")
     except Exception as e:
-        print(f"Cloudinary Error: {str(e)}")
+        print(f"Cloudinary Error: {e}")
         return None
 
 def send_whatsapp_msg(phone, message):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
             return False
-        
-        clean_phone = str(phone).strip()
-        clean_phone = clean_phone.replace("+", "").replace(" ", "").replace("-", "").strip()
-        
+        clean_phone = str(phone).strip().replace("+", "").replace(" ", "").replace("-", "")
         if not clean_phone.isdigit():
             return False
-        
         if len(clean_phone) == 10:
             chat_id = f"91{clean_phone}@c.us"
         elif len(clean_phone) == 12 and clean_phone.startswith("91"):
@@ -137,38 +154,27 @@ def send_whatsapp_msg(phone, message):
             chat_id = f"91{clean_phone[-10:]}@c.us"
         else:
             return False
-            
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
         response = requests.post(url, json={"chatId": chat_id, "message": message}, timeout=10)
-        
-        if response.status_code == 200:
-            print(f"✅ WhatsApp sent to {phone}")
-            return True
-        else:
-            print(f"❌ WhatsApp failed {phone}: {response.status_code}")
-            return False
+        return response.status_code == 200
     except Exception as e:
-        print(f"WhatsApp Error ({phone}): {e}")
+        print(f"WhatsApp Error: {e}")
         return False
 
 def send_whatsapp_to_admins(message):
     if not ADMIN_PHONES:
         return []
-    
     results = []
     for idx, phone in enumerate(ADMIN_PHONES, 1):
-        success = send_whatsapp_msg(phone, message)
-        results.append(success)
+        results.append(send_whatsapp_msg(phone, message))
         if idx < len(ADMIN_PHONES):
             time.sleep(1)
-    
     return results
 
 def send_whatsapp_group_product(image_url):
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
             return False
-
         caption = (
             "* Offer 🎉*\n"
             "📸 *Follow our Instagram page to get an extra 10% discount*👇\n"
@@ -176,7 +182,6 @@ def send_whatsapp_group_product(image_url):
             "💥 *Explore & order here:* 👇\n"
             "🔗 https://dolphin-trends-two.vercel.app"
         )
-
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
             "chatId": YOUR_WHATSAPP_GROUP_ID,
@@ -186,8 +191,7 @@ def send_whatsapp_group_product(image_url):
         }
         response = requests.post(url, json=payload, timeout=30)
         return response.status_code == 200
-    except Exception as e:
-        print(f"WhatsApp Group Error: {str(e)}")
+    except:
         return False
 
 def send_empty_caption_whatsapp_group(image_url):
@@ -206,45 +210,62 @@ def send_empty_caption_whatsapp_group(image_url):
     except:
         return False
 
-# 🆕 Category Detection
+# 🆕 Telegram Helper (pyTelegramBotAPI - Sync)
+def send_telegram_with_buttons_upload(chat_id, message, buttons):
+    """Upload Bot ಗೆ buttons ಜೊತೆ message"""
+    try:
+        bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+        keyboard = InlineKeyboardMarkup()
+        for btn_row in buttons:
+            row_buttons = []
+            for btn in btn_row:
+                row_buttons.append(InlineKeyboardButton(
+                    text=btn["text"],
+                    callback_data=btn["data"]
+                ))
+            keyboard.row(*row_buttons)
+        
+        bot.send_message(
+            chat_id=chat_id,
+            text=message,
+            reply_markup=keyboard,
+            parse_mode='HTML'
+        )
+        return True
+    except Exception as e:
+        print(f"❌ Telegram Error: {e}")
+        return False
+
+
 def detect_category_from_name(name):
     if not name:
         return None
     name_lower = name.lower()
     category_map = {
         "formal pant": "Formal Pants", "formal pants": "Formal Pants",
-        "formalpant": "Formal Pants", "formalpants": "Formal Pants",
         "formal trouser": "Formal Pants", "formal trousers": "Formal Pants",
         "formal shirt": "Formal Shirt", "formal shirts": "Formal Shirt",
-        "formalshirt": "Formal Shirt", "formalshirts": "Formal Shirt",
         "office shirt": "Formal Shirt", "office shirts": "Formal Shirt",
         "leggings": "Leggings", "legging": "Leggings",
         "churidar": "Leggings", "churidhar": "Leggings",
         "kurta set": "Kurta Sets", "kurti set": "Kurta Sets",
-        "kurtaset": "Kurta Sets", "kurtiset": "Kurta Sets",
         "jeans": "Jeans", "jean": "Jeans", "denim": "Jeans",
         "patiala": "Patiala Pants", "patiala pants": "Patiala Pants",
-        "patiala pant": "Patiala Pants",
         "kurtha": "Kurtha Top", "kurta top": "Kurtha Top",
-        "kurti top": "Kurtha Top", "kurti": "Kurtha Top", "kurtis": "Kurtha Top",
+        "kurti": "Kurtha Top", "kurtis": "Kurtha Top",
         "umbrella": "Umbrella Sets", "umbrella set": "Umbrella Sets",
-        "frock": "Frocks", "frocks": "Frocks",
-        "frock set": "Frocks", "gown": "Frocks", "gowns": "Frocks",
+        "frock": "Frocks", "frocks": "Frocks", "gown": "Frocks", "gowns": "Frocks",
         "western": "Western Wear", "western wear": "Western Wear",
-        "western dress": "Western Wear", "indo western": "Western Wear",
-        "indowestern": "Western Wear",
         "gym": "Gym Pants", "gym pant": "Gym Pants", "gym pants": "Gym Pants",
         "track pant": "Gym Pants", "track pants": "Gym Pants",
         "jogger": "Gym Pants", "joggers": "Gym Pants",
         "250 top": "250 Tops", "250 tops": "250 Tops",
         "350 top": "350 Tops", "350 tops": "350 Tops",
         "jeans top": "Jeans Tops", "jeans tops": "Jeans Tops",
-        "denim top": "Jeans Tops", "denim tops": "Jeans Tops",
         "top": "Kurtha Top", "tops": "Kurtha Top",
         "t-shirt": "Western Wear", "tshirt": "Western Wear",
         "shirt": "Formal Shirt", "shirts": "Formal Shirt",
         "palazzo": "Plazzo Pants", "plazzo pants": "Plazzo Pants",
-        "plazzo pant": "Plazzo Pants",
         "shrug": "Western Wear", "jacket": "Western Wear", "blazer": "Western Wear",
         "pant": "Formal Pants", "pants": "Formal Pants",
         "trouser": "Formal Pants", "trousers": "Formal Pants",
@@ -255,7 +276,6 @@ def detect_category_from_name(name):
             return category_map[keyword]
     return None
 
-# 🤖 AI Functions
 def _try_google_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
@@ -266,7 +286,6 @@ def _try_google_ai(image_url):
         image_bytes = response.content
         if not image_bytes:
             return None
-        
         model_names = [
             'gemini-1.5-flash-latest', 'gemini-1.5-flash',
             'gemini-1.5-flash-001', 'gemini-1.5-flash-002',
@@ -277,7 +296,6 @@ def _try_google_ai(image_url):
                   "1. Simple product name. 2. Category. 3. Short description. "
                   "Format: Name | Category | Description")
         cookie_img = {"mime_type": "image/jpeg", "data": image_bytes}
-        
         for model_name in model_names:
             try:
                 model = genai.GenerativeModel(model_name)
@@ -302,32 +320,49 @@ def generate_product_details_via_ai(image_url):
         return ai_result
     return _local_fallback_details()
 
-# 🆕 Media Group Processing
 async def process_media_group_delayed(media_group_id, delay=3.0):
     try:
         await asyncio.sleep(delay)
     except asyncio.CancelledError:
         return
-    
     if media_group_id not in MEDIA_GROUPS:
         return
-    
     group_data = MEDIA_GROUPS.pop(media_group_id, None)
     if not group_data:
         return
-    
     urls = group_data.get("processed_urls", [])
     if not urls:
         return
-    
     for url in urls[:-1]:
         send_empty_caption_whatsapp_group(url)
         await asyncio.sleep(0.5)
-    
     send_whatsapp_group_product(urls[-1])
 
-# 🆕 Chat Box API Endpoints
+class BookingPayload(BaseModel):
+    customer_name: str
+    customer_phone: str
+    product_name: str
+    image_url: str
+    size: str = "M"
+    price: str = "1299"
 
+@app.get("/")
+def home():
+    return {
+        "status": "Dolphin Trends Backend Active!",
+        "bots": {
+            "upload_bot": bool(TELEGRAM_BOT_TOKEN),
+            "chat_bot": bool(TELEGRAM_CHAT_BOT_TOKEN)
+        },
+        "mongo": "connected" if products_table is not None else "not connected",
+        "cloudinary": bool(CLOUDINARY_CLOUD_NAME)
+    }
+
+@app.head("/")
+def home_head():
+    return {}
+
+# 🆕 Chat Box API (Bot 2 - Chat Bot)
 @app.post("/api/chat-box")
 async def chat_box_endpoint(
     customer_name: str = Form(...),
@@ -339,11 +374,10 @@ async def chat_box_endpoint(
     message: str = Form(""),
     push_subscription: str = Form(None)
 ):
-    """🆕 Complete chat box workflow"""
+    """Chat Box using CHAT BOT (Bot 2)"""
     try:
         customer_chat_id = str(uuid.uuid4())[:12]
         
-        # ✅ Step 2: Generate welcome message
         welcome_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {customer_name},\n\n"
@@ -360,7 +394,6 @@ async def chat_box_endpoint(
             f"*🧑🏻‍💻Team Dolphin Trends* 🐬"
         )
         
-        # 💾 Save welcome message
         if chat_messages_table is not None:
             chat_messages_table.insert_one({
                 "customer_chat_id": customer_chat_id,
@@ -369,8 +402,6 @@ async def chat_box_endpoint(
                 "timestamp": time.time(),
                 "type": "welcome"
             })
-            
-            # Save customer message
             if message:
                 chat_messages_table.insert_one({
                     "customer_chat_id": customer_chat_id,
@@ -380,8 +411,7 @@ async def chat_box_endpoint(
                     "type": "customer_message"
                 })
         
-        # 💾 Save booking
-        chat_data = {
+        bookings_table.insert_one({
             "customer_chat_id": customer_chat_id,
             "customer_name": customer_name,
             "customer_phone": customer_phone,
@@ -395,13 +425,12 @@ async def chat_box_endpoint(
             "last_admin_message": welcome_message,
             "created_at": time.time(),
             "updated_at": time.time()
-        }
-        bookings_table.insert_one(chat_data)
+        })
         
-        # ✅ Step 4: Send to Telegram with 3 buttons
-        if TELEGRAM_BOT_TOKEN and ADMIN_TELEGRAM_CHAT_ID:
+        # ✅ Send to CHAT BOT (Bot 2) with buttons
+        if TELEGRAM_CHAT_BOT_TOKEN and ADMIN_CHAT_BOT_CHAT_ID:
             telegram_msg = (
-                f"🛍️ <b>New Booking Request!</b>\n\n"
+                f"🛍️ <b>New Chat Booking!</b>\n\n"
                 f"👤 <b>Customer:</b> {customer_name}\n"
                 f"📞 <b>Phone:</b> {customer_phone}\n"
                 f"👗 <b>Product:</b> {product_name}\n"
@@ -412,56 +441,70 @@ async def chat_box_endpoint(
             )
             
             buttons = [
-                [InlineKeyboardButton("🟢 Approve", callback_data=f"approve_{customer_chat_id}"),
-                 InlineKeyboardButton("🔴 Disagree", callback_data=f"reject_{customer_chat_id}")],
-                [InlineKeyboardButton("🟡 Size Unavailable", callback_data=f"sizeno_{customer_chat_id}")]
+                [
+                    {"text": "🟢 Approve", "data": f"approve_{customer_chat_id}"},
+                    {"text": "🔴 Disagree", "data": f"reject_{customer_chat_id}"}
+                ],
+                [
+                    {"text": "🟡 Size Unavailable", "data": f"sizeno_{customer_chat_id}"}
+                ]
             ]
-            keyboard = InlineKeyboardMarkup(buttons)
             
+            # Try with image first
             try:
-                bot = Bot(token=TELEGRAM_BOT_TOKEN)
+                chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                keyboard = InlineKeyboardMarkup()
+                for btn_row in buttons:
+                    row_buttons = []
+                    for btn in btn_row:
+                        row_buttons.append(InlineKeyboardButton(
+                            text=btn["text"],
+                            callback_data=btn["data"]
+                        ))
+                    keyboard.row(*row_buttons)
+                
                 if product_image:
                     try:
-                        await bot.send_photo(
-                            chat_id=ADMIN_TELEGRAM_CHAT_ID,
+                        chat_bot.send_photo(
+                            chat_id=ADMIN_CHAT_BOT_CHAT_ID,
                             photo=product_image,
                             caption=telegram_msg,
                             reply_markup=keyboard,
                             parse_mode='HTML'
                         )
                     except:
-                        await bot.send_message(
-                            chat_id=ADMIN_TELEGRAM_CHAT_ID,
+                        chat_bot.send_message(
+                            chat_id=ADMIN_CHAT_BOT_CHAT_ID,
                             text=telegram_msg,
                             reply_markup=keyboard,
                             parse_mode='HTML'
                         )
                 else:
-                    await bot.send_message(
-                        chat_id=ADMIN_TELEGRAM_CHAT_ID,
+                    chat_bot.send_message(
+                        chat_id=ADMIN_CHAT_BOT_CHAT_ID,
                         text=telegram_msg,
                         reply_markup=keyboard,
                         parse_mode='HTML'
                     )
-                print(f"✅ Telegram message + buttons sent")
+                print(f"✅ Chat Bot message sent")
             except Exception as e:
-                print(f"❌ Telegram error: {e}")
+                print(f"❌ Chat Bot error: {e}")
         
-        # 📱 Send WhatsApp to admins
+        # WhatsApp admins
         whatsapp_msg = (
-            f"🛍️ *New Booking - {customer_name}*\n"
+            f"🛍️ *New Chat Booking*\n"
+            f"👤 {customer_name}\n"
             f"📞 {customer_phone}\n"
             f"👗 {product_name} (Size: {size})\n"
             f"💰 {price}\n\n"
-            f"Check Telegram for buttons!"
+            f"Check Chat Bot for buttons!"
         )
         send_whatsapp_to_admins(whatsapp_msg)
         
         return {
             "status": "success",
             "customer_chat_id": customer_chat_id,
-            "welcome_message": welcome_message,
-            "message": "Chat opened! Watch for live updates."
+            "welcome_message": welcome_message
         }
     except Exception as e:
         print(f"❌ Chat Box Error: {e}")
@@ -470,17 +513,14 @@ async def chat_box_endpoint(
 
 @app.get("/api/chat/{customer_chat_id}/messages")
 def get_chat_messages(customer_chat_id: str):
-    """🔄 Customer polling - live messages"""
+    """Polling for live updates"""
     try:
         if chat_messages_table is None:
             return {"status": "error", "messages": []}
-        
         messages = list(chat_messages_table.find(
             {"customer_chat_id": customer_chat_id}
         ).sort("timestamp", 1))
-        
         booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table else None
-        
         return {
             "status": booking.get("status", "pending") if booking else "unknown",
             "messages": [
@@ -489,32 +529,9 @@ def get_chat_messages(customer_chat_id: str):
             ]
         }
     except Exception as e:
-        print(f"❌ Chat polling error: {e}")
         return {"status": "error", "messages": []}
 
-
-# 📋 Models
-class BookingPayload(BaseModel):
-    customer_name: str
-    customer_phone: str
-    product_name: str
-    image_url: str
-    size: str = "M"
-    price: str = "1299"
-
-@app.get("/")
-def home():
-    return {
-        "status": "Dolphin Trends Backend Active!",
-        "mongo": "connected" if products_table is not None else "not connected",
-        "chat_box": "enabled" if ADMIN_TELEGRAM_CHAT_ID else "disabled"
-    }
-
-@app.head("/")
-def home_head():
-    return {}
-
-# 📋 Bookings API
+# 📋 Bookings API (Existing)
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -564,7 +581,7 @@ def create_booking(payload: BookingPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📦 Products API
+# 📦 Products API (Existing)
 @app.post("/products")
 async def add_product(
     name: str = Form(...),
@@ -580,7 +597,6 @@ async def add_product(
     try:
         is_available = available.lower() == "true"
         cloud_image_url = None
-
         if file and file.filename:
             file_bytes = await file.read()
             if file_bytes and len(file_bytes) > 100:
@@ -593,13 +609,12 @@ async def add_product(
             raise HTTPException(status_code=400, detail="Please upload a product image!")
 
         new_id = str(uuid.uuid4())[:8]
-        product_data = {
+        products_table.insert_one({
             "id": new_id, "product_id": new_id,
             "name": name, "price": price, "original_price": original_price or "",
             "category": category, "description": description or "",
             "image": cloud_image_url, "available": is_available
-        }
-        products_table.insert_one(product_data)
+        })
         return {"status": "success", "action": "created", "product_id": new_id}
     except HTTPException:
         raise
@@ -630,21 +645,6 @@ def get_products():
     if products_table is None:
         return []
     return list(products_table.find({}, {"_id": 0}))
-
-@app.get("/reviews/{product_id}")
-def get_reviews(product_id: str):
-    if db is None:
-        return []
-    return list(db["reviews"].find({"product_id": product_id}, {"_id": 0}))
-
-@app.post("/reviews")
-def add_review(review: dict):
-    if db is None:
-        raise HTTPException(status_code=500, detail="DB missing")
-    review["id"] = str(uuid.uuid4())
-    db["reviews"].insert_one(review)
-    review.pop("_id", None)
-    return review
 
 @app.get("/api/admin/bookings")
 @app.get("/bookings")
@@ -714,124 +714,18 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 Telegram Webhook - WITH Button Handler
+# 🤖 Telegram Webhook - Dual Bot Support
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
-    if bookings_table is None:
-        return {"status": "DB error"}
+    """Handles BOTH bots: Upload bot (photos) + Chat bot (callbacks)"""
     try:
         data = await request.json()
         
-        # 🔘 Button Click (Callback Query) - CHAT BOX
+        # 🆕 Handle Chat Bot callback queries (buttons)
         if "callback_query" in data:
-            callback = data["callback_query"]
-            callback_data = callback["data"]
-            callback_id = callback["id"]
-            
-            print(f"🔘 Button clicked: {callback_data}")
-            
-            parts = callback_data.split("_", 1)
-            if len(parts) == 2:
-                action, customer_chat_id = parts[0], parts[1]
-                
-                booking = bookings_table.find_one({"customer_chat_id": customer_chat_id})
-                if not booking:
-                    return {"status": "not found"}
-                
-                c_name = booking["customer_name"]
-                c_phone = booking["customer_phone"]
-                p_name = booking["product_name"]
-                
-                if action == "approve":
-                    admin_msg = (
-                        f"🎉 *Your order has been approved!* ✅\n\n"
-                        f"Hi {c_name},\n\n"
-                        f"Great news! Your order for *{p_name}* has been approved! 🎊\n\n"
-                        f"📍 *Visit our store:*\n"
-                        f"Rajgopal Nagar Main Road\n"
-                        f"Peenya 2nd Stage, Bangalore\n\n"
-                        f"⏰ *Timings:* 11:00 AM - 10:00 PM\n"
-                        f"📞 *Contact:* 7411255628\n\n"
-                        f"Thank you for choosing Dolphin Trends! 🐬"
-                    )
-                    new_status = "approved"
-                    whatsapp_msg = (
-                        f"Hello {c_name}! ✅\n\n"
-                        f"Good news! *{p_name}* is available!\n\n"
-                        f"🏪 Rajgopal Nagar Main Road, Peenya 2nd Stage\n"
-                        f"⏰ 11:00 AM - 10:00 PM"
-                    )
-                    response_text = "✅ Order Approved!"
-                    
-                elif action == "reject":
-                    admin_msg = (
-                        f"😔 *Sorry, Order Unavailable*\n\n"
-                        f"Hi {c_name},\n\n"
-                        f"Unfortunately, *{p_name}* is currently out of stock.\n\n"
-                        f"📦 We'll notify you when it's back!\n\n"
-                        f"Thank you for choosing us. 🐬"
-                    )
-                    new_status = "rejected"
-                    whatsapp_msg = (
-                        f"Hello {c_name},\n\n"
-                        f"Sorry, *{p_name}* is currently out of stock.\n"
-                        f"We'll notify you when it's back! 💥"
-                    )
-                    response_text = "❌ Order Rejected"
-                    
-                elif action == "sizeno":
-                    admin_msg = (
-                        f"📏 *Size Not Available*\n\n"
-                        f"Hi {c_name},\n\n"
-                        f"*{p_name}* is available, but your size is currently out of stock.\n\n"
-                        f"🏪 *Visit our store* to check other available sizes!\n\n"
-                        f"📍 Rajgopal Nagar, Peenya 2nd Stage, Bangalore"
-                    )
-                    new_status = "size_no_stock"
-                    whatsapp_msg = (
-                        f"Hello {c_name}! 😊\n\n"
-                        f"*{p_name}* is available, but your size is sold out.\n\n"
-                        f"Drop by our store to check other sizes!"
-                    )
-                    response_text = "📏 Size Not Available"
-                
-                # ✅ Update database
-                bookings_table.update_one(
-                    {"customer_chat_id": customer_chat_id},
-                    {"$set": {
-                        "status": new_status,
-                        "last_admin_message": admin_msg,
-                        "updated_at": time.time()
-                    }}
-                )
-                
-                # 💬 Save admin message to chat
-                if chat_messages_table is not None:
-                    chat_messages_table.insert_one({
-                        "customer_chat_id": customer_chat_id,
-                        "from": "admin",
-                        "message": admin_msg,
-                        "timestamp": time.time(),
-                        "type": f"admin_{action}"
-                    })
-                
-                # 📱 Send WhatsApp
-                send_whatsapp_msg(c_phone, whatsapp_msg)
-                
-                # ✅ Answer callback
-                try:
-                    bot = Bot(token=TELEGRAM_BOT_TOKEN)
-                    await bot.answer_callback_query(
-                        callback_query_id=callback_id,
-                        text=response_text,
-                        show_alert=False
-                    )
-                except:
-                    pass
-            
-            return {"status": "ok"}
+            return await handle_chat_bot_callback(data)
         
-        # Regular message handler (photo upload)
+        # 📸 Handle Upload Bot photos
         if "message" not in data:
             return {"status": "ok"}
 
@@ -844,6 +738,7 @@ async def telegram_webhook(request: Request):
         if "photo" not in message:
             return {"status": "ok"}
 
+        # Photo upload logic (existing code)
         caption = message.get("caption", "").strip()
         media_group_id = message.get("media_group_id")
         
@@ -946,13 +841,111 @@ async def telegram_webhook(request: Request):
         else:
             send_whatsapp_group_product(permanent_url)
 
+        # Confirmation (Upload Bot)
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name}"},
+            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | ₹{product_price.replace('₹','')} | {product_category}"},
             timeout=5
         )
 
         return {"status": "success"}
     except Exception as e:
-        print(f"Webhook Error: {str(e)}")
+        print(f"Webhook Error: {e}")
+        return {"status": "error"}
+
+
+async def handle_chat_bot_callback(data):
+    """🆕 Chat Bot (Bot 2) button click handler"""
+    try:
+        callback = data["callback_query"]
+        callback_data = callback["data"]
+        callback_id = callback["id"]
+        
+        print(f"🔘 Chat Bot button: {callback_data}")
+        
+        parts = callback_data.split("_", 1)
+        if len(parts) != 2:
+            return {"status": "invalid"}
+        
+        action, customer_chat_id = parts[0], parts[1]
+        
+        booking = bookings_table.find_one({"customer_chat_id": customer_chat_id})
+        if not booking:
+            # Use Chat Bot to answer
+            chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+            chat_bot_instance.answer_callback_query(callback_id, "❌ Booking not found", show_alert=True)
+            return {"status": "not found"}
+        
+        c_name = booking["customer_name"]
+        c_phone = booking["customer_phone"]
+        p_name = booking["product_name"]
+        
+        # Determine response
+        if action == "approve":
+            admin_msg = (
+                f"🎉 *Your order has been approved!* ✅\n\n"
+                f"Hi {c_name},\n\n"
+                f"Great news! Your order for *{p_name}* has been approved! 🎊\n\n"
+                f"📍 *Visit our store:*\n"
+                f"Rajgopal Nagar Main Road\n"
+                f"Peenya 2nd Stage, Bangalore\n\n"
+                f"⏰ *Timings:* 11:00 AM - 10:00 PM\n"
+                f"📞 *Contact:* 7411255628"
+            )
+            new_status = "approved"
+            whatsapp_msg = (
+                f"Hello {c_name}! ✅\n\n"
+                f"Good news! *{p_name}* is available at Dolphin Trends!\n\n"
+                f"🏪 Rajgopal Nagar Main Road, Peenya 2nd Stage\n"
+                f"⏰ 11:00 AM - 10:00 PM"
+            )
+            response_text = "✅ Order Approved!"
+            
+        elif action == "reject":
+            admin_msg = (
+                f"😔 *Sorry, Order Unavailable*\n\n"
+                f"Hi {c_name},\n\n"
+                f"Unfortunately, *{p_name}* is currently out of stock.\n\n"
+                f"📦 We'll notify you when it's back!"
+            )
+            new_status = "rejected"
+            whatsapp_msg = f"Sorry, *{p_name}* is currently out of stock."
+            response_text = "❌ Order Rejected"
+            
+        elif action == "sizeno":
+            admin_msg = (
+                f"📏 *Size Not Available*\n\n"
+                f"Hi {c_name},\n\n"
+                f"*{p_name}* is available, but your size is out of stock.\n\n"
+                f"🏪 *Visit our store* to check other available sizes!"
+            )
+            new_status = "size_no_stock"
+            whatsapp_msg = f"*{p_name}* available, but your size sold out."
+            response_text = "📏 Size Not Available"
+        
+        # Update DB
+        bookings_table.update_one(
+            {"customer_chat_id": customer_chat_id},
+            {"$set": {"status": new_status, "last_admin_message": admin_msg, "updated_at": time.time()}}
+        )
+        
+        # Save chat message
+        chat_messages_table.insert_one({
+            "customer_chat_id": customer_chat_id,
+            "from": "admin",
+            "message": admin_msg,
+            "timestamp": time.time(),
+            "type": f"admin_{action}"
+        })
+        
+        # WhatsApp
+        send_whatsapp_msg(c_phone, whatsapp_msg)
+        
+        # Answer callback using Chat Bot
+        chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+        chat_bot_instance.answer_callback_query(callback_id, response_text, show_alert=False)
+        
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"❌ Callback Error: {e}")
         return {"status": "error"}
