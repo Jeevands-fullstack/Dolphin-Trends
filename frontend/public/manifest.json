@@ -1,11 +1,7 @@
 {
-  "name": "Dolphin Trends",
   "short_name": "Dolphin Trends",
-  "description": "Women's Fashion Store - Bangalore",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0b1329",
-  "theme_color": "#1a6cff",
+  "name": "Dolphin Trends - Women's Fashion Bangalore",
+  "description": "Premium boutique clothing store in Bangalore",
   "icons": [
     {
       "src": "dolphin.jpg",
@@ -19,5 +15,11 @@
       "type": "image/jpeg",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a6cff",
+  "background_color": "#0b1329",
+  "orientation": "portrait",
+  "categories": ["shopping", "fashion", "lifestyle"]
 }
