@@ -8,13 +8,13 @@
   "theme_color": "#1a6cff",
   "icons": [
     {
-      "src": "image_fe5f61.jpg",
+      "src": "dolphin.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "image_fe5f61.jpg",
+      "src": "dolphin.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"
