@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <!-- ಥೀಮ್ ಕಲರ್ ಅನ್ನು ನಿನ್ನ ಬ್ಯುಸಿನೆಸ್ ಕಲರ್ ಆದ ಬ್ಲೂಗೆ ಬದಲಾಯಿಸಿದ್ದೇನೆ -->
+    <meta name="theme-color" content="#1a6cff" />
     
     <title>Dolphin Trends | Women's Fashion Store Bangalore</title>
     <meta name="description" content="Dolphin Trends - Best women's fashion store in Rajgopal Nagar, Peenya, Bangalore. Explore Kurtas, Leggings, and Premium Dresses at affordable prices." />
@@ -17,6 +18,17 @@
     <meta property="og:description" content="Explore our daily new arrivals and exclusive boutique collections! 🛍️" />
     <meta property="og:image" content="https://dolphin-trends-two.vercel.app/logo-preview.jpg" />
     <meta property="og:url" content="https://dolphin-trends-two.vercel.app" />
+
+    <!-- 🚀 PWA ಸರ್ವಿಸ್ ವರ್ಕರ್ ರಿಜಿಸ್ಟ್ರೇಷನ್ ಸ್ಕ್ರಿಪ್ಟ್ ಇಲ್ಲಿದೆ -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('%PUBLIC_URL%/sw.js')
+            .then(reg => console.log('Dolphin Trends PWA Registered Successfully!', reg))
+            .catch(err => console.log('PWA Service Worker Error:', err));
+        });
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
