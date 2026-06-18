@@ -116,39 +116,90 @@ def upload_to_cloudinary(image_source, is_file=False):
         print(f"Cloudinary Upload Error: {str(e)}")
         return None
 
+# ✅ FIX #1: Better phone number handling
 def send_whatsapp_msg(phone, message):
+    """Better phone number handling for customer messages"""
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN:
+            print("❌ Green API not configured")
             return False
-        clean_phone = str(phone).replace("+", "").replace(" ", "").replace("-", "").strip()
-        if len(clean_phone) >= 10:
-            just_10_digits = clean_phone[-10:]
-            chat_id = f"91{just_10_digits}@c.us"
+        
+        # ✅ Phone number clean ಮಾಡಿ
+        clean_phone = str(phone).strip()
+        clean_phone = clean_phone.replace("+", "").replace(" ", "").replace("-", "").strip()
+        
+        # ✅ Only digits check
+        if not clean_phone.isdigit():
+            print(f"❌ Phone contains non-digits: {phone}")
+            return False
+        
+        # ✅ Format phone number correctly
+        if len(clean_phone) == 10:
+            chat_id = f"91{clean_phone}@c.us"
+        elif len(clean_phone) == 12 and clean_phone.startswith("91"):
+            chat_id = f"{clean_phone}@c.us"
+        elif len(clean_phone) >= 10:
+            last_10 = clean_phone[-10:]
+            chat_id = f"91{last_10}@c.us"
         else:
-            print(f"❌ Invalid Phone Number length: {clean_phone}")
+            print(f"❌ Invalid Phone Number length: {clean_phone} (from {phone})")
             return False
             
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendMessage/{GREEN_API_TOKEN}"
-        response = requests.post(url, json={"chatId": chat_id, "message": message}, timeout=10)
-        print(f"WhatsApp Sent to {chat_id}, Status: {response.status_code}")
-        return response.status_code == 200
+        response = requests.post(
+            url, 
+            json={"chatId": chat_id, "message": message}, 
+            timeout=10
+        )
+        
+        print(f"📤 WhatsApp to {chat_id}: Status {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("idMessage"):
+                print(f"✅ Message sent to {phone}")
+                return True
+            else:
+                print(f"❌ WhatsApp error response: {result}")
+                return False
+        else:
+            print(f"❌ HTTP Error: {response.status_code}")
+            return False
+            
     except Exception as e:
-        print(f"WhatsApp Msg Error ({phone}): {e}")
+        print(f"❌ WhatsApp Msg Error ({phone}): {e}")
         return False
 
+# ✅ FIX #2: Send to ALL admin numbers with detailed tracking
 def send_whatsapp_to_admins(message):
-    for phone in ADMIN_PHONES:
-        send_whatsapp_msg(phone, message)
+    """Send message to ALL admin numbers with rate limiting"""
+    if not ADMIN_PHONES:
+        print("⚠️ No admin phone numbers configured!")
+        return []
+    
+    print(f"📤 Sending to {len(ADMIN_PHONES)} admin(s)...")
+    results = []
+    
+    for idx, phone in enumerate(ADMIN_PHONES, 1):
+        print(f"  [{idx}/{len(ADMIN_PHONES)}] Sending to {phone}...")
+        success = send_whatsapp_msg(phone, message)
+        results.append(success)
+        
+        # Rate limiting - avoid WhatsApp block
+        if idx < len(ADMIN_PHONES):
+            time.sleep(1)
+    
+    success_count = sum(1 for r in results if r)
+    print(f"📊 Admin messages: {success_count}/{len(results)} sent successfully")
+    return results
 
-# ✅ FIX #1: send_whatsapp_group_product function - signature fixed
 def send_whatsapp_group_product(image_url):
-    """✅ WhatsApp group ಗೆ Image + Instagram + Website link ಮಾತ್ರ ಕಳಿಸಿ"""
+    """✅ WhatsApp group ಗೆ Image + Instagram + Website link ಮಾತ್ರ"""
     try:
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
             print("WhatsApp group not configured")
             return False
 
-        # ✅ ಕೇವಲ Image + 2 Links ಮಾತ್ರ (ಬೇರೆ ಯಾವುದೇ text ಇಲ್ಲ)
         caption = (
             "* Offer 🎉*\n"
             "📸 *Follow our Instagram page to get an extra 10% discount*👇\n"
@@ -165,21 +216,15 @@ def send_whatsapp_group_product(image_url):
             "caption": caption
         }
         
-        print(f"📤 Sending LAST photo with links to: {YOUR_WHATSAPP_GROUP_ID}")
+        print(f"📤 Sending to WhatsApp group: {YOUR_WHATSAPP_GROUP_ID}")
         response = requests.post(url, json=payload, timeout=30)
-        print(f"📊 WhatsApp Group Response (With Links): {response.status_code}")
-        
-        if response.status_code == 200:
-            print(f"✅ Last photo + links sent successfully!")
-        else:
-            print(f"❌ WhatsApp failed: {response.text[:200]}")
+        print(f"📊 WhatsApp Group Response: {response.status_code}")
         
         return response.status_code == 200
     except Exception as e:
         print(f"WhatsApp Group Error: {str(e)}")
         return False
 
-# ✅ Middle photos - ಬರೀ image, caption ಇಲ್ಲ
 def send_empty_caption_whatsapp_group(image_url):
     """✅ Middle photos - ಬರೀ image ಮಾತ್ರ, caption ಇಲ್ಲ"""
     try:
@@ -200,9 +245,8 @@ def send_empty_caption_whatsapp_group(image_url):
         print(f"Error sending empty caption image: {e}")
         return False
 
-# 🆕 Updated Category Detection
+# 🆕 Category Detection
 def detect_category_from_name(name):
-    """Name ನಲ್ಲಿ ಯಾವ category keyword ಇದೆ ಎಂದು ಪತ್ತೆ ಮಾಡಿ"""
     if not name:
         return None
     
@@ -215,53 +259,43 @@ def detect_category_from_name(name):
         "formalpants": "Formal Pants",
         "formal trouser": "Formal Pants",
         "formal trousers": "Formal Pants",
-        
         "formal shirt": "Formal Shirt",
         "formal shirts": "Formal Shirt",
         "formalshirt": "Formal Shirt",
         "formalshirts": "Formal Shirt",
         "office shirt": "Formal Shirt",
         "office shirts": "Formal Shirt",
-        
         "leggings": "Leggings",
         "legging": "Leggings",
         "churidar": "Leggings",
         "churidhar": "Leggings",
-        
         "kurta set": "Kurta Sets",
         "kurti set": "Kurta Sets",
         "kurtaset": "Kurta Sets",
         "kurtiset": "Kurta Sets",
-        
         "jeans": "Jeans",
         "jean": "Jeans",
         "denim": "Jeans",
-        
-        "plazzo": "plazzo Pants",
-        "plazzo pants": "Plazzo Pants",
-        "plazzo pant": "Plazzo Pants",
-        
+        "patiala": "Patiala Pants",
+        "patiala pants": "Patiala Pants",
+        "patiala pant": "Patiala Pants",
         "kurtha": "Kurtha Top",
         "kurta top": "Kurtha Top",
         "kurti top": "Kurtha Top",
         "kurti": "Kurtha Top",
         "kurtis": "Kurtha Top",
-        
         "umbrella": "Umbrella Sets",
         "umbrella set": "Umbrella Sets",
-        
         "frock": "Frocks",
         "frocks": "Frocks",
         "frock set": "Frocks",
         "gown": "Frocks",
         "gowns": "Frocks",
-        
         "western": "Western Wear",
         "western wear": "Western Wear",
         "western dress": "Western Wear",
         "indo western": "Western Wear",
         "indowestern": "Western Wear",
-        
         "gym": "Gym Pants",
         "gym pant": "Gym Pants",
         "gym pants": "Gym Pants",
@@ -269,25 +303,23 @@ def detect_category_from_name(name):
         "track pants": "Gym Pants",
         "jogger": "Gym Pants",
         "joggers": "Gym Pants",
-        
         "250 top": "250 Tops",
         "250 tops": "250 Tops",
-        
         "350 top": "350 Tops",
         "350 tops": "350 Tops",
-        
         "jeans top": "Jeans Tops",
         "jeans tops": "Jeans Tops",
         "denim top": "Jeans Tops",
         "denim tops": "Jeans Tops",
-        
         "top": "Kurtha Top",
         "tops": "Kurtha Top",
         "t-shirt": "Western Wear",
         "tshirt": "Western Wear",
         "shirt": "Formal Shirt",
         "shirts": "Formal Shirt",
-        "palazzo": "Patiala Pants",
+        "palazzo": "Plazzo Pants",
+        "plazzo pants": "Plazzo Pants",
+        "plazzo pant": "Plazzo Pants",
         "shrug": "Western Wear",
         "jacket": "Western Wear",
         "blazer": "Western Wear",
@@ -305,7 +337,7 @@ def detect_category_from_name(name):
     
     return None
 
-# 🤖 Google AI Function
+# 🤖 AI Functions
 def _try_google_ai(image_url):
     try:
         if not GOOGLE_API_KEY:
@@ -379,9 +411,7 @@ def generate_product_details_via_ai(image_url):
     print("⚠️ Using local fallback")
     return _local_fallback_details()
 
-# ✅ FIX #2: process_media_group_delayed - function signature match
 async def process_media_group_delayed(media_group_id, delay=3.0):
-    """ಎಲ್ಲಾ photos ಬರುವವರೆಗೆ wait ಮಾಡಿ, ಆಮೇಲೆ WhatsApp ಗೆ ಕಳುಹಿಸಿ"""
     try:
         print(f"⏳ Waiting {delay}s for media group {media_group_id}...")
         await asyncio.sleep(delay)
@@ -405,7 +435,6 @@ async def process_media_group_delayed(media_group_id, delay=3.0):
     
     print(f"📤 Processing media group {media_group_id} with {len(urls)} images")
     
-    # 📸 ಮೊದಲ N-1 photos: ಬರೀ image (caption ಇಲ್ಲ)
     middle_photos = urls[:-1]
     print(f"📸 Sending {len(middle_photos)} middle photos (empty caption)...")
     
@@ -417,7 +446,6 @@ async def process_media_group_delayed(media_group_id, delay=3.0):
         except Exception as e:
             print(f"❌ Failed to send middle photo {i}: {e}")
     
-    # 🎯 ಕೊನೆಯ photo: Image + Links ಜೊತೆ (FIXED - no extra params)
     last_url = urls[-1]
     print(f"📤 Sending LAST photo with links...")
     
@@ -470,6 +498,7 @@ def list_available_models():
     except Exception as e:
         return {"error": str(e)}
 
+# ✅ FIX #3: Updated booking endpoint - sends to ALL admins
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -488,6 +517,7 @@ def create_booking(payload: BookingPayload):
         }
         bookings_table.insert_one(booking_data)
 
+        # ✅ Customer message
         customer_message = (
             f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
             f"Hi {payload.customer_name},\n\n"
@@ -502,8 +532,14 @@ def create_booking(payload: BookingPayload):
             f"✨Thank you for choosing us 😊\n"
             f"*🧑🏻‍💻Team Dolphin Trends* 🐬"
         )
-        send_whatsapp_msg(payload.customer_phone, customer_message)
+        
+        customer_sent = send_whatsapp_msg(payload.customer_phone, customer_message)
+        if customer_sent:
+            print(f"✅ Customer message sent: {payload.customer_phone}")
+        else:
+            print(f"❌ Customer message FAILED: {payload.customer_phone}")
 
+        # ✅ Admin message - ಎಲ್ಲಾ 3 members ಗೆ ಹೋಗುತ್ತದೆ
         admin_message = (
             f"🛍️ *New Buy Request Boss😎*\n\n"
             f"👗 *Product:* {payload.product_name}\n"
@@ -513,13 +549,20 @@ def create_booking(payload: BookingPayload):
             f"📞 Phone: {payload.customer_phone}\n\n"
             f"⚙️ *🧑🏻‍💻Plz Update in Admin Panel Boss 👇*\n {FRONTEND_URL}"
         )
-        send_whatsapp_to_admins(admin_message)
+        
+        admin_results = send_whatsapp_to_admins(admin_message)
 
-        return {"status": "success", "booking_id": booking_id}
+        return {
+            "status": "success", 
+            "booking_id": booking_id,
+            "customer_notified": customer_sent,
+            "admins_notified": sum(1 for r in admin_results if r)
+        }
     except Exception as e:
+        print(f"❌ Booking Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🆕 Admin Panel Upload - WhatsApp ಗೆ ಕಳಿಸುವುದಿಲ್ಲ!
+# Admin Panel Upload
 @app.post("/products")
 async def add_product(
     name: str = Form(...),
@@ -556,7 +599,6 @@ async def add_product(
         }
         products_table.insert_one(product_data)
 
-        # ❌ WhatsApp group ಗೆ ಕಳಿಸುವುದಿಲ್ಲ! (Admin panel upload)
         print(f"✅ Admin panel product added: {name} - WhatsApp NOT sent")
 
         return {"status": "success", "action": "created", "product_id": new_id}
@@ -673,7 +715,7 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 💥 Telegram Bot Webhook
+# Telegram Bot Webhook
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     if products_table is None:
@@ -701,7 +743,6 @@ async def telegram_webhook(request: Request):
         product_description = "Curated boutique wear."
         has_valid_caption = False
 
-        # ✅ ಟೆಕ್ಸ್ಟ್ ಪಾರ್ಸಿಂಗ್
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
@@ -733,7 +774,6 @@ async def telegram_webhook(request: Request):
                     product_category = detected_cat
                     print(f"✅ Auto-detected: {detected_cat} from {product_name}")
 
-        # 🆕 Media group handling
         if media_group_id:
             if media_group_id not in MEDIA_GROUPS:
                 MEDIA_GROUPS[media_group_id] = {
@@ -755,7 +795,6 @@ async def telegram_webhook(request: Request):
                 MEDIA_GROUPS[media_group_id]["user_caption"] = caption
                 print(f"📝 Caption applied to all photos: {product_name} | {product_price} | {product_category}")
 
-        # ಫೋಟೋ ಡೌನ್‌ಲೋಡ್
         file_id = message["photo"][-1]["file_id"]
         file_info = requests.get(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getFile",
@@ -772,7 +811,6 @@ async def telegram_webhook(request: Request):
         if not permanent_url:
             permanent_url = telegram_image_url
 
-        # AI/Fallback
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
@@ -781,7 +819,6 @@ async def telegram_webhook(request: Request):
 
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
 
-        # 🆕 Media group data use
         if media_group_id and media_group_id in MEDIA_GROUPS:
             group_data = MEDIA_GROUPS[media_group_id]
             product_name = group_data["name"]
@@ -792,7 +829,6 @@ async def telegram_webhook(request: Request):
             group_data["processed_urls"].append(permanent_url)
             print(f"📸 Photo {len(group_data['processed_urls'])} added to group")
 
-        # 💾 Database save
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
@@ -801,7 +837,6 @@ async def telegram_webhook(request: Request):
             "description": product_description, "available": True
         })
 
-        # 🔥 WhatsApp group processing
         if media_group_id:
             old_task = MEDIA_GROUPS[media_group_id].get("task")
             if old_task and not old_task.done():
@@ -812,10 +847,8 @@ async def telegram_webhook(request: Request):
             )
             print(f"🆕 Created task for media group {media_group_id}")
         else:
-            # ✅ FIX #3: Single photo - ನೇರವಾಗಿ Image + Links ಕಳಿಸಿ (no extra params)
             send_whatsapp_group_product(permanent_url)
 
-        # Telegram confirmation
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
             json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | ₹{product_price.replace('₹','')} | {product_category}"},
