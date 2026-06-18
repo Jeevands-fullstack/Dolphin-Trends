@@ -11,8 +11,9 @@
     <!-- ✅ PWA Theme Color -->
     <meta name="theme-color" content="#1a6cff" />
     
-    <!-- ✅ PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- ✅ PWA Meta Tags (FIXED) -->
+    <meta name="mobile-web-app-capable" content="yes" />  <!-- ✅ FIXED! -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />  <!-- Keep both for iOS -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Dolphin Trends" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/dolphin.jpg" />
@@ -22,14 +23,14 @@
     
     <!-- ✅ SEO Meta Tags -->
     <title>Dolphin Trends | Women's Fashion Store Bangalore</title>
-    <meta name="description" content="Dolphin Trends - Best women's fashion store in Rajgopal Nagar, Peenya, Bangalore. Explore Kurtas, Leggings, and Premium Dresses at affordable prices." />
-    <meta name="keywords" content="Dolphin Trends, Dolphin Trends Bangalore, Women's fashion Peenya, Laggere boutique, Kurtas Peenya, Dress shop Rajgopal Nagar, Jeevan JD" />
+    <meta name="description" content="Dolphin Trends - Best women's fashion store in Rajgopal Nagar, Peenya, Bangalore." />
+    <meta name="keywords" content="Dolphin Trends, Women's fashion Peenya, Laggere boutique" />
     <meta name="author" content="Jeevan JD" />
     
     <!-- ✅ Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="🐬 Dolphin Trends | Women's Fashion Store" />
-    <meta property="og:description" content="Explore our daily new arrivals and exclusive boutique collections! 🛍️" />
+    <meta property="og:description" content="Explore our daily new arrivals and exclusive boutique collections!" />
     <meta property="og:image" content="https://dolphin-trends-two.vercel.app/logo-preview.jpg" />
     <meta property="og:url" content="https://dolphin-trends-two.vercel.app" />
     <meta property="og:site_name" content="Dolphin Trends" />
@@ -37,7 +38,7 @@
     <!-- ✅ Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="🐬 Dolphin Trends | Women's Fashion Store" />
-    <meta name="twitter:description" content="Explore our daily new arrivals and exclusive boutique collections! 🛍️" />
+    <meta name="twitter:description" content="Explore our daily new arrivals!" />
     <meta name="twitter:image" content="https://dolphin-trends-two.vercel.app/logo-preview.jpg" />
     
     <!-- ✅ Service Worker Registration -->
@@ -52,7 +53,6 @@
     </script>
     
     <style>
-      /* ✅ Base styles */
       body {
         margin: 0;
         background: #0b1329;
@@ -60,13 +60,10 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       
-      /* ✅ Splash screen */
       #splash {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
         background: #0b1329;
         display: flex;
         flex-direction: column;
@@ -95,42 +92,13 @@
         50% { transform: scale(1.05); opacity: 0.8; }
       }
       
-      /* ✅ Install Popup */
       @keyframes slideUp {
-        from { transform: translateX(-50%) translateY(100px); opacity: 0; }
-        to { transform: translateX(-50%) translateY(0); opacity: 1; }
-      }
-      
-      @keyframes pulseGlow {
-        0%, 100% { box-shadow: 0 10px 40px rgba(26, 108, 255, 0.4); }
-        50% { box-shadow: 0 10px 60px rgba(26, 108, 255, 0.7); }
-      }
-      
-      #install-popup {
-        animation: slideUp 0.5s ease-out, pulseGlow 2s infinite;
-      }
-      
-      #install-popup button:hover {
-        transform: scale(1.02);
-        transition: transform 0.2s;
-      }
-      
-      @media (max-width: 480px) {
-        #install-popup > div {
-          padding: 16px !important;
-        }
-        #install-popup img {
-          width: 50px !important;
-          height: 50px !important;
-        }
-        #install-popup h3 {
-          font-size: 0.95rem !important;
-        }
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
       }
     </style>
   </head>
   <body>
-    <!-- ✅ Splash Screen -->
     <div id="splash">
       <img src="%PUBLIC_URL%/dolphin.jpg" alt="Dolphin Trends" />
       <p>🐬 Dolphin Trends</p>
@@ -139,7 +107,6 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     
-    <!-- ✅ Splash screen hide ಮಾಡಿ, app load ಆದ ಮೇಲೆ -->
     <script>
       window.addEventListener('load', () => {
         setTimeout(() => {
@@ -151,37 +118,30 @@
         }, 1000);
       });
     </script>
-    
-    <!-- ✅ Install App Popup Logic -->
+
+    <!-- Install App Popup -->
     <script>
       let deferredPrompt = null;
 
-      // Install prompt event capture ಮಾಡಿ
       window.addEventListener('beforeinstallprompt', (e) => {
         console.log('📱 Install prompt available');
         e.preventDefault();
         deferredPrompt = e;
         
-        // 3 seconds ನಂತರ popup ತೋರಿಸಿ
         setTimeout(() => {
           showInstallPopup();
         }, 3000);
       });
 
       function showInstallPopup() {
-        // Already installed ಆಗಿದ್ದರೆ skip
         if (window.matchMedia('(display-mode: standalone)').matches) {
-          console.log('✅ App already installed');
           return;
         }
         
-        // ಈಗಾಗಲೇ dismiss ಮಾಡಿದ್ದರೆ skip (ಅದೇ ದಿನ)
         if (localStorage.getItem('install_popup_dismissed') === new Date().toDateString()) {
-          console.log('ℹ️ Popup already dismissed today');
           return;
         }
         
-        // Already shown ಆಗಿದ್ದರೆ skip
         if (document.getElementById('install-popup')) {
           return;
         }
@@ -202,6 +162,7 @@
             width: 92%; 
             z-index: 99999; 
             box-shadow: 0 10px 40px rgba(26, 108, 255, 0.4);
+            animation: slideUp 0.5s ease-out;
           ">
             <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 15px;">
               <img src="%PUBLIC_URL%/dolphin.jpg" alt="Dolphin Trends" style="width: 60px; height: 60px; border-radius: 12px; flex-shrink: 0;" />
@@ -269,7 +230,6 @@
           console.log(`User ${outcome} the install prompt`);
           deferredPrompt = null;
         } else {
-          // Manual install instructions
           alert('📱 Install ಮಾಡಲು:\n\nChrome menu (⋮) → "Add to Home Screen" / "Install App"\n\niPhone: Safari → Share → Add to Home Screen');
         }
         closeInstallPopup();
@@ -283,16 +243,12 @@
           popup.style.transition = 'opacity 0.3s';
           setTimeout(() => popup.remove(), 300);
         }
-        // ಈ ದಿನಕ್ಕೆ dismiss ಆಗಿದೆ ಎಂದು remember ಮಾಡಿ
         localStorage.setItem('install_popup_dismissed', new Date().toDateString());
       }
 
-      // App install ಆದ ಮೇಲೆ popup close ಮಾಡಿ
       window.addEventListener('appinstalled', () => {
-        console.log('✅ Dolphin Trends App installed successfully!');
+        console.log('✅ Dolphin Trends App installed!');
         closeInstallPopup();
-        // Optional: Show success message
-        // alert('🎉 Dolphin Trends App installed! Check your home screen.');
       });
     </script>
   </body>
