@@ -2,7 +2,8 @@ const CACHE_NAME = 'dolphin-trends-v1';
 const ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/dolphin.jpg'
 ];
 
 self.addEventListener('install', (e) => {
