@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     
-    <!-- ✅ Favicon (ನಿಮ್ಮ dolphin logo) -->
+    <!-- ✅ Favicon -->
     <link rel="icon" href="%PUBLIC_URL%/dolphin.jpg" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -52,7 +52,7 @@
     </script>
     
     <style>
-      /* ✅ Loading screen (splash) */
+      /* ✅ Base styles */
       body {
         margin: 0;
         background: #0b1329;
@@ -94,10 +94,43 @@
         0%, 100% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.05); opacity: 0.8; }
       }
+      
+      /* ✅ Install Popup */
+      @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+      }
+      
+      @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 10px 40px rgba(26, 108, 255, 0.4); }
+        50% { box-shadow: 0 10px 60px rgba(26, 108, 255, 0.7); }
+      }
+      
+      #install-popup {
+        animation: slideUp 0.5s ease-out, pulseGlow 2s infinite;
+      }
+      
+      #install-popup button:hover {
+        transform: scale(1.02);
+        transition: transform 0.2s;
+      }
+      
+      @media (max-width: 480px) {
+        #install-popup > div {
+          padding: 16px !important;
+        }
+        #install-popup img {
+          width: 50px !important;
+          height: 50px !important;
+        }
+        #install-popup h3 {
+          font-size: 0.95rem !important;
+        }
+      }
     </style>
   </head>
   <body>
-    <!-- ✅ Splash Screen (App launch ನಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ) -->
+    <!-- ✅ Splash Screen -->
     <div id="splash">
       <img src="%PUBLIC_URL%/dolphin.jpg" alt="Dolphin Trends" />
       <p>🐬 Dolphin Trends</p>
@@ -116,6 +149,150 @@
             setTimeout(() => splash.remove(), 500);
           }
         }, 1000);
+      });
+    </script>
+    
+    <!-- ✅ Install App Popup Logic -->
+    <script>
+      let deferredPrompt = null;
+
+      // Install prompt event capture ಮಾಡಿ
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 Install prompt available');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // 3 seconds ನಂತರ popup ತೋರಿಸಿ
+        setTimeout(() => {
+          showInstallPopup();
+        }, 3000);
+      });
+
+      function showInstallPopup() {
+        // Already installed ಆಗಿದ್ದರೆ skip
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          console.log('✅ App already installed');
+          return;
+        }
+        
+        // ಈಗಾಗಲೇ dismiss ಮಾಡಿದ್ದರೆ skip (ಅದೇ ದಿನ)
+        if (localStorage.getItem('install_popup_dismissed') === new Date().toDateString()) {
+          console.log('ℹ️ Popup already dismissed today');
+          return;
+        }
+        
+        // Already shown ಆಗಿದ್ದರೆ skip
+        if (document.getElementById('install-popup')) {
+          return;
+        }
+
+        const popup = document.createElement('div');
+        popup.id = 'install-popup';
+        popup.innerHTML = `
+          <div style="
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: linear-gradient(135deg, #0f1a35, #0b1329); 
+            border: 2px solid #1a6cff; 
+            border-radius: 16px; 
+            padding: 20px; 
+            max-width: 420px; 
+            width: 92%; 
+            z-index: 99999; 
+            box-shadow: 0 10px 40px rgba(26, 108, 255, 0.4);
+          ">
+            <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 15px;">
+              <img src="%PUBLIC_URL%/dolphin.jpg" alt="Dolphin Trends" style="width: 60px; height: 60px; border-radius: 12px; flex-shrink: 0;" />
+              <div style="flex: 1; min-width: 0;">
+                <h3 style="margin: 0 0 5px 0; color: #fff; font-size: 1.05rem; font-weight: bold;">
+                  📱 Install Dolphin Trends App
+                </h3>
+                <p style="margin: 0; color: #7a85a0; font-size: 0.82rem; line-height: 1.4;">
+                  Get faster access, offline browsing & exclusive offers! 🎁
+                </p>
+              </div>
+              <button onclick="closeInstallPopup()" aria-label="Close" style="
+                background: rgba(255,255,255,0.05); 
+                border: none; 
+                color: #7a85a0; 
+                font-size: 1.3rem; 
+                cursor: pointer; 
+                padding: 4px 8px; 
+                line-height: 1; 
+                border-radius: 6px;
+                flex-shrink: 0;
+              ">✕</button>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button onclick="installApp()" style="
+                flex: 1; 
+                background: linear-gradient(135deg, #1a6cff, #004ecc); 
+                color: #fff; 
+                border: none; 
+                padding: 12px; 
+                border-radius: 10px; 
+                font-weight: bold; 
+                cursor: pointer; 
+                font-size: 0.95rem;
+                box-shadow: 0 4px 15px rgba(26, 108, 255, 0.3);
+              ">
+                📲 Install Now
+              </button>
+              <button onclick="closeInstallPopup()" style="
+                background: rgba(255,255,255,0.08); 
+                color: #fff; 
+                border: 1px solid rgba(255,255,255,0.1); 
+                padding: 12px 18px; 
+                border-radius: 10px; 
+                cursor: pointer; 
+                font-size: 0.85rem;
+              ">
+                Later
+              </button>
+            </div>
+            <p style="margin: 10px 0 0 0; color: #4d9fff; font-size: 0.72rem; text-align: center;">
+              ✨ No download needed • Instant install • Free forever
+            </p>
+          </div>
+        `;
+        
+        document.body.appendChild(popup);
+        console.log('📱 Install popup shown');
+      }
+
+      async function installApp() {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log(`User ${outcome} the install prompt`);
+          deferredPrompt = null;
+        } else {
+          // Manual install instructions
+          alert('📱 Install ಮಾಡಲು:\n\nChrome menu (⋮) → "Add to Home Screen" / "Install App"\n\niPhone: Safari → Share → Add to Home Screen');
+        }
+        closeInstallPopup();
+      }
+
+      function closeInstallPopup() {
+        const popup = document.getElementById('install-popup');
+        if (popup) {
+          popup.style.animation = 'none';
+          popup.style.opacity = '0';
+          popup.style.transition = 'opacity 0.3s';
+          setTimeout(() => popup.remove(), 300);
+        }
+        // ಈ ದಿನಕ್ಕೆ dismiss ಆಗಿದೆ ಎಂದು remember ಮಾಡಿ
+        localStorage.setItem('install_popup_dismissed', new Date().toDateString());
+      }
+
+      // App install ಆದ ಮೇಲೆ popup close ಮಾಡಿ
+      window.addEventListener('appinstalled', () => {
+        console.log('✅ Dolphin Trends App installed successfully!');
+        closeInstallPopup();
+        // Optional: Show success message
+        // alert('🎉 Dolphin Trends App installed! Check your home screen.');
       });
     </script>
   </body>
