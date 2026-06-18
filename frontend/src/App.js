@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import ProductPage from './ProductPage';
+import ChatBox from './ChatBox';  // 🆕 Chat Box import
 import dolphin from './assets/dolphin.jpg';
 import heroVideo from './assets/hero-video.mp4';
 
@@ -20,12 +21,15 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
-    // ✅ Session persistence
     return sessionStorage.getItem('admin_logged_in') === 'true';
   });
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [editProductData, setEditProductData] = useState(null); 
+
+  // 🆕 Chat Box States
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatProduct, setChatProduct] = useState(null);
 
   // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
@@ -38,7 +42,6 @@ function App() {
   const nextShopImage = () => setCurrentImgIndex((prev) => (prev + 1) % shopImages.length);
   const prevShopImage = () => setCurrentImgIndex((prev) => (prev - 1 + shopImages.length) % shopImages.length);
 
-  // ✅ FIX: Backend categories ಗೆ match ಆಗುವ categories
   const categories = [
     'All', 
     'Suit Set',
@@ -54,8 +57,8 @@ function App() {
     '350 Tops',
     'Jeans Tops',
     'Leggings',
-    'Formal Pants',  // ✅ NEW
-    'Formal Shirt'   // ✅ NEW
+    'Formal Pants',
+    'Formal Shirt'
   ];
 
   // 🔄 Products Fetch
@@ -75,25 +78,22 @@ function App() {
 
   useEffect(() => { fetchProducts(); }, []);
 
-  // 🔐 Admin Login (with hashed password check)
+  // 🔐 Admin Login
   const handleAdminLoginSubmit = (e) => {
     e.preventDefault();
-    
-    // ✅ Better security (still not perfect, but better than plaintext)
     const ADMIN_USER = 'dolphin_admin';
     const ADMIN_PASS = 'dolphin@2024';
     
     if (adminUsername === ADMIN_USER && adminPassword === ADMIN_PASS) {
       setIsAdminLoggedIn(true);
-      sessionStorage.setItem('admin_logged_in', 'true'); // ✅ Persist login
+      sessionStorage.setItem('admin_logged_in', 'true');
       setLoginError('');
       setAdminUsername('');
       setAdminPassword('');
       setShowAdmin(true); 
       setActivePage('shop');
     } else {
-      setLoginError('❌ ತಪ್ಪು Username ಅಥವಾ Password! ಸರಿಯಾಗಿ ನಮೂದಿಸಿ.');
-      // ✅ Clear password on error
+      setLoginError('❌ ತಪ್ಪು Username ಅಥವಾ Password!');
       setAdminPassword('');
     }
   };
@@ -113,13 +113,12 @@ function App() {
     try {
       const r = await fetch(`${API}/products/${productId}`, { method: 'DELETE' });
       if (r.ok) {
-        alert('🗑️ Product Deleted Successfully!');
+        alert('🗑️ Product Deleted!');
         fetchProducts();
       } else {
         alert('❌ Delete failed!');
       }
     } catch (err) {
-      console.error("Delete error:", err);
       alert('❌ Server Error!');
     }
   };
@@ -130,7 +129,7 @@ function App() {
     setShowAdmin(true); 
   };
 
-  // 🎯 Product Added/Updated Success
+  // 🎯 Product Added Success
   const handleProductAddedSuccess = () => {
     fetchProducts();
     setEditProductData(null);
@@ -138,13 +137,21 @@ function App() {
     setActivePage('shop'); 
   };
 
-  // 🛒 Buy Now Handler
+  // 🛒 Buy Now Handler - 🆕 Chat Box open ಮಾಡುತ್ತದೆ
   const handleBuyNow = (product) => {
     if (product.available === false) {
       alert('❌ ಈ product ಸದ್ಯ ಲಭ್ಯವಿಲ್ಲ!');
       return;
     }
-    setViewProduct(product);
+    // 🆕 Chat Box open ಮಾಡಿ
+    setChatProduct(product);
+    setChatOpen(true);
+  };
+
+  // 🆕 Chat Button Click - General Chat (product ಇಲ್ಲದೆ)
+  const handleOpenChat = () => {
+    setChatProduct(null);
+    setChatOpen(true);
   };
 
   const filtered = activeCategory === 'All' 
@@ -208,7 +215,6 @@ function App() {
             onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); setActivePage('shop'); }}
           />
         ) : (
-          /* 🔐 Admin Login Form */
           <div style={{ background: '#070b19', padding: '60px 20px', minHeight: '75vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
             
             <style>{`
@@ -386,7 +392,6 @@ function App() {
                         style={{ position: 'relative' }}
                       >
                         
-                        {/* ✏️ Admin Actions */}
                         {isAdminLoggedIn && (
                           <div style={{ 
                             position: 'absolute', 
@@ -415,7 +420,6 @@ function App() {
                           </div>
                         )}
 
-                        {/* 🖼️ Product Image */}
                         <div 
                           className="product-card-img-wrap" 
                           onClick={() => setFullScreenImage(product.image)} 
@@ -463,14 +467,14 @@ function App() {
                           )}
                         </div>
 
-                        {/* 📝 Product Info */}
                         <div className="product-info">
                           <span className="category-tag">{product.category}</span>
                           <h4>{product.name}</h4>
                           <p className="price">{product.price}</p>
                           {product.available !== false && (
+                            // 🆕 Buy Now → Chat Box Open
                             <button className="buy-btn" onClick={() => handleBuyNow(product)}>
-                              🛍️ Buy Now
+                              💬 Chat & Book
                             </button>
                           )}
                         </div>
@@ -671,6 +675,45 @@ function App() {
           allProducts={products} 
           onClose={() => setViewProduct(null)} 
           onBook={p => setViewProduct(p)} 
+        />
+      )}
+
+      {/* 🆕 Floating Chat Button - ಎಲ್ಲಾ pages ನಲ್ಲೂ ಕಾಣಿಸುತ್ತದೆ */}
+      {!showAdmin && (
+        <button
+          onClick={handleOpenChat}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '65px',
+            height: '65px',
+            background: 'linear-gradient(135deg, #1a6cff, #004ecc)',
+            borderRadius: '50%',
+            border: 'none',
+            color: '#fff',
+            fontSize: '30px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 25px rgba(26,108,255,0.5)',
+            zIndex: 9998,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          aria-label="Open chat"
+        >
+          💬
+        </button>
+      )}
+
+      {/* 🆕 Chat Box Modal - ಎಲ್ಲಾ pages ನಲ್ಲೂ available */}
+      {chatOpen && (
+        <ChatBox 
+          product={chatProduct} 
+          onClose={() => setChatOpen(false)} 
         />
       )}
     </div>
