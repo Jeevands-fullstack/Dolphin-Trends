@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import ProductPage from './ProductPage';
-import dolphin from './assets/dolphin.png';
+import dolphin from './assets/dolphin.jpg';
 import heroVideo from './assets/hero-video.mp4';
 
 import shop1 from './assets/shop-1..jpeg';
