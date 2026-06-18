@@ -10,7 +10,13 @@ function BookingModal({ product, onClose }) {
   const [loading, setLoading] = useState(false);
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-  const ownerPhone = "919353838835";
+  
+  // ✅ ಎಲ್ಲಾ admin numbers array ನಲ್ಲಿ
+  const adminPhones = [
+    "917411255628",  // Admin 1
+    "919353344035",  // Admin 2
+    "919353838835"   // Admin 3 (ನಿಮ್ಮ 3rd admin)
+  ];
 
   // ✅ Price calculation
   const priceNumber = parseInt((product.price || '0').replace(/[^\d]/g, '')) || 0;
@@ -63,15 +69,9 @@ Thank you for choosing us! We have received your order request:
 📏 Size: *${selectedSize}*
 💰 Price: *${product.price}*
 
-🎁 *WANT 10% INSTANT DISCOUNT?* 😍
-It's very simple! Just follow our Instagram page right now:
-🔗 https://www.instagram.com/dolphin_trends
-
-*(After following, reply 'DONE' here. Our team will verify and apply your 10% discount immediately before confirming the order! ⚡)*
-
 📝 *Current Status:* We are checking stock availability. Our team will contact you shortly.
 
-📞 Need Help? Contact: 7411255628
+📞 Need Help? Contact: 9353344035
 
 Thank you! 😊
 *Team Dolphin Trends* 🐬`;
@@ -81,7 +81,7 @@ Thank you! 😊
           '_blank'
         );
 
-        // ✅ Owner WhatsApp message
+        // ✅ Owner WhatsApp message - ಎಲ್ಲಾ admins ಗೆ
         const ownerMsg = `🛍️ *New Buy Request!*
 
 👗 *Product:* ${product.name}
@@ -93,10 +93,15 @@ Thank you! 😊
 ⚙️ *Admin Panel:*
 🔗 https://dolphin-trends-two.vercel.app`;
 
-        window.open(
-          "https://wa.me/" + ownerPhone + "?text=" + encodeURIComponent(ownerMsg), 
-          '_blank'
-        );
+        // ✅ Multiple admins ಗೆ WhatsApp open ಮಾಡಿ
+        adminPhones.forEach((adminPhone, index) => {
+          setTimeout(() => {
+            window.open(
+              "https://wa.me/" + adminPhone + "?text=" + encodeURIComponent(ownerMsg), 
+              '_blank'
+            );
+          }, index * 1000); // 1 second gap between each
+        });
 
         setStep(2);
       } else {
