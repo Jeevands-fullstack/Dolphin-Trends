@@ -17,9 +17,16 @@
     }
   ],
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "theme_color": "#1a6cff",
   "background_color": "#0b1329",
-  "orientation": "portrait",
-  "categories": ["shopping", "fashion", "lifestyle"]
+  "categories": ["shopping", "fashion", "lifestyle"],
+  "prefer_related_applications": false,
+  "edge_side_panel": false,
+  "launch_handler": {
+    "client_mode": "auto"
+  }
 }
