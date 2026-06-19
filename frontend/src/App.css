@@ -1211,3 +1211,49 @@ footer {
     height: 280px;
   }
 }
+/* ===== Reset App Container ===== */
+.App {
+  position: relative !important;
+  min-height: 100vh !important;
+  z-index: 1 !important;
+}
+
+/* ===== Fix Black Overlay Issue ===== */
+.chat-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 15px !important;
+  box-sizing: border-box !important;
+}
+
+.chat-modal {
+  background: #0f1a35 !important;
+  border: 2px solid #1a6cff !important;
+  border-radius: 20px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  z-index: 1000000 !important;
+  box-sizing: border-box !important;
+}
+
+/* ===== Ensure Other Elements Don't Cover ===== */
+.navbar {
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+.hero, .products-section, .section-page {
+  position: relative !important;
+  z-index: 1 !important;
+}
