@@ -48,6 +48,9 @@ try {
   });  
 
   if (response.ok) {  
+    // 🔔 ಟಾಪ್‌ನಲ್ಲಿ ನೋಟಿಫಿಕೇಶನ್ ತೋರಿಸುವುದು
+    alert('🎉 Order request received!');
+    
     // ಫಾರ್ಮ್ ಕ್ಲಿಯರ್ ಮಾಡುವುದು  
     setShowBuyForm(false);  
     setCustomerName('');  
@@ -59,7 +62,8 @@ try {
         name: product.name,  
         price: product.price,  
         size: selectedSize,  
-        image: product.image  
+        image: product.image,
+        customerName: customerName // ಕಸ್ಟಮರ್ ಹೆಸರನ್ನು ಇಲ್ಲಿ ಆಡ್ ಮಾಡಲಾಗಿದೆ
       });  
     }  
       
