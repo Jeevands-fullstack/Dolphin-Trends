@@ -1,54 +1,30 @@
-// Dolphin Trends PWA Service Worker - FIXED
-const STATIC_CACHE = 'dolphin-static-v5';
-const API_CACHE = 'dolphin-api-v5';
+// Dolphin Trends PWA Service Worker - v6 (Force Refresh)
+const CACHE_VERSION = 'v6';
+const STATIC_CACHE = `dolphin-static-${CACHE_VERSION}`;
+const API_CACHE = `dolphin-api-${CACHE_VERSION}`;
 
-// ✅ Only files that ACTUALLY exist
-const staticUrlsToCache = [
-  '/',
-  '/index.html',
-  '/dolphin.jpg',
-  '/manifest.json',
-  '/favicon.ico'
+// Don't pre-cache anything - cache on demand only
+const ESSENTIAL_FILES = [
+  '/'
 ];
 
-// Install - Only cache files that exist
+// Install - Skip pre-caching (avoid 404 errors)
 self.addEventListener('install', event => {
-  console.log('✅ Service Worker installing');
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => {
-        // ✅ Add files one by one, skip if missing
-        return Promise.all(
-          staticUrlsToCache.map(url => {
-            return fetch(url)
-              .then(response => {
-                if (response.ok) {
-                  return cache.put(url, response);
-                }
-                console.log(`⚠️ Skipped (not found): ${url}`);
-                return null;
-              })
-              .catch(err => {
-                console.log(`⚠️ Skipped (error): ${url}`);
-                return null;
-              });
-          })
-        );
-      })
-      .then(() => self.skipWaiting())
-  );
+  console.log(`✅ SW ${CACHE_VERSION} installing`);
+  self.skipWaiting();  // Force activate immediately
 });
 
-// Activate - Clean old caches
+// Activate - DELETE all old caches
 self.addEventListener('activate', event => {
-  console.log('✅ Service Worker activated');
+  console.log(`✅ SW ${CACHE_VERSION} activated - clearing old caches`);
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== STATIC_CACHE && cacheName !== API_CACHE) {
-            console.log('🗑️ Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
+        cacheNames.map(cache => {
+          // Delete all old caches
+          if (!cache.includes(CACHE_VERSION)) {
+            console.log(`🗑️ Deleting old cache: ${cache}`);
+            return caches.delete(cache);
           }
         })
       );
@@ -56,42 +32,48 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch - Cache First for static, Network First for API
+// Fetch - Network First (always get fresh from server)
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // ✅ Skip caching for Vercel internal files
-  if (url.host.includes('vercel') && url.pathname.includes('main.')) {
-    return;  // Let browser handle Vercel chunks directly
+  // Skip Vercel internal build files (let browser handle directly)
+  if (url.host.includes('vercel') && 
+      (url.pathname.includes('/main.') || 
+       url.pathname.includes('.css') ||
+       url.pathname.includes('.js'))) {
+    return; // Let browser handle - no caching
   }
 
-  // ✅ API calls - Network First, Cache Fallback
+  // API requests - Network First, Cache Fallback
   if (url.pathname.startsWith('/products') || 
       url.pathname.startsWith('/bookings') ||
       url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
+          // Cache fresh response
           if (response && response.status === 200) {
-            const responseClone = response.clone();
+            const clone = response.clone();
             caches.open(API_CACHE).then(cache => {
-              cache.put(event.request, responseClone);
+              cache.put(event.request, clone);
             });
           }
           return response;
         })
         .catch(() => {
-          return caches.match(event.request).then(cachedResponse => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
+          // Offline - return from cache
+          return caches.match(event.request).then(cached => {
+            if (cached) return cached;
+            
+            // Fallback for /products
             if (url.pathname.startsWith('/products')) {
               return new Response(JSON.stringify([]), {
                 headers: { 'Content-Type': 'application/json' }
               });
             }
+            
             return new Response(JSON.stringify({error: 'Offline'}), {
               status: 503,
               headers: { 'Content-Type': 'application/json' }
@@ -102,28 +84,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ✅ Static files - Cache First
+  // Static files - Network First (no cache for now)
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request)
-          .then(fetchResponse => {
-            if (!fetchResponse || fetchResponse.status !== 200) {
-              return fetchResponse;
-            }
-            const responseToCache = fetchResponse.clone();
-            caches.open(STATIC_CACHE)
-              .then(cache => cache.put(event.request, responseToCache));
-            return fetchResponse;
-          })
-          .catch(() => {
-            if (event.request.destination === 'document') {
-              return caches.match('/');
-            }
-          });
-      })
+    fetch(event.request)
+      .catch(() => caches.match(event.request))
   );
 });
