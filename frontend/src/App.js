@@ -513,7 +513,7 @@ function App() {
             <div className="section-page">
               <div className="section-page-header">
                 <h2>🏪 Our Branches</h2>
-                <p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮಂಗಡಿಗಳು</p>
+                <p>Dolphin Trends — Bangalore ಅಲ್ಲಿ ನಮ್ಮಂಗಗಳು</p>
               </div>
               <div className="branch-grid">
                 {[
