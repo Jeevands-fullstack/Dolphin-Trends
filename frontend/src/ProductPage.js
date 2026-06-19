@@ -25,7 +25,7 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
     setIsSubmitting(true);
     setErrorMessage('');
 
-    // ಇಲ್ಲಿ ಮುಂದೆ ನಿನ್ನ ಬ್ಯಾಕೆಂಡ್ ಸರ್ವರ್ ಯುಆರ್‌ಎಲ್ ಬರಬೇಕು (ಉದಾಹರಣೆಗೆ: http://localhost:5000/api/bookings)
+    // ಬ್ಯಾಕೆಂಡ್ ಸರ್ವರ್ ಯುಆರ್‌ಎಲ್
     const backendUrl = '/api/bookings'; 
 
     const orderPayload = {
@@ -34,7 +34,7 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
       product_name: product.name,
       size: selectedSize,
       price: product.price,
-      image_url: product.image || 'https://via.placeholder.com/150', // ಫೋಟೋ ಇಲ್ಲದಿದ್ದರೆ ಪ್ಲೇಸ್‌ಹೋಲ್ಡರ್
+      image_url: product.image || 'https://via.placeholder.com/150',
     };
 
     try {
@@ -53,12 +53,13 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
         setCustomerName('');
         setCustomerPhone('');
         
-        // 🚀 ಪೇರೆಂಟ್ ಕಾಂಪೊನೆಂಟ್‌ಗೆ ಆರ್ಡರ್ ಸಕ್ಸಸ್ ಸಿಗ್ನಲ್ ಕಳಿಸುವುದು (ಇದು ಲೈವ್ ಚಾಟ್ ಬಾಕ್ಸ್ ಓಪನ್ ಮಾಡುತ್ತೆ)
+        // 🚀 ಪೇರೆಂಟ್ ಕಾಂಪೊನೆಂಟ್‌ಗೆ ಆರ್ಡರ್ ಡೇಟಾ ಮತ್ತು ಆಟೋ-ಮೆಸೇಜ್ ಸಿಗ್ನಲ್ ಕಳಿಸುವುದು
         if (onOrderSuccess) {
           onOrderSuccess({
-            productName: product.name,
+            name: product.name,
+            price: product.price,
             size: selectedSize,
-            price: product.price
+            image: product.image
           });
         }
         
@@ -86,21 +87,31 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
           <div className="product-modal-content">
             {/* ಎಡಭಾಗ: ಪ್ರಾಡಕ್ಟ್ ಇಮೇಜ್ */}
             <div className="product-image-section">
-              <img src={product.image || 'https://via.placeholder.com/400'} alt={product.name} />
+              <div className="image-wrapper">
+                <img src={product.image || 'https://via.placeholder.com/400'} alt={product.name} />
+              </div>
             </div>
 
             {/* ಬಲಭಾಗ: ಪ್ರಾಡಕ್ಟ್ ವಿವರಗಳು & ಫಾರ್ಮ್ */}
             <div className="product-details-section">
-              <span className="brand-tag">Dolphin Trends</span>
-              <h2>{product.name}</h2>
-              <p className="product-price">{product.price}</p>
+              <span className="brand-tag">{product.category || '250 TOPS'}</span>
+              <h2>{product.name || 'Top'}</h2>
+              
+              {/* 🏷️ ಪ್ರೀಮಿಯಂ ಪ್ರೈಸಿಂಗ್ ರೋ (40% OFF ಬ್ಯಾಡ್ಜ್ ಜೊತೆ) */}
+              <div className="price-row">
+                <span className="product-price">{product.price || '₹300'}</span>
+                <span className="old-price">₹500</span>
+                <span className="discount-tag">40% OFF</span>
+              </div>
+
+              {/* ಪ್ರಾಡಕ್ಟ್ ಡಿಸ್ಕ್ರಿಪ್ಷನ್ */}
               <p className="product-description">
-                Premium quality fabric tailored to perfection. Upgrade your wardrobe with our latest fashion collection.
+                {product.description || 'Beautiful design crafted with rich fabric. Premium quality tailored to perfection.'}
               </p>
 
-              {/* ಸೈಜ್ ಸೆಲೆಕ್ಷನ್ */}
+              {/* 📏 ಸೈಜ್ ಸೆಲೆಕ್ಷನ್ */}
               <div className="size-selector-container">
-                <h3>Select Size:</h3>
+                <h3>✏️ Select Size:</h3>
                 <div className="size-buttons-grid">
                   {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
                     <button
@@ -115,7 +126,7 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
                 </div>
               </div>
 
-              {/* ಬುಕಿಂಗ್ ಫಾರ್ಮ್ ಅಥವಾ ಬಟನ್ */}
+              {/* ಬುಕಿಂಗ್ ಫಾರ್ಮ್ ಅಥವಾ ಬಟನ್ ಹ್ಯಾಂಡ್ಲರ್ */}
               {!showBuyForm ? (
                 <button 
                   className="main-buy-now-btn"
@@ -127,7 +138,7 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
                     }
                   }}
                 >
-                  🛍️ Book Now
+                  🛍️ Buy Now
                 </button>
               ) : (
                 <form className="booking-inner-form" onSubmit={handleBuyNowSubmit}>
@@ -173,11 +184,31 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
                       className="confirm-form-btn"
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? 'Processing...' : 'Confirm Booking ✅'}
+                      {isSubmitting ? 'Processing...' : 'Confirm & Open Chat ✅'}
                     </button>
                   </div>
                 </form>
               )}
+
+              {/* 📍 ಗೂಗಲ್ ಮ್ಯಾಪ್ ಲೊಕೇಶನ್ ಕಾರ್ಡ್ */}
+              <div className="location-card">
+                <p>📍 Dolphin Trends, Rajagopala Nagar,</p>
+                <p>Peenya 2nd Stage, Bangalore - 560058</p>
+                <a 
+                  href="https://maps.google.com" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="maps-link"
+                >
+                  🗺️ View on Google Maps
+                </a>
+              </div>
+
+              {/* ⭐ ಕಸ್ಟಮರ್ ರಿವ್ಯೂಸ್ */}
+              <div className="reviews-header">
+                <span>⭐</span> <span className="reviews-title">Customer Reviews</span>
+              </div>
+
             </div>
           </div>
         </div>
@@ -186,50 +217,63 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
   );
 }
 
-// ಡಾರ್ಕ್ ಬ್ಲೂ ಮತ್ತು ಪ್ರೀಮಿಯಂ ಥೀಮ್ ಸ್ಟೈಲ್ಸ್
+// ಡಾರ್ಕ್ ಬ್ಲೂ ಮತ್ತು ಪ್ರೀಮಿಯಂ ಮೊಬೈಲ್ ಮ್ಯಾಚಿಂಗ್ ಸ್ಟೈಲ್ಸ್
 const productPageStyles = `
-  .product-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 10, 20, 0.85); display: flex; alignItems: center; justifyContent: center; zIndex: 99999; backdropFilter: blur(8px); padding: 20px; }
-  .product-modal-container { background: linear-gradient(135deg, #0f1a35 0%, #0a1428 100%); width: 100%; maxWidth: 850px; borderRadius: 24px; border: 1px solid rgba(26, 108, 255, 0.2); position: relative; color: #fff; overflow: hidden; boxShadow: 0 20px 50px rgba(0,0,0,0.6); animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-  .modal-close-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 35px; height: 35px; borderRadius: 50%; cursor: pointer; display: flex; alignItems: center; justifyContent: center; zIndex: 10; transition: background 0.2s; }
-  .modal-close-btn:hover { background: #ef4444; border: none; }
+  .product-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 10, 20, 0.85); display: flex; align-items: center; justify-content: center; z-index: 99999; backdrop-filter: blur(8px); padding: 15px; }
+  .product-modal-container { background: #070f24; width: 100%; maxWidth: 460px; maxHeight: 92vh; borderRadius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); position: relative; color: #fff; overflow-y: auto; cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6); }
   
-  .product-modal-content { display: flex; flexWrap: wrap; }
-  .product-image-section { flex: 1; minWidth: 320px; background: rgba(0,0,0,0.2); display: flex; alignItems: center; justifyContent: center; padding: 20px; }
-  .product-image-section img { maxWidth: 100%; maxHeight: 450px; borderRadius: 16px; objectFit: cover; boxShadow: 0 8px 25px rgba(0,0,0,0.3); }
+  /* Custom scrollbar for container */
+  .product-modal-container::-webkit-scrollbar { width: 6px; }
+  .product-modal-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); borderRadius: 10px; }
+
+  .modal-close-btn { position: absolute; top: 16px; right: 16px; background: rgba(255, 73, 73, 0.15); border: none; color: #ff4949; width: 32px; height: 32px; borderRadius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; font-weight: bold; font-size: 14px; transition: background 0.2s; }
+  .modal-close-btn:hover { background: #ff4949; color: #fff; }
   
-  .product-details-section { flex: 1; minWidth: 320px; padding: 40px 30px; display: flex; flexDirection: column; gap: 15px; }
-  .brand-tag { color: #1a6cff; fontSize: 12px; fontWeight: 800; textTransform: uppercase; letterSpacing: 1.5px; }
-  .product-details-section h2 { margin: 0; fontSize: 26px; fontWeight: 700; color: #fff; }
-  .product-price { fontSize: 22px; fontWeight: 700; color: #10b981; margin: 0; }
-  .product-description { fontSize: 14px; color: #a0b3d6; lineHeight: 1.6; margin: 0; }
+  .product-modal-content { display: flex; flex-direction: column; }
   
-  .size-selector-container h3 { fontSize: 14px; color: #fff; marginBottom: 10px; fontWeight: 600; }
-  .size-buttons-grid { display: flex; gap: 10px; flexWrap: wrap; }
-  .size-btn { padding: 10px 18px; background: rgba(26, 108, 255, 0.08); border: 1px solid rgba(26, 108, 255, 0.2); color: #fff; borderRadius: 8px; cursor: pointer; fontWeight: 600; fontSize: 13px; transition: all 0.2s; }
-  .size-btn:hover { border-color: #1a6cff; background: rgba(26, 108, 255, 0.15); }
-  .size-btn.active { background: #1a6cff; border-color: #1a6cff; boxShadow: 0 0 12px rgba(26, 108, 255, 0.4); }
+  .product-image-section { padding: 16px 16px 0 16px; }
+  .image-wrapper { background: #fff; borderRadius: 16px; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 380px; }
+  .product-image-section img { width: 100%; height: 100%; object-fit: cover; }
   
-  .main-buy-now-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #1a6cff, #004ecc); color: #fff; border: none; borderRadius: 12px; fontWeight: 700; fontSize: 15px; cursor: pointer; marginTop: 15px; transition: transform 0.2s, boxShadow 0.2s; boxShadow: 0 4px 15px rgba(26, 108, 255, 0.3); }
-  .main-buy-now-btn:hover { transform: translateY(-2px); boxShadow: 0 6px 20px rgba(26, 108, 255, 0.5); }
+  .product-details-section { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .brand-tag { background: rgba(26, 108, 255, 0.15); color: #3b82f6; padding: 6px 14px; borderRadius: 20px; fontSize: 0.8rem; fontWeight: bold; display: inline-block; width: fit-content; }
+  .product-details-section h2 { margin: 0; fontSize: 1.7rem; fontWeight: 700; color: #fff; }
   
-  .booking-inner-form { background: rgba(0, 0, 0, 0.2); padding: 20px; borderRadius: 14px; border: 1px solid rgba(26, 108, 255, 0.15); display: flex; flexDirection: column; gap: 12px; marginTop: 10px; animation: fadeIn 0.3s ease; }
-  .booking-inner-form h3 { margin: 0; fontSize: 15px; color: #fff; borderBottom: 1px solid rgba(26, 108, 255, 0.1); paddingBottom: 6px; }
-  .form-input-group { display: flex; flexDirection: column; gap: 5px; }
-  .form-input-group label { fontSize: 12px; color: #a0b3d6; }
-  .form-input-group input { padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(26, 108, 255, 0.2); borderRadius: 8px; color: #fff; outline: none; fontSize: 13px; }
-  .form-input-group input:focus { border-color: #1a6cff; }
+  .price-row { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
+  .product-price { fontSize: 2rem; fontWeight: bold; color: #60a5fa; }
+  .old-price { fontSize: 1.2rem; text-decoration: line-through; color: #64748b; }
+  .discount-tag { background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 8px; borderRadius: 6px; fontSize: 0.8rem; fontWeight: bold; }
+
+  .product-description { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); borderRadius: 12px; padding: 14px; fontSize: 0.95rem; color: #94a3b8; lineHeight: 1.5; margin: 0; }
   
-  .form-action-buttons { display: flex; gap: 10px; marginTop: 5px; }
-  .cancel-form-btn { flex: 1; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #a0b3d6; borderRadius: 8px; cursor: pointer; fontSize: 13px; fontWeight: 600; }
-  .cancel-form-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
-  .confirm-form-btn { flex: 2; padding: 10px; background: #10b981; border: none; color: #fff; borderRadius: 8px; cursor: pointer; fontSize: 13px; fontWeight: 700; boxShadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+  .size-selector-container h3 { margin: 0 0 12px 0; fontSize: 1rem; color: #e2e8f0; fontWeight: 500; }
+  .size-buttons-grid { display: flex; gap: 10px; }
+  .size-btn { flex: 1; padding: 12px 0; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; borderRadius: 10px; cursor: pointer; fontWeight: bold; fontSize: 0.95rem; transition: all 0.2s; }
+  .size-btn.active { border-color: #ffffff; background: transparent; box-shadow: inset 0 0 5px rgba(255,255,255,0.2); }
+  
+  .main-buy-now-btn { width: 100%; padding: 16px; background: #ff5c6c; color: #fff; border: none; borderRadius: 14px; fontWeight: bold; fontSize: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(255, 92, 108, 0.25); margin-top: 5px; transition: transform 0.2s; }
+  .main-buy-now-btn:hover { transform: scale(1.01); }
+  
+  .booking-inner-form { background: rgba(255, 255, 255, 0.02); padding: 18px; borderRadius: 14px; border: 1px solid rgba(26, 108, 255, 0.2); display: flex; flex-direction: column; gap: 12px; margin-top: 5px; }
+  .booking-inner-form h3 { margin: 0; fontSize: 15px; color: #fff; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .form-input-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-input-group label { fontSize: 12px; color: #94a3b8; }
+  .form-input-group input { padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); borderRadius: 8px; color: #fff; outline: none; fontSize: 13px; }
+  .form-input-group input:focus { border-color: #3b82f6; }
+  
+  .form-action-buttons { display: flex; gap: 10px; margin-top: 6px; }
+  .cancel-form-btn { flex: 1; padding: 12px; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; borderRadius: 8px; cursor: pointer; fontSize: 13px; fontWeight: 600; }
+  .confirm-form-btn { flex: 2; padding: 12px; background: #10b981; border: none; color: #fff; borderRadius: 8px; cursor: pointer; fontSize: 13px; fontWeight: bold; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
   .confirm-form-btn:hover { background: #059669; }
   .error-text-msg { margin: 0; color: #ef4444; fontSize: 12px; fontWeight: 600; }
 
-  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  
-  @media (max-width: 768px) { .product-modal-container { maxHeight: 90vh; overflowY: auto; } .product-details-section { padding: 25px 20px; } }
+  .location-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); borderRadius: 12px; padding: 14px; fontSize: 0.9rem; color: #94a3b8; }
+  .location-card p { margin: 0 0 6px 0; }
+  .location-card p:last-of-type { margin: 0 0 10px 0; }
+  .maps-link { color: #60a5fa; text-decoration: none; fontWeight: 500; }
+
+  .reviews-header { fontSize: 1.1rem; fontWeight: bold; display: flex; gap: 8px; align-items: center; margin-top: 5px; }
+  .reviews-title { color: #60a5fa; }
 `;
 
 export default ProductPage;
