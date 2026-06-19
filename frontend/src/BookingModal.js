@@ -11,29 +11,24 @@ function BookingModal({ product, onClose }) {
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   
-  // ✅ ಎಲ್ಲಾ admin numbers array ನಲ್ಲಿ
   const adminPhones = [
-    "917411255628",  // Admin 1
-    "919353344035",  // Admin 2
-    "919353838835"   // Admin 3 (ನಿಮ್ಮ 3rd admin)
+    "917411255628",
+    "919353344035",
+    "919353838835"
   ];
 
-  // ✅ Price calculation
   const priceNumber = parseInt((product.price || '0').replace(/[^\d]/g, '')) || 0;
   const advanceAmount = Math.ceil(priceNumber * 0.5);
 
   const handleBooking = async () => {
-    // ✅ Validation
     if (!customerName.trim()) {
       alert('⚠️ Please enter your Name!');
       return;
     }
-
     if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
       alert('⚠️ Please enter a valid 10-digit WhatsApp number!');
       return;
     }
-
     if (!selectedSize) {
       alert('⚠️ Please select a Size!');
       return;
@@ -58,7 +53,6 @@ function BookingModal({ product, onClose }) {
       });
 
       if (response.ok) {
-        // ✅ Customer WhatsApp message
         const customerMsg = `🎉 *Welcome to Dolphin Trends!* 🐬
 
 Hi ${customerName},
@@ -81,7 +75,6 @@ Thank you! 😊
           '_blank'
         );
 
-        // ✅ Owner WhatsApp message - ಎಲ್ಲಾ admins ಗೆ
         const ownerMsg = `🛍️ *New Buy Request!*
 
 👗 *Product:* ${product.name}
@@ -93,14 +86,13 @@ Thank you! 😊
 ⚙️ *Admin Panel:*
 🔗 https://dolphin-trends-two.vercel.app`;
 
-        // ✅ Multiple admins ಗೆ WhatsApp open ಮಾಡಿ
         adminPhones.forEach((adminPhone, index) => {
           setTimeout(() => {
             window.open(
               "https://wa.me/" + adminPhone + "?text=" + encodeURIComponent(ownerMsg), 
               '_blank'
             );
-          }, index * 1000); // 1 second gap between each
+          }, index * 1000);
         });
 
         setStep(2);
@@ -117,13 +109,15 @@ Thank you! 😊
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => {
-      if (e.target.className === 'modal-overlay' && !loading) onClose();
+    <div style={styles.overlay} onClick={(e) => {
+      if (e.target === e.currentTarget && !loading) onClose();
     }}>
-      <div className="modal-box">
+      <div style={styles.modal}>
+        
+        {/* Close Button */}
         <button 
-          className="modal-close" 
-          onClick={onClose} 
+          style={styles.closeBtn}
+          onClick={onClose}
           disabled={loading}
         >
           ✕
@@ -131,29 +125,35 @@ Thank you! 😊
 
         {step === 1 && (
           <>
-            <h2>📦 Book Now</h2>
+            <h2 style={styles.title}>📦 Book Now</h2>
             
-            <div className="modal-product">
-              <img src={product.image} alt={product.name} />
-              <div>
-                <h3>{product.name}</h3>
-                <p className="modal-price">{product.price}</p>
+            {/* Product Card */}
+            <div style={styles.productCard}>
+              <img 
+                src={product.image} 
+                alt={product.name} 
+                style={styles.productImg}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={styles.productName}>{product.name}</h3>
+                <p style={styles.productPrice}>{product.price}</p>
                 {advanceAmount > 0 && (
-                  <p className="advance-info">
+                  <p style={styles.advanceInfo}>
                     💵 Advance: <strong>₹{advanceAmount}</strong> (50%)
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="form-group">
-              <label>📏 Select Size</label>
-              <div className="size-options">
+            {/* Size Selection */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>📏 Select Size</label>
+              <div style={styles.sizeGrid}>
                 {sizes.map(size => (
                   <button
                     key={size}
                     type="button"
-                    className={"size-btn " + (selectedSize === size ? 'selected' : '')}
+                    style={selectedSize === size ? styles.sizeBtnSelected : styles.sizeBtn}
                     onClick={() => setSelectedSize(size)}
                   >
                     {size}
@@ -162,23 +162,24 @@ Thank you! 😊
               </div>
             </div>
 
-            <div className="form-group">
-              <label>👤 Your Name</label>
+            {/* Name Input */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>👤 Your Name</label>
               <input
                 type="text"
                 placeholder="Enter your full name"
                 value={customerName}
                 onChange={e => setCustomerName(e.target.value)}
+                style={styles.input}
                 maxLength={50}
               />
             </div>
 
-            <div className="form-group">
-              <label>📱 WhatsApp Number</label>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ padding: '8px 12px', background: '#f0f0f0', border: '1px solid #ddd', borderRight: 'none', borderRadius: '6px 0 0 6px' }}>
-                  +91
-                </span>
+            {/* Phone Input */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>📱 WhatsApp Number</label>
+              <div style={styles.phoneRow}>
+                <span style={styles.phonePrefix}>+91</span>
                 <input
                   type="tel"
                   placeholder="10-digit number"
@@ -188,13 +189,18 @@ Thank you! 😊
                     const value = e.target.value.replace(/\D/g, '');
                     setPhone(value);
                   }}
-                  style={{ borderRadius: '0 6px 6px 0', flex: 1 }}
+                  style={styles.phoneInput}
                 />
               </div>
             </div>
 
+            {/* Submit Button */}
             <button 
-              className="submit-btn" 
+              style={{
+                ...styles.submitBtn,
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
               onClick={handleBooking} 
               disabled={loading}
             >
@@ -205,52 +211,36 @@ Thank you! 😊
 
         {step === 2 && (
           <>
-            <h2>⏳ Request Submitted!</h2>
-            <div style={{ textAlign: 'center', padding: '20px 10px' }}>
-              <div style={{ fontSize: '60px', marginBottom: '10px' }}>✅</div>
-              <p style={{ fontSize: '20px', color: '#28a745', fontWeight: 'bold' }}>
-                🎉 Thank you, {customerName}!
+            <h2 style={{ ...styles.title, color: '#28a745' }}>✅ Request Submitted!</h2>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: '60px', marginBottom: '15px' }}>🎉</div>
+              <p style={{ fontSize: '20px', color: '#28a745', fontWeight: 'bold', marginBottom: '15px' }}>
+                Thank you, {customerName}!
               </p>
-              <p style={{ marginTop: '15px', fontSize: '15px', color: '#333' }}>
+              <p style={{ fontSize: '15px', color: '#666', marginBottom: '20px' }}>
                 Your booking request has been successfully registered.
               </p>
-              <div style={{ 
-                background: '#f8f9fa', 
-                padding: '15px', 
-                borderRadius: '8px', 
-                marginTop: '20px',
-                textAlign: 'left'
-              }}>
-                <p style={{ margin: '5px 0', fontSize: '14px' }}>
+              <div style={styles.summaryBox}>
+                <p style={styles.summaryText}>
                   👗 <strong>Product:</strong> {product.name}
                 </p>
-                <p style={{ margin: '5px 0', fontSize: '14px' }}>
+                <p style={styles.summaryText}>
                   📏 <strong>Size:</strong> {selectedSize}
                 </p>
-                <p style={{ margin: '5px 0', fontSize: '14px' }}>
+                <p style={styles.summaryText}>
                   💰 <strong>Price:</strong> {product.price}
                 </p>
               </div>
-              <p style={{ marginTop: '20px', fontSize: '15px', fontWeight: '500', color: '#007bff' }}>
-                📱 Please check your WhatsApp!
+              <p style={{ fontSize: '15px', color: '#007bff', fontWeight: '500', marginTop: '20px' }}>
+                📱 Check your WhatsApp for confirmation!
               </p>
-              <p style={{ fontSize: '13px', color: '#666', marginTop: '10px' }}>
-                ⏰ Our team will update you within 5 minutes.
+              <p style={{ fontSize: '13px', color: '#999', marginTop: '8px' }}>
+                ⏰ Team will respond within 5 minutes.
               </p>
             </div>
             <button 
               onClick={onClose} 
-              style={{ 
-                width: '100%', 
-                padding: '12px', 
-                background: '#007bff', 
-                color: '#fff', 
-                border: 'none', 
-                borderRadius: '6px', 
-                cursor: 'pointer', 
-                fontWeight: 'bold',
-                fontSize: '16px'
-              }}
+              style={styles.submitBtn}
             >
               OK, Got it! 👍
             </button>
@@ -259,6 +249,249 @@ Thank you! 😊
       </div>
     </div>
   );
+}
+
+// ✅ ALL STYLES INLINE - Works 100%
+const styles = {
+  // Overlay
+  overlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.8)',
+    zIndex: 99999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '15px',
+    boxSizing: 'border-box',
+    overflowY: 'auto'
+  },
+  
+  // Modal Box
+  modal: {
+    background: '#ffffff',
+    borderRadius: '16px',
+    width: '100%',
+    maxWidth: '480px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    padding: '25px',
+    position: 'relative',
+    zIndex: 100000,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+    boxSizing: 'border-box',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+  },
+  
+  // Close Button
+  closeBtn: {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    background: '#f5f5f5',
+    border: 'none',
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    cursor: 'pointer',
+    fontSize: '1.2rem',
+    color: '#666',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10
+  },
+  
+  // Title
+  title: {
+    color: '#1a1a1a',
+    fontSize: '1.4rem',
+    fontWeight: '700',
+    margin: '0 0 20px 0',
+    paddingRight: '40px'
+  },
+  
+  // Product Card
+  productCard: {
+    display: 'flex',
+    gap: '15px',
+    marginBottom: '20px',
+    padding: '15px',
+    background: '#f9f9f9',
+    borderRadius: '12px',
+    alignItems: 'center'
+  },
+  
+  // Product Image - SMALL (80px)
+  productImg: {
+    width: '80px',
+    height: '80px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    flexShrink: 0,
+    background: '#eee'
+  },
+  
+  productName: {
+    margin: '0 0 5px 0',
+    color: '#1a1a1a',
+    fontSize: '1rem',
+    fontWeight: '600',
+    lineHeight: 1.3,
+    wordBreak: 'break-word'
+  },
+  
+  productPrice: {
+    color: '#1a6cff',
+    fontWeight: 'bold',
+    fontSize: '1.1rem',
+    margin: '3px 0'
+  },
+  
+  advanceInfo: {
+    color: '#28a745',
+    fontSize: '0.85rem',
+    margin: '3px 0',
+    fontWeight: '500'
+  },
+  
+  // Form Group
+  formGroup: {
+    marginBottom: '15px',
+    width: '100%'
+  },
+  
+  label: {
+    display: 'block',
+    marginBottom: '8px',
+    color: '#333',
+    fontWeight: '600',
+    fontSize: '0.9rem'
+  },
+  
+  // Input
+  input: {
+    width: '100%',
+    padding: '12px 14px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    boxSizing: 'border-box',
+    outline: 'none',
+    background: '#fff',
+    color: '#1a1a1a',
+    transition: 'border-color 0.2s'
+  },
+  
+  // Size Grid - 5 columns
+  sizeGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, 1fr)',
+    gap: '8px',
+    width: '100%'
+  },
+  
+  sizeBtn: {
+    padding: '12px 8px',
+    background: '#f5f5f5',
+    border: '2px solid #e0e0e0',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.95rem',
+    color: '#333',
+    textAlign: 'center',
+    transition: 'all 0.2s'
+  },
+  
+  sizeBtnSelected: {
+    padding: '12px 8px',
+    background: '#1a6cff',
+    border: '2px solid #1a6cff',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.95rem',
+    color: '#fff',
+    textAlign: 'center',
+    boxShadow: '0 4px 12px rgba(26,108,255,0.3)'
+  },
+  
+  // Phone Row
+  phoneRow: {
+    display: 'flex',
+    alignItems: 'stretch',
+    width: '100%'
+  },
+  
+  phonePrefix: {
+    padding: '12px 14px',
+    background: '#f5f5f5',
+    border: '2px solid #e0e0e0',
+    borderRight: 'none',
+    borderRadius: '10px 0 0 10px',
+    color: '#666',
+    fontWeight: '600',
+    fontSize: '0.95rem',
+    display: 'flex',
+    alignItems: 'center',
+    whiteSpace: 'nowrap'
+  },
+  
+  phoneInput: {
+    flex: 1,
+    padding: '12px 14px',
+    border: '2px solid #e0e0e0',
+    borderLeft: 'none',
+    borderRadius: '0 10px 10px 0',
+    fontSize: '1rem',
+    boxSizing: 'border-box',
+    outline: 'none',
+    background: '#fff',
+    color: '#1a1a1a',
+    minWidth: 0
+  },
+  
+  // Submit Button
+  submitBtn: {
+    width: '100%',
+    padding: '14px',
+    background: 'linear-gradient(135deg, #1a6cff, #004ecc)',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '10px',
+    transition: 'all 0.2s'
+  },
+  
+  // Summary Box (Step 2)
+  summaryBox: {
+    background: '#f8f9fa',
+    padding: '15px',
+    borderRadius: '10px',
+    margin: '15px 0',
+    textAlign: 'left'
+  },
+  
+  summaryText: {
+    margin: '5px 0',
+    fontSize: '0.95rem',
+    color: '#333'
+  }
+};
+
+// Mobile Responsive (Inline media query replacement)
+const mediaQuery = window.matchMedia('(max-width: 480px)');
+if (mediaQuery.matches) {
+  styles.modal.padding = '20px';
+  styles.modal.borderRadius = '16px 16px 0 0';
+  styles.productCard.flexDirection = 'column';
+  styles.productCard.textAlign = 'center';
+  styles.productImg.width = '100%';
+  styles.productImg.height = '180px';
 }
 
 export default BookingModal;
