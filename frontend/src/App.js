@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import ProductPage from './ProductPage';
-import BookingModal from './BookingModal';  // 🆕 BookingModal import (ChatBox ಬದಲು)
+import ChatBox from './components/chatBox'; // 🆕 BookingModal ತೆಗೆದು ಹೊಸ chatBox ಇಂಪೋರ್ಟ್ ಮಾಡಲಾಗಿದೆ
 import dolphin from './assets/dolphin.jpg';
 import heroVideo from './assets/hero-video.mp4';
 
@@ -26,6 +26,9 @@ function App() {
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [editProductData, setEditProductData] = useState(null); 
+  
+  // 🆕 ಆರ್ಡರ್ ಆದ ತಕ್ಷಣ ಚಾಟ್ ಬಾಕ್ಸ್ ಟ್ರಿಗರ್ ಮಾಡಲು ಸ್ಟೇಟ್
+  const [orderData, setOrderData] = useState(null);
 
   // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
@@ -133,14 +136,18 @@ function App() {
     setActivePage('shop'); 
   };
 
-  // ✅ Buy Now → BookingModal Open
+  // ✅ Buy Now → ProductPage Details Popup Open
   const handleBuyNow = (product) => {
     if (product.available === false) {
       alert('❌ ಈ product ಸದ್ಯ ಲಭ್ಯವಿಲ್ಲ!');
       return;
     }
-    // 🆕 BookingModal open ಮಾಡಿ
-    setViewProduct(product);
+    setViewProduct(product); // ProductPage ವಿವರಗಳ ಮಾಡಲ್ ಓಪನ್ ಆಗುತ್ತೆ
+  };
+
+  // 🛍️ ProductPage ನಲ್ಲಿ ಬುಕಿಂಗ್ ಕನ್ಫರ್ಮ್ ಆದಾಗ ಚಾಟ್ ಬಾಕ್ಸ್ ಸಿಗ್ನಲ್ ರಿಸೀವ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+  const handleOrderSuccess = (details) => {
+    setOrderData(details); // ಇದು ಕೆಳಗಡೆ ಇರೋ ChatBox ಅನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಓಪನ್ ಮಾಡುತ್ತೆ
   };
 
   const filtered = activeCategory === 'All' 
@@ -461,9 +468,8 @@ function App() {
                           <h4>{product.name}</h4>
                           <p className="price">{product.price}</p>
                           {product.available !== false && (
-                            // ✅ BookingModal Open (ChatBox ತೆಗೆದಿದೆ)
                             <button className="buy-btn" onClick={() => handleBuyNow(product)}>
-                              ✅ Book Now
+                              🛍️ Book Now
                             </button>
                           )}
                         </div>
@@ -657,13 +663,20 @@ function App() {
         </div>
       )}
 
-      {/* ✅ Booking Modal (ChatBox ತೆಗೆದಿದೆ) */}
+      {/* 🛍️ Product Details Page Popup Modal */}
       {viewProduct && (
-        <BookingModal 
+        <ProductPage 
           product={viewProduct} 
           onClose={() => setViewProduct(null)} 
+          onOrderSuccess={handleOrderSuccess} // 🆕 ಆರ್ಡರ್ ಆದಾಗ ಕೀ ಮೆಸೇಜ್ ಕಳಿಸಲು
         />
       )}
+
+      {/* 💬 Live Chat Box System */}
+      <ChatBox 
+        orderTrigger={orderData} 
+        clearOrderTrigger={() => setOrderData(null)} 
+      />
     </div>
   );
 }
