@@ -217,62 +217,227 @@ function ProductPage({ product, onClose, onOrderSuccess, allProducts }) {
   );
 }
 
-// ಡಾರ್ಕ್ ಬ್ಲೂ ಮತ್ತು ಪ್ರೀಮಿಯಂ ಮೊಬೈಲ್ ಮ್ಯಾಚಿಂಗ್ ಸ್ಟೈಲ್ಸ್
+// ✅ FIXED: All CSS properties converted from camelCase to proper kebab-case
+// (this is raw CSS text injected via <style>, NOT a React style object —
+// camelCase like "maxWidth" / "borderRadius" is invalid here and gets silently dropped)
 const productPageStyles = `
-  .product-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 10, 20, 0.85); display: flex; align-items: center; justify-content: center; z-index: 99999; backdrop-filter: blur(8px); padding: 15px; }
-  .product-modal-container { background: #070f24; width: 100%; maxWidth: 460px; maxHeight: 92vh; borderRadius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); position: relative; color: #fff; overflow-y: auto; cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6); }
-  
+  .product-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 10, 20, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(8px);
+    padding: 15px;
+  }
+
+  .product-modal-container {
+    background: #070f24;
+    width: 100%;
+    max-width: 460px;
+    max-height: 92vh;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    color: #fff;
+    overflow-y: auto;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+  }
+
   /* Custom scrollbar for container */
   .product-modal-container::-webkit-scrollbar { width: 6px; }
-  .product-modal-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); borderRadius: 10px; }
+  .product-modal-container::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+  }
 
-  .modal-close-btn { position: absolute; top: 16px; right: 16px; background: rgba(255, 73, 73, 0.15); border: none; color: #ff4949; width: 32px; height: 32px; borderRadius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; font-weight: bold; font-size: 14px; transition: background 0.2s; }
+  .modal-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 73, 73, 0.15);
+    border: none;
+    color: #ff4949;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
   .modal-close-btn:hover { background: #ff4949; color: #fff; }
   
   .product-modal-content { display: flex; flex-direction: column; }
   
   .product-image-section { padding: 16px 16px 0 16px; }
-  .image-wrapper { background: #fff; borderRadius: 16px; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 380px; }
+  .image-wrapper {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 380px;
+  }
   .product-image-section img { width: 100%; height: 100%; object-fit: cover; }
   
   .product-details-section { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-  .brand-tag { background: rgba(26, 108, 255, 0.15); color: #3b82f6; padding: 6px 14px; borderRadius: 20px; fontSize: 0.8rem; fontWeight: bold; display: inline-block; width: fit-content; }
-  .product-details-section h2 { margin: 0; fontSize: 1.7rem; fontWeight: 700; color: #fff; }
+  .brand-tag {
+    background: rgba(26, 108, 255, 0.15);
+    color: #3b82f6;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: inline-block;
+    width: fit-content;
+  }
+  .product-details-section h2 { margin: 0; font-size: 1.7rem; font-weight: 700; color: #fff; }
   
   .price-row { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
-  .product-price { fontSize: 2rem; fontWeight: bold; color: #60a5fa; }
-  .old-price { fontSize: 1.2rem; text-decoration: line-through; color: #64748b; }
-  .discount-tag { background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 8px; borderRadius: 6px; fontSize: 0.8rem; fontWeight: bold; }
+  .product-price { font-size: 2rem; font-weight: bold; color: #60a5fa; }
+  .old-price { font-size: 1.2rem; text-decoration: line-through; color: #64748b; }
+  .discount-tag {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
 
-  .product-description { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); borderRadius: 12px; padding: 14px; fontSize: 0.95rem; color: #94a3b8; lineHeight: 1.5; margin: 0; }
+  .product-description {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 0.95rem;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin: 0;
+  }
   
-  .size-selector-container h3 { margin: 0 0 12px 0; fontSize: 1rem; color: #e2e8f0; fontWeight: 500; }
+  .size-selector-container h3 { margin: 0 0 12px 0; font-size: 1rem; color: #e2e8f0; font-weight: 500; }
   .size-buttons-grid { display: flex; gap: 10px; }
-  .size-btn { flex: 1; padding: 12px 0; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; borderRadius: 10px; cursor: pointer; fontWeight: bold; fontSize: 0.95rem; transition: all 0.2s; }
-  .size-btn.active { border-color: #ffffff; background: transparent; box-shadow: inset 0 0 5px rgba(255,255,255,0.2); }
+  .size-btn {
+    flex: 1;
+    padding: 12px 0;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+  .size-btn.active {
+    border-color: #ffffff;
+    background: transparent;
+    box-shadow: inset 0 0 5px rgba(255,255,255,0.2);
+  }
   
-  .main-buy-now-btn { width: 100%; padding: 16px; background: #ff5c6c; color: #fff; border: none; borderRadius: 14px; fontWeight: bold; fontSize: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(255, 92, 108, 0.25); margin-top: 5px; transition: transform 0.2s; }
+  .main-buy-now-btn {
+    width: 100%;
+    padding: 16px;
+    background: #ff5c6c;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 8px 20px rgba(255, 92, 108, 0.25);
+    margin-top: 5px;
+    transition: transform 0.2s;
+  }
   .main-buy-now-btn:hover { transform: scale(1.01); }
   
-  .booking-inner-form { background: rgba(255, 255, 255, 0.02); padding: 18px; borderRadius: 14px; border: 1px solid rgba(26, 108, 255, 0.2); display: flex; flex-direction: column; gap: 12px; margin-top: 5px; }
-  .booking-inner-form h3 { margin: 0; fontSize: 15px; color: #fff; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .booking-inner-form {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(26, 108, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 5px;
+  }
+  .booking-inner-form h3 {
+    margin: 0;
+    font-size: 15px;
+    color: #fff;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
   .form-input-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-input-group label { fontSize: 12px; color: #94a3b8; }
-  .form-input-group input { padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); borderRadius: 8px; color: #fff; outline: none; fontSize: 13px; }
+  .form-input-group label { font-size: 12px; color: #94a3b8; }
+  .form-input-group input {
+    padding: 12px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #fff;
+    outline: none;
+    font-size: 13px;
+  }
   .form-input-group input:focus { border-color: #3b82f6; }
   
   .form-action-buttons { display: flex; gap: 10px; margin-top: 6px; }
-  .cancel-form-btn { flex: 1; padding: 12px; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; borderRadius: 8px; cursor: pointer; fontSize: 13px; fontWeight: 600; }
-  .confirm-form-btn { flex: 2; padding: 12px; background: #10b981; border: none; color: #fff; borderRadius: 8px; cursor: pointer; fontSize: 13px; fontWeight: bold; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+  .cancel-form-btn {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #94a3b8;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .confirm-form-btn {
+    flex: 2;
+    padding: 12px;
+    background: #10b981;
+    border: none;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  }
   .confirm-form-btn:hover { background: #059669; }
-  .error-text-msg { margin: 0; color: #ef4444; fontSize: 12px; fontWeight: 600; }
+  .error-text-msg { margin: 0; color: #ef4444; font-size: 12px; font-weight: 600; }
 
-  .location-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); borderRadius: 12px; padding: 14px; fontSize: 0.9rem; color: #94a3b8; }
+  .location-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
   .location-card p { margin: 0 0 6px 0; }
   .location-card p:last-of-type { margin: 0 0 10px 0; }
-  .maps-link { color: #60a5fa; text-decoration: none; fontWeight: 500; }
+  .maps-link { color: #60a5fa; text-decoration: none; font-weight: 500; }
 
-  .reviews-header { fontSize: 1.1rem; fontWeight: bold; display: flex; gap: 8px; align-items: center; margin-top: 5px; }
+  .reviews-header { font-size: 1.1rem; font-weight: bold; display: flex; gap: 8px; align-items: center; margin-top: 5px; }
   .reviews-title { color: #60a5fa; }
 `;
 
