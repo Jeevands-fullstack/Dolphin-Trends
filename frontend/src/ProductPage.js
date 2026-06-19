@@ -67,6 +67,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
 
   return (
     <>
+      {/* ಮೀಡಿಯಾ ಕ್ವೆರಿ ಅನಿಮೇಷನ್ ಸ್ಟೈಲ್ ಇಂಜೆಕ್ಷನ್ */}
       <style>{animations}</style>
       
       <div 
@@ -86,13 +87,11 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
             ✕
           </button>
 
-          {/* Top Section: Image + Details */}
-          <div style={styles.topSection}>
+          {/* Top Section: Image + Details (Fixed Duplicates) */}
           <div style={styles.topSection} className="pp-top-section">
-          <div style={styles.imageContainer} className="pp-image-container">
             
-            {/* Left - Image */}
-            <div style={styles.imageContainer}>
+            {/* Left - Image Component */}
+            <div style={styles.imageContainer} className="pp-image-container">
               <img 
                 src={product.image} 
                 alt={product.name} 
@@ -109,7 +108,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
               )}
             </div>
 
-            {/* Right - Details */}
+            {/* Right - Details Component */}
             <div style={styles.details}>
               
               {/* Category Badge */}
@@ -160,7 +159,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
                 </div>
               </div>
 
-              {/* Buy Now / Out of Stock */}
+              {/* Buy Now / Out of Stock Actions */}
               {product.available !== false ? (
                 !showBuyForm ? (
                   <button 
@@ -295,7 +294,7 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
   );
 }
 
-// ✅ Beautiful Animations
+// ✅ Animations & Mobile Responsiveness Fixed!
 const animations = `
   @keyframes slideUpFade {
     from { opacity: 0; transform: translateY(50px); }
@@ -320,45 +319,22 @@ const animations = `
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
   }
-  @keyframes slideUpFade {
-    from { opacity: 0; transform: translateY(50px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes overlayFade {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes bounceIn {
-    0% { transform: scale(0.3); opacity: 0; }
-    50% { transform: scale(1.05); }
-    70% { transform: scale(0.9); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes glowRed {
-    0%, 100% { box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); }
-    50% { box-shadow: 0 6px 30px rgba(239, 68, 68, 0.7); }
-  }
-  @keyframes imageZoom {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
   
+  /* Mobile Responsive Fixes (Matched with JSX Classnames) */
   @media (max-width: 768px) {
     .pp-top-section {
       flex-direction: column !important;
+      gap: 15px !important;
     }
     .pp-image-container {
       width: 100% !important;
       min-width: unset !important;
-      height: 300px !important;
+      height: 320px !important;
     }
   }
 `;
 
-// ✅ Blue Theme Styles (No reviews, no advance)
 const styles = {
-  // Overlay
   overlay: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -374,8 +350,6 @@ const styles = {
     overflowY: 'auto',
     animation: 'overlayFade 0.3s ease-out'
   },
-  
-  // Modal
   modal: {
     background: 'linear-gradient(135deg, #0f1a35 0%, #0a1428 100%)',
     borderRadius: '20px',
@@ -393,8 +367,6 @@ const styles = {
     animation: 'slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
     border: '1px solid rgba(26, 108, 255, 0.3)'
   },
-  
-  // Close
   closeBtn: {
     position: 'absolute',
     top: '12px',
@@ -413,16 +385,12 @@ const styles = {
     zIndex: 10,
     backdropFilter: 'blur(10px)'
   },
-  
-  // Top Section (Image + Details side by side)
   topSection: {
     display: 'flex',
     gap: '25px',
     marginBottom: '25px',
     flexDirection: 'row'
   },
-  
-  // Image Container
   imageContainer: {
     width: '45%',
     minWidth: '280px',
@@ -435,14 +403,12 @@ const styles = {
     flexShrink: 0,
     animation: 'imageZoom 0.5s ease-out'
   },
-  
   productImage: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
     display: 'block'
   },
-  
   outOfStockOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -452,7 +418,6 @@ const styles = {
     justifyContent: 'center',
     zIndex: 5
   },
-  
   outOfStockBadge: {
     background: '#ef4444',
     color: '#fff',
@@ -466,16 +431,12 @@ const styles = {
     border: '1px solid rgba(255,255,255,0.3)',
     whiteSpace: 'nowrap'
   },
-  
-  // Details (Right side)
   details: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
     gap: '12px'
   },
-  
-  // Category Badge
   categoryBadge: {
     display: 'inline-block',
     background: 'rgba(26, 108, 255, 0.15)',
@@ -489,8 +450,6 @@ const styles = {
     letterSpacing: '0.5px',
     alignSelf: 'flex-start'
   },
-  
-  // Product Name
   productName: {
     color: '#ffffff',
     fontSize: '1.6rem',
@@ -498,27 +457,22 @@ const styles = {
     margin: '0',
     lineHeight: 1.3
   },
-  
-  // Price Section
   priceSection: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     flexWrap: 'wrap'
   },
-  
   priceMain: {
     color: '#4d9fff',
     fontSize: '1.7rem',
     fontWeight: '700'
   },
-  
   priceOriginal: {
     color: '#7a85a0',
     fontSize: '1rem',
     textDecoration: 'line-through'
   },
-  
   discountBadge: {
     background: 'rgba(239, 68, 68, 0.2)',
     color: '#ef4444',
@@ -528,8 +482,6 @@ const styles = {
     fontWeight: '700',
     border: '1px solid rgba(239, 68, 68, 0.3)'
   },
-  
-  // Description
   descriptionBox: {
     background: 'rgba(26, 108, 255, 0.08)',
     border: '1px solid rgba(26, 108, 255, 0.2)',
@@ -540,14 +492,9 @@ const styles = {
     lineHeight: 1.5,
     fontStyle: 'italic'
   },
-  
-  // ✅ advanceInfo REMOVED
-  
-  // Section
   section: {
-    // No margin - use gap in parent
+    marginTop: '5px'
   },
-  
   label: {
     display: 'flex',
     alignItems: 'center',
@@ -559,18 +506,14 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.5px'
   },
-  
   labelIcon: {
     fontSize: '1rem'
   },
-  
-  // Size Grid
   sizeGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(5, 1fr)',
     gap: '8px'
   },
-  
   sizeBtn: {
     padding: '12px 4px',
     background: 'rgba(26, 108, 255, 0.1)',
@@ -584,7 +527,6 @@ const styles = {
     transition: 'all 0.2s',
     fontFamily: 'inherit'
   },
-  
   sizeBtnActive: {
     padding: '12px 4px',
     background: 'linear-gradient(135deg, #1a6cff, #004ecc)',
@@ -599,8 +541,6 @@ const styles = {
     transform: 'scale(1.05)',
     fontFamily: 'inherit'
   },
-  
-  // Buy Now Button
   buyNowBtn: {
     width: '100%',
     padding: '14px',
@@ -617,8 +557,6 @@ const styles = {
     animation: 'glowRed 2s infinite',
     marginTop: '8px'
   },
-  
-  // Buy Form Container
   buyFormContainer: {
     background: 'rgba(26, 108, 255, 0.08)',
     border: '1px solid rgba(26, 108, 255, 0.2)',
@@ -626,11 +564,9 @@ const styles = {
     padding: '15px',
     animation: 'imageZoom 0.3s ease-out'
   },
-  
   formGroup: {
     marginBottom: '12px'
   },
-  
   input: {
     width: '100%',
     padding: '12px 14px',
@@ -643,13 +579,11 @@ const styles = {
     color: '#ffffff',
     fontFamily: 'inherit'
   },
-  
   phoneRow: {
     display: 'flex',
     alignItems: 'stretch',
     width: '100%'
   },
-  
   phonePrefix: {
     padding: '12px 14px',
     background: 'rgba(26, 108, 255, 0.15)',
@@ -662,7 +596,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center'
   },
-  
   phoneInput: {
     flex: 1,
     padding: '12px 14px',
@@ -677,13 +610,11 @@ const styles = {
     fontFamily: 'inherit',
     minWidth: 0
   },
-  
   buyActionsRow: {
     display: 'flex',
     gap: '10px',
     marginTop: '5px'
   },
-  
   confirmBtn: {
     flex: 1,
     padding: '12px',
@@ -697,7 +628,6 @@ const styles = {
     boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
     fontFamily: 'inherit'
   },
-  
   cancelBtn: {
     padding: '12px 20px',
     background: 'rgba(255, 255, 255, 0.1)',
@@ -709,19 +639,16 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit'
   },
-  
   btnLoading: {
     opacity: 0.8,
     cursor: 'not-allowed'
   },
-  
   loadingContent: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px'
   },
-  
   spinner: {
     display: 'inline-block',
     width: '14px',
@@ -731,8 +658,6 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite'
   },
-  
-  // Out of Stock Box
   outOfStockBox: {
     padding: '14px',
     background: 'rgba(239,68,68,0.1)',
@@ -744,8 +669,6 @@ const styles = {
     fontSize: '0.95rem',
     marginTop: '8px'
   },
-  
-  // Shop Info
   shopInfo: {
     background: 'rgba(26, 108, 255, 0.08)',
     border: '1px solid rgba(26, 108, 255, 0.2)',
@@ -754,14 +677,12 @@ const styles = {
     marginTop: '8px',
     textAlign: 'center'
   },
-  
   shopAddress: {
     color: '#c8d6e5',
     fontSize: '0.85rem',
     margin: '0 0 8px 0',
     lineHeight: 1.4
   },
-  
   mapLink: {
     display: 'inline-block',
     color: '#4d9fff',
@@ -769,27 +690,22 @@ const styles = {
     textDecoration: 'none',
     fontWeight: '600'
   },
-  
-  // Similar Products
   similarSection: {
     borderTop: '1px solid rgba(26, 108, 255, 0.2)',
     paddingTop: '20px',
     marginTop: '15px'
   },
-  
   similarTitle: {
     color: '#4d9fff',
     fontSize: '1.2rem',
     fontWeight: '700',
     margin: '0 0 15px 0'
   },
-  
   similarGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
     gap: '12px'
   },
-  
   similarCard: {
     cursor: 'pointer',
     background: '#0f0f1e',
@@ -801,7 +717,6 @@ const styles = {
     position: 'relative',
     overflow: 'hidden'
   },
-  
   similarImage: {
     width: '100%',
     height: '100px',
@@ -809,7 +724,6 @@ const styles = {
     borderRadius: '6px',
     marginBottom: '6px'
   },
-  
   similarOutBadge: {
     position: 'absolute',
     top: '35px',
@@ -823,7 +737,6 @@ const styles = {
     fontWeight: 'bold',
     whiteSpace: 'nowrap'
   },
-  
   similarName: {
     color: '#f0f4ff',
     fontSize: '0.75rem',
@@ -832,31 +745,12 @@ const styles = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap'
   },
-  
   similarPrice: {
     color: '#4d9fff',
     fontSize: '0.85rem',
     fontWeight: 'bold',
     margin: 0
   }
-  
-  // ✅ reviewsSection REMOVED
-  // ✅ reviewCard, reviewStars, etc REMOVED
-  // ✅ advanceInfo REMOVED
-  // ✅ addReviewBox REMOVED
 };
-
-// ✅ Mobile Responsive (Auto-applied)
-const mobileStyles = `
-  @media (max-width: 768px) {
-    .product-page-top {
-      flex-direction: column !important;
-    }
-    .product-page-image {
-      width: 100% !important;
-      height: 300px !important;
-    }
-  }
-`;
 
 export default ProductPage;
