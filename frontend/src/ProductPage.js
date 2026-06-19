@@ -88,6 +88,8 @@ function ProductPage({ product, onClose, onBook, allProducts }) {
 
           {/* Top Section: Image + Details */}
           <div style={styles.topSection}>
+          <div style={styles.topSection} className="pp-top-section">
+          <div style={styles.imageContainer} className="pp-image-container">
             
             {/* Left - Image */}
             <div style={styles.imageContainer}>
@@ -317,6 +319,40 @@ const animations = `
   @keyframes imageZoom {
     from { transform: scale(0.95); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes overlayFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes glowRed {
+    0%, 100% { box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 6px 30px rgba(239, 68, 68, 0.7); }
+  }
+  @keyframes imageZoom {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  @media (max-width: 768px) {
+    .pp-top-section {
+      flex-direction: column !important;
+    }
+    .pp-image-container {
+      width: 100% !important;
+      min-width: unset !important;
+      height: 300px !important;
+    }
   }
 `;
 
