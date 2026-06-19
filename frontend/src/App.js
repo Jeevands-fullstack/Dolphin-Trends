@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import ProductPage from './ProductPage';
-import ChatBox from './ChatBox';  // 🆕 Chat Box import
+import BookingModal from './BookingModal';  // 🆕 BookingModal import (ChatBox ಬದಲು)
 import dolphin from './assets/dolphin.jpg';
 import heroVideo from './assets/hero-video.mp4';
 
@@ -26,10 +26,6 @@ function App() {
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [editProductData, setEditProductData] = useState(null); 
-
-  // 🆕 Chat Box States
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatProduct, setChatProduct] = useState(null);
 
   // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
@@ -137,21 +133,14 @@ function App() {
     setActivePage('shop'); 
   };
 
-  // 🛒 Buy Now Handler - 🆕 Chat Box open ಮಾಡುತ್ತದೆ
+  // ✅ Buy Now → BookingModal Open
   const handleBuyNow = (product) => {
     if (product.available === false) {
       alert('❌ ಈ product ಸದ್ಯ ಲಭ್ಯವಿಲ್ಲ!');
       return;
     }
-    // 🆕 Chat Box open ಮಾಡಿ
-    setChatProduct(product);
-    setChatOpen(true);
-  };
-
-  // 🆕 Chat Button Click - General Chat (product ಇಲ್ಲದೆ)
-  const handleOpenChat = () => {
-    setChatProduct(null);
-    setChatOpen(true);
+    // 🆕 BookingModal open ಮಾಡಿ
+    setViewProduct(product);
   };
 
   const filtered = activeCategory === 'All' 
@@ -472,9 +461,9 @@ function App() {
                           <h4>{product.name}</h4>
                           <p className="price">{product.price}</p>
                           {product.available !== false && (
-                            // 🆕 Buy Now → Chat Box Open
+                            // ✅ BookingModal Open (ChatBox ತೆಗೆದಿದೆ)
                             <button className="buy-btn" onClick={() => handleBuyNow(product)}>
-                              💬 Chat & Book
+                              ✅ Book Now
                             </button>
                           )}
                         </div>
@@ -668,52 +657,11 @@ function App() {
         </div>
       )}
 
-      {/* 🛒 Product Page Modal */}
+      {/* ✅ Booking Modal (ChatBox ತೆಗೆದಿದೆ) */}
       {viewProduct && (
-        <ProductPage 
+        <BookingModal 
           product={viewProduct} 
-          allProducts={products} 
           onClose={() => setViewProduct(null)} 
-          onBook={p => setViewProduct(p)} 
-        />
-      )}
-
-      {/* 🆕 Floating Chat Button - ಎಲ್ಲಾ pages ನಲ್ಲೂ ಕಾಣಿಸುತ್ತದೆ */}
-      {!showAdmin && (
-        <button
-          onClick={handleOpenChat}
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            width: '65px',
-            height: '65px',
-            background: 'linear-gradient(135deg, #1a6cff, #004ecc)',
-            borderRadius: '50%',
-            border: 'none',
-            color: '#fff',
-            fontSize: '30px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 25px rgba(26,108,255,0.5)',
-            zIndex: 9998,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'transform 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          aria-label="Open chat"
-        >
-          💬
-        </button>
-      )}
-
-      {/* 🆕 Chat Box Modal - ಎಲ್ಲಾ pages ನಲ್ಲೂ available */}
-      {chatOpen && (
-        <ChatBox 
-          product={chatProduct} 
-          onClose={() => setChatOpen(false)} 
         />
       )}
     </div>
