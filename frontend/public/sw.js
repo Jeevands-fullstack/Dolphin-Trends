@@ -1,6 +1,6 @@
 // Dolphin Trends PWA Service Worker - FIXED
-const STATIC_CACHE = 'dolphin-static-v4';
-const API_CACHE = 'dolphin-api-v4';
+const STATIC_CACHE = 'dolphin-static-v5';
+const API_CACHE = 'dolphin-api-v5';
 
 // ✅ Only files that ACTUALLY exist
 const staticUrlsToCache = [
