@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import ProductPage from './ProductPage';
-import ChatBox from './components/chatBox'; // 🆕 BookingModal ತೆಗೆದು ಹೊಸ chatBox ಇಂಪೋರ್ಟ್ ಮಾಡಲಾಗಿದೆ
+import ChatBox from './ChatBox'; // ✅ ಇದು ಮಾತ್ರ ನೂರಕ್ಕೆ ನೂರು ಕರೆಕ್ಟ್!
 import dolphin from './assets/dolphin.jpg';
 import heroVideo from './assets/hero-video.mp4';
 
