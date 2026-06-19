@@ -31,7 +31,7 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 10px; }
 
 /* ════════════════════════════════════
-   NAVBAR
+    NAVBAR
 ════════════════════════════════════ */
 .navbar {
   position: sticky;
@@ -150,7 +150,7 @@ body {
 }
 
 /* ════════════════════════════════════
-   HERO
+    HERO
 ════════════════════════════════════ */
 .hero {
   position: relative;
@@ -213,7 +213,7 @@ body {
 }
 
 /* ════════════════════════════════════
-   CATEGORIES
+    CATEGORIES
 ════════════════════════════════════ */
 .categories {
   display: flex;
@@ -251,7 +251,7 @@ body {
 }
 
 /* ════════════════════════════════════
-   PRODUCTS
+    PRODUCTS
 ════════════════════════════════════ */
 .products-section {
   padding: 0 28px 70px;
@@ -284,7 +284,7 @@ body {
 }
 
 /* ════════════════════════════════════
-   PRODUCT CARD
+    PRODUCT CARD
 ════════════════════════════════════ */
 .product-card {
   background: var(--card-bg);
@@ -300,7 +300,7 @@ body {
 .product-card:hover {
   transform: translateY(-5px);
   border-color: var(--blue-border);
-  box-shadow: 0 12px 40px rgba(26,108,255,0.2);
+  box-shadow: 0 12px 40px rgba(26, 108, 255, 0.2);
 }
 
 .product-card-img-wrap {
@@ -394,7 +394,7 @@ body {
 }
 
 /* ════════════════════════════════════
-   SECTION PAGES
+    SECTION PAGES (Branches, Contact)
 ════════════════════════════════════ */
 .section-page {
   max-width: 960px;
@@ -478,15 +478,11 @@ body {
   font-weight: 500;
 }
 
-/* Contact */
+/* Contact Setup */
 .contact-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-}
-
-@media (max-width: 620px) {
-  .contact-grid { grid-template-columns: 1fr; }
 }
 
 .info-card {
@@ -555,85 +551,16 @@ body {
 }
 
 /* ════════════════════════════════════
-   MISC
+    LOGIN & ADMIN SECTIONS
 ════════════════════════════════════ */
-.loading {
-  text-align: center;
-  padding: 80px 24px;
-  color: var(--muted);
-  font-size: 1rem;
-}
-
-.spinner {
-  width: 36px; height: 36px;
-  border: 3px solid var(--blue-border);
-  border-top-color: var(--blue);
-  border-radius: 50%;
-  margin: 20px auto 0;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.no-products {
-  text-align: center;
-  padding: 60px;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-/* ════════════════════════════════════
-   FOOTER
-════════════════════════════════════ */
-footer {
-  background: var(--black2);
-  border-top: 1px solid var(--blue-border);
-  text-align: center;
-  padding: 28px 24px;
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 2.1;
-}
-
-footer strong { color: var(--blue-light); }
-
-/* ════════════════════════════════════
-   RESPONSIVE
-════════════════════════════════════ */
-@media (max-width: 768px) {
-  .navbar {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 10px;
-    min-height: auto;
-  }
-  .navbar-links {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    padding-bottom: 4px;
-    flex-wrap: wrap;
-  }
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .product-card img { height: 190px; }
-  .products-section { padding: 0 14px 60px; }
-  .hero { padding: 52px 16px 44px; }
-  .section-page { padding: 40px 16px 60px; }
-}
-
-/* Login Page Centering */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 70vh; /* Screen madhyadalli baralu */
+  min-height: 70vh;
   padding: 20px;
 }
 
-/* Login Card Style & Animation */
 .login-card {
   background: #0f0f1e;
   border: 1px solid rgba(26, 108, 255, 0.3);
@@ -642,54 +569,13 @@ footer strong { color: var(--blue-light); }
   width: 100%;
   max-width: 350px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  
-  /* Animation */
   animation: fadeInSlide 0.6s ease-out;
-}
-
-@keyframes fadeInSlide {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .login-card h2 {
   text-align: center;
   color: #4d9fff;
   margin-bottom: 30px;
-}
-
-.input-group {
-  margin-bottom: 20px;
-}
-
-.input-group label {
-  display: block;
-  color: #7a85a0;
-  font-size: 0.9rem;
-  margin-bottom: 8px;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(26, 108, 255, 0.2);
-  background: #0b0b18;
-  color: white;
-  box-sizing: border-box; /* Padding logic fix */
-  outline: none;
-  transition: 0.3s;
-}
-
-.input-group input:focus {
-  border-color: #1a6cff;
-  box-shadow: 0 0 8px rgba(26, 108, 255, 0.3);
 }
 
 .login-btn {
@@ -709,7 +595,7 @@ footer strong { color: var(--blue-light); }
   background: #0056e0;
   transform: scale(1.02);
 }
-/* Admin Layout Centering */
+
 .admin-container {
   display: flex;
   justify-content: center;
@@ -733,7 +619,6 @@ footer strong { color: var(--blue-light); }
   text-align: center;
 }
 
-/* Tabs like buttons */
 .admin-tabs {
   display: flex;
   gap: 10px;
@@ -751,11 +636,8 @@ footer strong { color: var(--blue-light); }
   cursor: pointer;
 }
 
-.tab-btn.active {
-  background: #1a6cff;
-}
+.tab-btn.active { background: #1a6cff; }
 
-/* Input Styles */
 .input-group {
   margin-bottom: 18px;
   text-align: left;
@@ -781,10 +663,7 @@ footer strong { color: var(--blue-light); }
   outline: none;
 }
 
-.input-row {
-  display: flex;
-  gap: 15px;
-}
+.input-row { display: flex; gap: 15px; }
 
 .add-btn {
   width: 100%;
@@ -805,286 +684,21 @@ footer strong { color: var(--blue-light); }
   transform: translateY(-2px);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ಪ್ರಾಡಕ್ಟ್ ಪೇಜ್ ಅಥವಾ ಮೊಡಲ್ ಕಂಟೈನರ್ */
+/* ════════════════════════════════════
+    PRODUCT PAGE / MODAL CUSTOMIZATION
+════════════════════════════════════ */
 .product-page-overlay, .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.9); /* ಹಿನ್ನೆಲೆ ಸ್ವಲ್ಪ ಡಾರ್ಕ್ ಮಾಡಿ */
-  z-index: 9999; /* ಇದು ಫೂಟರ್‌ಗಿಂತ (ಸಾಮಾನ್ಯವಾಗಿ z-index 10-100 ಇರುತ್ತೆ) ಮೇಲೆ ಇರಬೇಕು */
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow-y: auto; /* ಪೇಜ್ ಉದ್ದವಿದ್ದರೆ ಸ್ಕ್ರಾಲ್ ಆಗಲು */
+  overflow-y: auto;
 }
 
-footer {
-  position: relative;
-  z-index: 1; /* ಫೂಟರ್ ಕೆಳಗಿನ ಲೇಯರ್‌ನಲ್ಲಿರಲಿ */
-  width: 100%;
-  padding: 20px 0;
-  background-color: #050510;
-}
-
-/* ಸೈಜ್ ಬಟನ್ ಬಾಕ್ಸ್‌ಗಳಿಗೆ */
-.size-box {
-  display: inline-block;
-  padding: 8px 12px;
-  margin: 5px; /* ಬಾಕ್ಸ್‌ಗಳ ಮಧ್ಯೆ ಸ್ಪೇಸ್ */
-  border: 1px solid #ffffff;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease; /* ಅನಿಮೇಷನ್ ಸ್ಟಾರ್ಟ್ */
-}
-
-/* ಮೌಸ್ ತಂದಾಗ ಆಗುವ ಅನಿಮೇಷನ್ */
-.size-box:hover {
-  background-color: #ff4757;
-  transform: scale(1.1); /* ಸ್ವಲ್ಪ ದೊಡ್ಡದಾಗುತ್ತೆ */
-  border-color: #ff4757;
-}
-
-/* ಅನಿಮೇಷನ್ ಎಫೆಕ್ಟ್‌ಗಳು */
-.animate-pop { animation: popIn 0.3s ease-out; }
-.animate-fade { animation: fadeIn 0.4s ease-in; }
-.animate-slide { animation: slideIn 0.3s ease-out; }
-
-@keyframes popIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes slideIn {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* ಸೈಜ್ ಬಟನ್‌ಗಳ ವಿನ್ಯಾಸ */
-.size-section { margin: 20px 0; }
-.size-options {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-}
-.size-btn {
-  padding: 10px 15px;
-  border: 1px solid #ddd;
-  background: none;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-.size-btn.selected {
-  background-color: #007bff;
-  border-color: #007bff;
-  transform: scale(1.1);
-}
-.size-btn:hover:not(.selected) {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* ರಿವ್ಯೂ ಸೆಕ್ಷನ್ ಸ್ಪೇಸಿಂಗ್ */
-.add-review-box {
-  margin-top: 30px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-.review-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px; /* ಬಾಕ್ಸ್‌ಗಳ ನಡುವಿನ ಅಂತರ */
-  margin-top: 15px;
-}
-.rev-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-.rev-input, .rev-text, .rev-select {
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #444;
-  background: #1a1a2e;
-  color: white;
-}
-
-/* ಸೈಜ್ ಬಟನ್ ಅಂತರ ಮತ್ತು ಡಿಸೈನ್ */
-.size-options {
-  display: flex;
-  gap: 15px; /* ಬಾಕ್ಸ್‌ಗಳ ನಡುವೆ ಅಂತರ ನೀಡುತ್ತದೆ */
-  margin: 15px 0;
-}
-
-.size-btn {
-  width: 45px;
-  height: 45px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #ffffff;
-  background: transparent;
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: bold;
-}
-
-.size-btn:hover {
-  background-color: #3498db;
-  border-color: #3498db;
-  transform: scale(1.1); /* ಅನಿಮೇಷನ್ */
-}
-
-.size-btn.selected {
-  background-color: #3498db;
-  border-color: #3498db;
-}
-
-/* ಮುಖ್ಯ Buy Now ಬಟನ್ ಸ್ಟೈಲ್ */
-.main-buy-btn {
-  width: 100%;           /* ಪೂರ್ತಿ ಅಗಲ ತಗೊಳ್ಳಲು */
-  padding: 18px;         /* ಬಟನ್ ಎತ್ತರ ಹೆಚ್ಚಿಸಲು */
-  font-size: 1.3rem;     /* ಅಕ್ಷರಗಳು ದೊಡ್ಡದಾಗಿ ಕಾಣಲು */
-  font-weight: bold;
-  background: linear-gradient(135deg, #ff4757, #ff6b81); /* ಕೆಂಪು ಶೇಡ್ */
-  color: white;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  margin: 20px 0;        /* ಮೇಲೆ ಮತ್ತು ಕೆಳಗೆ ಸ್ಪೇಸ್ */
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
-.main-buy-btn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
-}
-
-/* ಇಡೀ ಬಾಕ್ಸ್‌ನ ವಿನ್ಯಾಸ */
-.buy-form-container {
-  background: #1a1a2e;
-  padding: 25px;
-  border-radius: 15px;
-  border: 1px solid #3498db;
-  margin-top: 20px;
-  color: white;
-}
-
-/* ಪ್ರತಿಯೊಂದು ಇನ್‌ಪುಟ್ ಗ್ರೂಪ್ ಅರೇಂಜ್ಮೆಂಟ್ */
-.large-input-group {
-  display: flex;
-  flex-direction: column; /* ಲೇಬಲ್ ಮೇಲೆ, ಬಾಕ್ಸ್ ಕೆಳಗೆ */
-  gap: 10px;
-  margin-bottom: 20px;
-  text-align: left;
-}
-
-/* ಐಕಾನ್ ಮತ್ತು ಲೇಬಲ್ ಒಂದೇ ಸಾಲಿನಲ್ಲಿರಲು */
-.large-input-group label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.1rem;
-  font-weight: bold;
-}
-
-/* ಇನ್‌ಪುಟ್ ಬಾಕ್ಸ್ ಸ್ಟೈಲಿಂಗ್ */
-.large-input-group input {
-  width: 100%;
-  padding: 12px;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1px solid #444;
-  background: #0f3460;
-  color: white;
-  box-sizing: border-box; /* ಬಾಕ್ಸ್ ಹೊರಗೆ ಹೋಗದಂತೆ ತಡೆಯುತ್ತದೆ */
-}
-
-/* ಬಟನ್‌ಗಳ ಜೋಡಣೆ */
-.buy-actions-row {
-  display: flex;
-  gap: 15px;
-  margin-top: 10px;
-}
-
-.confirm-buy-btn, .cancel-buy-btn {
-  flex: 1;
-  padding: 15px;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  border: none;
-}
-
-.confirm-buy-btn {
-  background: #27ae60;
-  color: white;
-}
-
-.cancel-buy-btn {
-  background: #444;
-  color: white;
-}
-
-/* ರಿವ್ಯೂ ಫಾರ್ಮ್ ಕಂಟೈನರ್ */
-.review-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 15px;
-}
-
-/* ಸಬ್ಮಿಟ್ ಬಟನ್ ಸ್ಟೈಲ್ */
-.submit-btn {
-  width: 20%; /* ಬಟನ್ ಪೂರ್ತಿ ಅಗಲ ಬರಲು */
-  padding: 15px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: white;
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
-}
-
-.submit-btn:hover {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
-  transform: translateY(-2px); /* ಸ್ವಲ್ಪ ಮೇಲೆ ಏಳುವ ಅನಿಮೇಷನ್ */
-  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
-}
-
-.submit-btn:active {
-  transform: translateY(0);
-}
-
-/* ಸ್ಟಾರ್ ಸೆಲೆಕ್ಟ್ ಮತ್ತು ಬಟನ್ ನಡುವೆ ಸ್ಪೇಸ್ */
-.rev-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-/* Product Page Box */
 .product-page-box {
   background: #0b0b18;
   border: 1px solid rgba(26,108,255,0.3);
@@ -1100,14 +714,12 @@ footer {
 
 .pp-close-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 15px; right: 15px;
   background: rgba(255,59,92,0.15);
   color: #ff3b5c;
   border: 1px solid rgba(255,59,92,0.3);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   cursor: pointer;
   font-size: 1rem;
   font-weight: bold;
@@ -1117,10 +729,7 @@ footer {
   transition: all 0.2s;
 }
 
-.pp-close-btn:hover {
-  background: #ff3b5c;
-  color: white;
-}
+.pp-close-btn:hover { background: #ff3b5c; color: white; }
 
 .pp-top {
   display: grid;
@@ -1142,7 +751,6 @@ footer {
   font-size: 1.6rem;
   color: #f0f4ff;
   margin: 12px 0;
-  line-height: 1.3;
 }
 
 .pp-price-row {
@@ -1153,17 +761,8 @@ footer {
   margin: 12px 0;
 }
 
-.pp-price {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: #4d9fff;
-}
-
-.pp-original {
-  font-size: 1rem;
-  color: #7a85a0;
-  text-decoration: line-through;
-}
+.pp-price { font-size: 1.9rem; font-weight: 700; color: #4d9fff; }
+.pp-original { font-size: 1rem; color: #7a85a0; text-decoration: line-through; }
 
 .pp-discount {
   background: rgba(255,59,92,0.15);
@@ -1175,7 +774,7 @@ footer {
   font-weight: 700;
 }
 
-.pp-desc {
+.pp-desc, .pp-shop-info {
   background: rgba(26,108,255,0.05);
   border: 1px solid rgba(26,108,255,0.15);
   border-radius: 10px;
@@ -1186,28 +785,157 @@ footer {
   margin: 12px 0;
 }
 
-.pp-shop-info {
-  background: rgba(26,108,255,0.05);
-  border: 1px solid rgba(26,108,255,0.15);
-  border-radius: 10px;
-  padding: 12px;
-  margin-top: 15px;
-  font-size: 0.82rem;
-  color: #7a85a0;
-  line-height: 1.8;
+/* Size Buttons layout */
+.size-options {
+  display: flex;
+  gap: 15px;
+  margin: 15px 0;
 }
 
-.pp-reviews {
-  border-top: 1px solid rgba(26,108,255,0.2);
-  padding-top: 25px;
-  margin-top: 10px;
+.size-btn {
+  width: 45px; height: 45px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #ffffff;
+  background: transparent;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
 }
 
-@media (max-width: 650px) {
-  .pp-top {
-    grid-template-columns: 1fr;
+.size-btn:hover, .size-btn.selected {
+  background-color: #3498db;
+  border-color: #3498db;
+  transform: scale(1.1);
+}
+
+/* Buy Form Customization */
+.main-buy-btn {
+  width: 100%; padding: 18px;
+  font-size: 1.3rem; font-weight: bold;
+  background: linear-gradient(135deg, #ff4757, #ff6b81);
+  color: white; border: none; border-radius: 12px;
+  cursor: pointer; margin: 20px 0;
+  display: flex; justify-content: center; align-items: center; gap: 10px;
+}
+
+.buy-form-container {
+  background: #1a1a2e;
+  padding: 25px; border-radius: 15px;
+  border: 1px solid #3498db; margin-top: 20px;
+}
+
+.large-input-group {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px; text-align: left;
+}
+
+.large-input-group label { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+
+.large-input-group input {
+  width: 100%; padding: 12px;
+  background: #0f3460; color: white;
+  border: 1px solid #444; border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.buy-actions-row { display: flex; gap: 15px; margin-top: 10px; }
+.confirm-buy-btn { background: #27ae60; color: white; }
+.cancel-buy-btn { background: #444; color: white; }
+.confirm-buy-btn, .cancel-buy-btn { flex: 1; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; }
+
+/* Reviews Layout */
+.add-review-box { margin-top: 30px; padding: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+.review-form { display: flex; flex-direction: column; gap: 15px; margin-top: 15px; }
+.rev-input, .rev-text, .rev-select { padding: 10px; border-radius: 5px; border: 1px solid #444; background: #1a1a2e; color: white; }
+.rev-footer { display: flex; flex-direction: column; gap: 15px; }
+
+.submit-btn {
+  width: 20%; padding: 15px; font-weight: bold; color: white;
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  border: none; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+
+/* Animations */
+.animate-pop { animation: popIn 0.3s ease-out; }
+.animate-fade { animation: fadeIn 0.4s ease-in; }
+.animate-slide { animation: slideIn 0.3s ease-out; }
+
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeInSlide { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Loading and Misc */
+.loading { text-align: center; padding: 80px 24px; color: var(--muted); }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--blue-border); border-top-color: var(--blue); border-radius: 50%; margin: 20px auto 0; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.no-products { text-align: center; padding: 60px; color: var(--muted); }
+
+/* ════════════════════════════════════
+    FOOTER
+════════════════════════════════════ */
+footer {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: var(--black2);
+  border-top: 1px solid var(--blue-border);
+  text-align: center;
+  padding: 28px 24px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 2.1;
+}
+footer strong { color: var(--blue-light); }
+
+/* ════════════════════════════════════
+    RESPONSIVE MEDIA QUERIES (FIXED)
+════════════════════════════════════ */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: row; /* ಲೋಗೋ ಮತ್ತು ಅಡ್ಮಿನ್ ಬಟನ್ ಒಂದೇ ಸಾಲಿನಲ್ಲಿರಲಿ */
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: auto;
   }
-  .pp-img-box img {
-    height: 280px;
+
+  .navbar-links {
+    order: 3; /* ಮೆನು ಲಿಂಕ್‌ಗಳನ್ನು ಕೆಳಗಡೆ ತರಲು */
+    width: 100%;
+    display: flex;
+    flex-direction: row; /* ಮೆನು ಬಟನ್‌ಗಳು ಅಡ್ಡಲಾಗಿ (Horizontal) ಕೂರಲು */
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap; /* ಜಾಗ ಇಲ್ಲದಿದ್ದರೆ ಮುಂದಿನ ಸಾಲಿಗೆ ಬರಲು */
+    gap: 6px;
+    padding: 8px 0;
+    border-top: 1px solid var(--blue-border);
   }
+
+  .navbar-links li a {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .contact-grid { grid-template-columns: 1fr; }
+  .submit-btn { width: 100%; } /* ಮೊಬೈಲ್‌ನಲ್ಲಿ ರಿವ್ಯೂ ಸಬ್ಮಿಟ್ ಬಟನ್ ಫುಲ್ ಸೈಜ್ */
+
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .product-card img { height: 190px; }
+  .products-section { padding: 0 14px 60px; }
+  .hero { padding: 52px 16px 44px; }
+  .section-page { padding: 40px 16px 60px; }
+  
+  .pp-top { grid-template-columns: 1fr; }
+  .pp-img-box img { height: 280px; }
 }
