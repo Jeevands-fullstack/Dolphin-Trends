@@ -1257,3 +1257,292 @@ footer {
   position: relative !important;
   z-index: 1 !important;
 }
+/* ============================================
+   BOOKING MODAL - COMPLETE STYLES FIX
+   ============================================ */
+
+/* Modal Overlay - Full Screen */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 15px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+}
+
+/* Modal Box - Centered Container */
+.modal-box {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  z-index: 100000 !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+  padding: 25px !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
+}
+
+/* Close Button - Top Right */
+.modal-close {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  background: #f5f5f5 !important;
+  border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  font-size: 1.2rem !important;
+  color: #666 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10 !important;
+}
+
+.modal-close:hover {
+  background: #e0e0e0 !important;
+  color: #333 !important;
+}
+
+/* Modal Heading */
+.modal-box h2 {
+  color: #1a1a1a !important;
+  margin: 0 0 20px 0 !important;
+  font-size: 1.4rem !important;
+  padding-right: 40px !important;
+}
+
+/* Product Display - Image + Info */
+.modal-product {
+  display: flex !important;
+  gap: 15px !important;
+  margin-bottom: 20px !important;
+  padding: 15px !important;
+  background: #f9f9f9 !important;
+  border-radius: 12px !important;
+  align-items: center !important;
+}
+
+.modal-product img {
+  width: 80px !important;
+  height: 80px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.modal-product h3 {
+  margin: 0 0 5px 0 !important;
+  color: #1a1a1a !important;
+  font-size: 1rem !important;
+  line-height: 1.3 !important;
+}
+
+.modal-product .modal-price {
+  color: #1a6cff !important;
+  font-weight: bold !important;
+  font-size: 1.1rem !important;
+  margin: 3px 0 !important;
+}
+
+.modal-product .advance-info {
+  color: #28a745 !important;
+  font-size: 0.85rem !important;
+  margin: 3px 0 !important;
+  font-weight: 500 !important;
+}
+
+/* Form Group */
+.form-group {
+  margin-bottom: 15px !important;
+  width: 100% !important;
+}
+
+.form-group label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #333 !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100% !important;
+  padding: 12px 14px !important;
+  border: 2px solid #e0e0e0 !important;
+  border-radius: 10px !important;
+  font-size: 1rem !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  background: #fff !important;
+  color: #1a1a1a !important;
+  transition: border-color 0.2s !important;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #1a6cff !important;
+  box-shadow: 0 0 0 3px rgba(26,108,255,0.1) !important;
+}
+
+.form-group input::placeholder {
+  color: #999 !important;
+}
+
+/* Size Buttons Grid */
+.size-options {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.size-btn {
+  padding: 12px 8px !important;
+  background: #f5f5f5 !important;
+  border: 2px solid #e0e0e0 !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  color: #333 !important;
+  transition: all 0.2s !important;
+  text-align: center !important;
+}
+
+.size-btn:hover {
+  border-color: #1a6cff !important;
+  background: #f0f7ff !important;
+}
+
+.size-btn.selected {
+  background: #1a6cff !important;
+  color: #ffffff !important;
+  border-color: #1a6cff !important;
+  box-shadow: 0 4px 12px rgba(26,108,255,0.3) !important;
+}
+
+/* Phone Input with +91 prefix */
+.form-group > div {
+  display: flex !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.form-group > div > span {
+  padding: 12px 14px !important;
+  background: #f5f5f5 !important;
+  border: 2px solid #e0e0e0 !important;
+  border-right: none !important;
+  border-radius: 10px 0 0 10px !important;
+  color: #666 !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  display: flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+}
+
+.form-group > div > input {
+  border-radius: 0 10px 10px 0 !important;
+  border-left: none !important;
+  flex: 1 !important;
+}
+
+/* Submit Button */
+.submit-btn {
+  width: 100% !important;
+  padding: 14px !important;
+  background: linear-gradient(135deg, #1a6cff, #004ecc) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  margin-top: 10px !important;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(26,108,255,0.4) !important;
+}
+
+.submit-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Step 2 Success */
+.modal-box > div:last-child {
+  text-align: center !important;
+  padding: 20px !important;
+}
+
+.modal-box > div:last-child h2 {
+  color: #28a745 !important;
+  font-size: 1.5rem !important;
+  margin-bottom: 15px !important;
+}
+
+.modal-box > div:last-child > div {
+  background: #f8f9fa !important;
+  padding: 15px !important;
+  border-radius: 10px !important;
+  margin: 15px 0 !important;
+  text-align: left !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 10px !important;
+    align-items: flex-end !important;  /* Bottom sheet style */
+  }
+  
+  .modal-box {
+    max-width: 100% !important;
+    max-height: 95vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px !important;
+  }
+  
+  .modal-product {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+  
+  .modal-product img {
+    width: 100% !important;
+    height: 180px !important;
+  }
+  
+  .size-options {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+  
+  .size-btn {
+    padding: 10px 4px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
