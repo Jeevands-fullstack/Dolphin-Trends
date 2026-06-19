@@ -4,7 +4,7 @@
 :root {
   --black:       #05050d;
   --black2:      #0b0b18;
-  --card-bg:      #0f0f1e;
+  --card-bg:     #0f0f1e;
   --blue-deep:   #0a1628;
   --blue:        #1a6cff;
   --blue-light:  #4d9fff;
@@ -206,6 +206,7 @@ body {
   animation: fadeUp 0.6s 0.15s ease both;
 }
 
+.hero::before { display: none; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -293,6 +294,7 @@ body {
   position: relative;
   cursor: pointer;
   transition: all 0.28s ease;
+  animation: fadeUp 0.5s ease both;
 }
 
 .product-card:hover {
@@ -316,6 +318,7 @@ body {
 }
 
 .product-card:hover img { transform: scale(1.05); }
+
 .product-card.not-available { opacity: 0.5; filter: grayscale(0.4); }
 
 .not-available-badge {
@@ -397,9 +400,12 @@ body {
   max-width: 960px;
   margin: 0 auto;
   padding: 60px 28px 80px;
+  animation: fadeUp 0.5s ease both;
 }
 
-.section-page-header { margin-bottom: 40px; }
+.section-page-header {
+  margin-bottom: 40px;
+}
 
 .section-page-header h2 {
   font-family: 'Playfair Display', serif;
@@ -479,6 +485,10 @@ body {
   gap: 24px;
 }
 
+@media (max-width: 620px) {
+  .contact-grid { grid-template-columns: 1fr; }
+}
+
 .info-card {
   background: var(--card-bg);
   border: 1px solid var(--blue-border);
@@ -544,7 +554,9 @@ body {
   gap: 8px;
 }
 
-/* MISC */
+/* ════════════════════════════════════
+   MISC
+════════════════════════════════════ */
 .loading {
   text-align: center;
   padding: 80px 24px;
@@ -570,7 +582,9 @@ body {
   font-size: 0.95rem;
 }
 
-/* FOOTER */
+/* ════════════════════════════════════
+   FOOTER
+════════════════════════════════════ */
 footer {
   background: var(--black2);
   border-top: 1px solid var(--blue-border);
@@ -579,425 +593,13 @@ footer {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 2.1;
-  position: relative;
-  z-index: 1;
-  width: 100%;
 }
 
 footer strong { color: var(--blue-light); }
 
 /* ════════════════════════════════════
-   LOGIN & ADMIN INTERFACE
+   RESPONSIVE
 ════════════════════════════════════ */
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 70vh;
-  padding: 20px;
-}
-
-.login-card {
-  background: var(--card-bg);
-  border: 1px solid var(--blue-border);
-  padding: 40px;
-  border-radius: 15px;
-  width: 100%;
-  max-width: 350px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  animation: slideIn 0.4s ease-out;
-}
-
-.login-card h2 {
-  text-align: center;
-  color: var(--blue-light);
-  margin-bottom: 30px;
-}
-
-.admin-container {
-  display: flex;
-  justify-content: center;
-  padding: 40px 20px;
-  animation: popIn 0.4s ease-out;
-}
-
-.admin-card {
-  background: var(--card-bg);
-  border: 1px solid var(--blue-border);
-  border-radius: 20px;
-  padding: 30px;
-  width: 100%;
-  max-width: 500px;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-}
-
-.admin-card h2 {
-  color: #fff;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.admin-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 25px;
-  border-bottom: 1px solid rgba(26,108,255,0.2);
-  padding-bottom: 15px;
-}
-
-.tab-btn {
-  background: #1a1a30;
-  border: 1px solid var(--blue-border);
-  color: #fff;
-  padding: 8px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.tab-btn.active {
-  background: var(--blue);
-  border-color: var(--blue);
-}
-
-/* ════════════════════════════════════
-   INPUT GROUPS & FORMS
-════════════════════════════════════ */
-.input-group, .large-input-group {
-  margin-bottom: 20px;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.input-group label, .large-input-group label {
-  color: var(--muted);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.input-group input, 
-.input-group textarea, 
-.input-group select,
-.large-input-group input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid var(--blue-border);
-  background: var(--black2);
-  color: white;
-  box-sizing: border-box;
-  outline: none;
-  transition: 0.3s;
-}
-
-.input-group input:focus, .large-input-group input:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 8px var(--blue-glow);
-}
-
-.input-row {
-  display: flex;
-  gap: 15px;
-}
-
-.login-btn, .add-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--blue);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.login-btn:hover, .add-btn:hover {
-  background: #0056e0;
-  transform: translateY(-2px);
-}
-
-/* ════════════════════════════════════
-   PRODUCT OVERLAY / MODERN MODAL FIX
-════════════════════════════════════ */
-.product-page-overlay, .modal-overlay, .chat-overlay {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: rgba(5, 5, 13, 0.9) !important;
-  z-index: 999999 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-  overflow-y: auto !important;
-}
-
-/* 💎 ಪಕ್ಕಾ ಡಾರ್ಕ್ ಪ್ರೀಮಿಯಂ ಬೋನಸ್ ಡಿಸೈನ್ ಫಾರ್ ಮೊಡಲ್ ಬೋಕ್ಸ್ */
-.modal-box, .chat-modal, .product-page-box {
-  background: var(--card-bg) !important;
-  border: 2px solid var(--blue-border) !important;
-  border-radius: 20px !important;
-  width: 100% !important;
-  max-width: 500px !important;
-  max-height: 85vh !important;
-  overflow-y: auto !important;
-  position: relative !important;
-  z-index: 1000000 !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
-  padding: 30px !important;
-  box-sizing: border-box !important;
-  color: var(--white) !important;
-  animation: popIn 0.3s ease-out;
-}
-
-.product-page-box {
-  max-width: 900px;
-}
-
-.modal-close, .pp-close-btn {
-  position: absolute !important;
-  top: 15px !important;
-  right: 15px !important;
-  background: rgba(255,59,92,0.15) !important;
-  border: 1px solid rgba(255,59,92,0.3) !important;
-  width: 34px !important;
-  height: 34px !important;
-  border-radius: 50% !important;
-  cursor: pointer !important;
-  color: var(--danger) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-weight: bold;
-}
-
-.modal-close:hover, .pp-close-btn:hover {
-  background: var(--danger) !important;
-  color: #fff !important;
-}
-
-/* Modal Inner Structures */
-.modal-box h2 {
-  color: var(--white) !important;
-  margin-bottom: 20px !important;
-  font-family: 'Playfair Display', serif;
-}
-
-.modal-product {
-  display: flex !important;
-  gap: 15px !important;
-  margin-bottom: 20px !important;
-  padding: 15px !important;
-  background: var(--black2) !important;
-  border: 1px solid var(--blue-border) !important;
-  border-radius: 12px !important;
-  align-items: center !important;
-}
-
-.modal-product img {
-  width: 80px !important;
-  height: 80px !important;
-  object-fit: cover !important;
-  border-radius: 8px !important;
-}
-
-.modal-product h3 {
-  color: var(--white) !important;
-  font-size: 1.05rem !important;
-}
-
-.modal-product .modal-price {
-  color: var(--blue-light) !important;
-  font-weight: bold !important;
-}
-
-/* ════════════════════════════════════
-   SIZE OPTIONS & SELECTION
-════════════════════════════════════ */
-.size-section { margin: 20px 0; }
-.size-options {
-  display: flex !important;
-  gap: 12px !important;
-  margin: 15px 0 !important;
-  flex-wrap: wrap;
-}
-
-.size-btn, .size-box {
-  width: 48px !important;
-  height: 48px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border: 2px solid var(--blue-border) !important;
-  background: var(--black2) !important;
-  color: var(--white) !important;
-  border-radius: 10px !important;
-  cursor: pointer !important;
-  font-weight: bold !important;
-  transition: all 0.25s ease !important;
-}
-
-.size-btn:hover, .size-box:hover {
-  background-color: var(--blue-glow) !important;
-  border-color: var(--blue) !important;
-  transform: scale(1.08);
-}
-
-.size-btn.selected {
-  background: var(--blue) !important;
-  color: #ffffff !important;
-  border-color: var(--blue) !important;
-  box-shadow: 0 4px 12px rgba(26,108,255,0.4) !important;
-}
-
-/* Prefix Input Styling for Phone */
-.form-group > div {
-  display: flex !important;
-  align-items: stretch !important;
-}
-
-.form-group > div > span {
-  padding: 12px 14px !important;
-  background: var(--black2) !important;
-  border: 1px solid var(--blue-border) !important;
-  border-right: none !important;
-  border-radius: 8px 0 0 8px !important;
-  color: var(--muted) !important;
-  font-weight: bold !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-.form-group > div > input {
-  border-radius: 0 8px 8px 0 !important;
-  border-left: none !important;
-}
-
-/* Buttons inside forms */
-.buy-actions-row {
-  display: flex;
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.confirm-buy-btn, .cancel-buy-btn {
-  flex: 1;
-  padding: 14px;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  border: none;
-}
-
-.confirm-buy-btn { background: #27ae60; color: white; }
-.cancel-buy-btn { background: #444; color: white; }
-
-.main-buy-btn {
-  width: 100%;
-  padding: 16px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, var(--danger), #ff6b81);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  margin: 20px 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  transition: 0.2s;
-}
-
-.main-buy-btn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
-}
-
-/* Reviews and Content Details */
-.pp-top {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-}
-
-.pp-img-box img {
-  width: 100%;
-  height: 420px;
-  object-fit: cover;
-  border-radius: 15px;
-  border: 1px solid var(--blue-border);
-}
-
-.pp-price {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: var(--blue-light);
-}
-
-.pp-original {
-  font-size: 1rem;
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
-.submit-btn {
-  padding: 12px 24px;
-  font-weight: bold;
-  color: white;
-  background: #27ae60;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.submit-btn:hover { background: #2ecc71; }
-
-/* ════════════════════════════════════
-   ANIMATIONS
-════════════════════════════════════ */
-@keyframes popIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-@keyframes slideIn {
-  from { transform: translateY(15px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* ============================================
-   💻 LAPTOP & DESKTOP SCREEN ADJUSTMENTS (Media Queries)
-   ============================================ */
-@media (min-width: 1024px) {
-  .products-grid {
-    grid-template-columns: repeat(4, 1fr); /* ಲ್ಯಾಪ್‌ಟಾಪ್‌ನಲ್ಲಿ ರೋ ಗೆ 4 ಕಾರ್ಡ್‌ಗಳು ಕೂರುತ್ತವೆ */
-    gap: 25px;
-  }
-
-  .product-card img {
-    height: 300px; /* ಲ್ಯಾಪ್‌ಟಾಪ್‌ನಲ್ಲಿ ಇಮೇಜ್ ಕ್ಲಾರಿಟಿ ದೊಡ್ಡದಾಗಿ ಕಾಣಲು */
-  }
-
-  .modal-box, .chat-modal {
-    max-width: 520px !important; /* ಲ್ಯಾಪ್‌ಟಾಪ್‌ನಲ್ಲಿ ಕನ್ನಡಿಯ ತರಹ ಲೇಔಟ್ ಕೂರಲು */
-  }
-
-  .categories {
-    gap: 15px;
-    padding-bottom: 50px;
-  }
-}
-
-/* ============================================
-   📱 MOBILE & TABLET RESPONSIVE RE-FIX
-   ============================================ */
 @media (max-width: 768px) {
   .navbar {
     padding: 12px 16px;
@@ -1013,25 +615,599 @@ footer strong { color: var(--blue-light); }
     flex-wrap: wrap;
   }
   .products-grid {
-    grid-template-columns: repeat(2, 1fr); /* ಮೊಬೈಲ್‌ನಲ್ಲಿ ರೋ ಗೆ 2 ಕಾರ್ಡ್‌ಗಳು */
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
   .product-card img { height: 190px; }
   .products-section { padding: 0 14px 60px; }
   .hero { padding: 52px 16px 44px; }
-  .pp-top { grid-template-columns: 1fr; }
-  .pp-img-box img { height: 280px; }
-  .contact-grid { grid-template-columns: 1fr; }
+  .section-page { padding: 40px 16px 60px; }
+}
+
+/* Login Page Centering */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh; /* Screen madhyadalli baralu */
+  padding: 20px;
+}
+
+/* Login Card Style & Animation */
+.login-card {
+  background: #0f0f1e;
+  border: 1px solid rgba(26, 108, 255, 0.3);
+  padding: 40px;
+  border-radius: 15px;
+  width: 100%;
+  max-width: 350px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   
-  .modal-overlay {
-    align-items: flex-end !important; /* ಮೊಬೈಲ್‌ನಲ್ಲಿ ಬಾಟಮ್ ಶೀಟ್ ತರಹ ಕನ್ವರ್ಟ್ ಆಗುತ್ತೆ */
+  /* Animation */
+  animation: fadeInSlide 0.6s ease-out;
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-  .modal-box {
-    border-radius: 20px 20px 0 0 !important;
-    max-height: 90vh !important;
-    padding: 20px !important;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  .size-options {
-    grid-template-columns: repeat(5, 1fr) !important;
+}
+
+.login-card h2 {
+  text-align: center;
+  color: #4d9fff;
+  margin-bottom: 30px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  color: #7a85a0;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(26, 108, 255, 0.2);
+  background: #0b0b18;
+  color: white;
+  box-sizing: border-box; /* Padding logic fix */
+  outline: none;
+  transition: 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #1a6cff;
+  box-shadow: 0 0 8px rgba(26, 108, 255, 0.3);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1a6cff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+}
+
+.login-btn:hover {
+  background: #0056e0;
+  transform: scale(1.02);
+}
+/* Admin Layout Centering */
+.admin-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.admin-card {
+  background: #0f0f1e;
+  border: 1px solid rgba(26, 108, 255, 0.2);
+  border-radius: 20px;
+  padding: 30px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+}
+
+.admin-card h2 {
+  color: #fff;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Tabs like buttons */
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 15px;
+}
+
+.tab-btn {
+  background: #1a1a30;
+  border: 1px solid #1a6cff44;
+  color: #fff;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: #1a6cff;
+}
+
+/* Input Styles */
+.input-group {
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  color: #7a85a0;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.input-group input, 
+.input-group textarea, 
+.input-group select {
+  width: 100%;
+  padding: 12px;
+  background: #0b0b18;
+  border: 1px solid rgba(26, 108, 255, 0.2);
+  border-radius: 10px;
+  color: #fff;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.input-row {
+  display: flex;
+  gap: 15px;
+}
+
+.add-btn {
+  width: 100%;
+  padding: 14px;
+  background: #1a6cff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: 0.3s;
+}
+
+.add-btn:hover {
+  background: #0056e0;
+  transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ಪ್ರಾಡಕ್ಟ್ ಪೇಜ್ ಅಥವಾ ಮೊಡಲ್ ಕಂಟೈನರ್ */
+.product-page-overlay, .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9); /* ಹಿನ್ನೆಲೆ ಸ್ವಲ್ಪ ಡಾರ್ಕ್ ಮಾಡಿ */
+  z-index: 9999; /* ಇದು ಫೂಟರ್‌ಗಿಂತ (ಸಾಮಾನ್ಯವಾಗಿ z-index 10-100 ಇರುತ್ತೆ) ಮೇಲೆ ಇರಬೇಕು */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto; /* ಪೇಜ್ ಉದ್ದವಿದ್ದರೆ ಸ್ಕ್ರಾಲ್ ಆಗಲು */
+}
+
+footer {
+  position: relative;
+  z-index: 1; /* ಫೂಟರ್ ಕೆಳಗಿನ ಲೇಯರ್‌ನಲ್ಲಿರಲಿ */
+  width: 100%;
+  padding: 20px 0;
+  background-color: #050510;
+}
+
+/* ಸೈಜ್ ಬಟನ್ ಬಾಕ್ಸ್‌ಗಳಿಗೆ */
+.size-box {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 5px; /* ಬಾಕ್ಸ್‌ಗಳ ಮಧ್ಯೆ ಸ್ಪೇಸ್ */
+  border: 1px solid #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease; /* ಅನಿಮೇಷನ್ ಸ್ಟಾರ್ಟ್ */
+}
+
+/* ಮೌಸ್ ತಂದಾಗ ಆಗುವ ಅನಿಮೇಷನ್ */
+.size-box:hover {
+  background-color: #ff4757;
+  transform: scale(1.1); /* ಸ್ವಲ್ಪ ದೊಡ್ಡದಾಗುತ್ತೆ */
+  border-color: #ff4757;
+}
+
+/* ಅನಿಮೇಷನ್ ಎಫೆಕ್ಟ್‌ಗಳು */
+.animate-pop { animation: popIn 0.3s ease-out; }
+.animate-fade { animation: fadeIn 0.4s ease-in; }
+.animate-slide { animation: slideIn 0.3s ease-out; }
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ಸೈಜ್ ಬಟನ್‌ಗಳ ವಿನ್ಯಾಸ */
+.size-section { margin: 20px 0; }
+.size-options {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+.size-btn {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  background: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.size-btn.selected {
+  background-color: #007bff;
+  border-color: #007bff;
+  transform: scale(1.1);
+}
+.size-btn:hover:not(.selected) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ರಿವ್ಯೂ ಸೆಕ್ಷನ್ ಸ್ಪೇಸಿಂಗ್ */
+.add-review-box {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* ಬಾಕ್ಸ್‌ಗಳ ನಡುವಿನ ಅಂತರ */
+  margin-top: 15px;
+}
+.rev-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rev-input, .rev-text, .rev-select {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #444;
+  background: #1a1a2e;
+  color: white;
+}
+
+/* ಸೈಜ್ ಬಟನ್ ಅಂತರ ಮತ್ತು ಡಿಸೈನ್ */
+.size-options {
+  display: flex;
+  gap: 15px; /* ಬಾಕ್ಸ್‌ಗಳ ನಡುವೆ ಅಂತರ ನೀಡುತ್ತದೆ */
+  margin: 15px 0;
+}
+
+.size-btn {
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  background: transparent;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.size-btn:hover {
+  background-color: #3498db;
+  border-color: #3498db;
+  transform: scale(1.1); /* ಅನಿಮೇಷನ್ */
+}
+
+.size-btn.selected {
+  background-color: #3498db;
+  border-color: #3498db;
+}
+
+/* ಮುಖ್ಯ Buy Now ಬಟನ್ ಸ್ಟೈಲ್ */
+.main-buy-btn {
+  width: 100%;           /* ಪೂರ್ತಿ ಅಗಲ ತಗೊಳ್ಳಲು */
+  padding: 18px;         /* ಬಟನ್ ಎತ್ತರ ಹೆಚ್ಚಿಸಲು */
+  font-size: 1.3rem;     /* ಅಕ್ಷರಗಳು ದೊಡ್ಡದಾಗಿ ಕಾಣಲು */
+  font-weight: bold;
+  background: linear-gradient(135deg, #ff4757, #ff6b81); /* ಕೆಂಪು ಶೇಡ್ */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  margin: 20px 0;        /* ಮೇಲೆ ಮತ್ತು ಕೆಳಗೆ ಸ್ಪೇಸ್ */
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.main-buy-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+}
+
+/* ಇಡೀ ಬಾಕ್ಸ್‌ನ ವಿನ್ಯಾಸ */
+.buy-form-container {
+  background: #1a1a2e;
+  padding: 25px;
+  border-radius: 15px;
+  border: 1px solid #3498db;
+  margin-top: 20px;
+  color: white;
+}
+
+/* ಪ್ರತಿಯೊಂದು ಇನ್‌ಪುಟ್ ಗ್ರೂಪ್ ಅರೇಂಜ್ಮೆಂಟ್ */
+.large-input-group {
+  display: flex;
+  flex-direction: column; /* ಲೇಬಲ್ ಮೇಲೆ, ಬಾಕ್ಸ್ ಕೆಳಗೆ */
+  gap: 10px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+/* ಐಕಾನ್ ಮತ್ತು ಲೇಬಲ್ ಒಂದೇ ಸಾಲಿನಲ್ಲಿರಲು */
+.large-input-group label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+/* ಇನ್‌ಪುಟ್ ಬಾಕ್ಸ್ ಸ್ಟೈಲಿಂಗ್ */
+.large-input-group input {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #0f3460;
+  color: white;
+  box-sizing: border-box; /* ಬಾಕ್ಸ್ ಹೊರಗೆ ಹೋಗದಂತೆ ತಡೆಯುತ್ತದೆ */
+}
+
+/* ಬಟನ್‌ಗಳ ಜೋಡಣೆ */
+.buy-actions-row {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.confirm-buy-btn, .cancel-buy-btn {
+  flex: 1;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+}
+
+.confirm-buy-btn {
+  background: #27ae60;
+  color: white;
+}
+
+.cancel-buy-btn {
+  background: #444;
+  color: white;
+}
+
+/* ರಿವ್ಯೂ ಫಾರ್ಮ್ ಕಂಟೈನರ್ */
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+/* ಸಬ್ಮಿಟ್ ಬಟನ್ ಸ್ಟೈಲ್ */
+.submit-btn {
+  width: 20%; /* ಬಟನ್ ಪೂರ್ತಿ ಅಗಲ ಬರಲು */
+  padding: 15px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
+}
+
+.submit-btn:hover {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  transform: translateY(-2px); /* ಸ್ವಲ್ಪ ಮೇಲೆ ಏಳುವ ಅನಿಮೇಷನ್ */
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* ಸ್ಟಾರ್ ಸೆಲೆಕ್ಟ್ ಮತ್ತು ಬಟನ್ ನಡುವೆ ಸ್ಪೇಸ್ */
+.rev-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Product Page Box */
+.product-page-box {
+  background: #0b0b18;
+  border: 1px solid rgba(26,108,255,0.3);
+  border-radius: 20px;
+  padding: 30px;
+  width: 95%;
+  max-width: 950px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  margin: 20px auto;
+}
+
+.pp-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255,59,92,0.15);
+  color: #ff3b5c;
+  border: 1px solid rgba(255,59,92,0.3);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pp-close-btn:hover {
+  background: #ff3b5c;
+  color: white;
+}
+
+.pp-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.pp-img-box img {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  border-radius: 15px;
+  border: 1px solid rgba(26,108,255,0.2);
+}
+
+.pp-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  color: #f0f4ff;
+  margin: 12px 0;
+  line-height: 1.3;
+}
+
+.pp-price-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.pp-price {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #4d9fff;
+}
+
+.pp-original {
+  font-size: 1rem;
+  color: #7a85a0;
+  text-decoration: line-through;
+}
+
+.pp-discount {
+  background: rgba(255,59,92,0.15);
+  color: #ff3b5c;
+  border: 1px solid rgba(255,59,92,0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pp-desc {
+  background: rgba(26,108,255,0.05);
+  border: 1px solid rgba(26,108,255,0.15);
+  border-radius: 10px;
+  padding: 12px;
+  color: #7a85a0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+
+.pp-shop-info {
+  background: rgba(26,108,255,0.05);
+  border: 1px solid rgba(26,108,255,0.15);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 15px;
+  font-size: 0.82rem;
+  color: #7a85a0;
+  line-height: 1.8;
+}
+
+.pp-reviews {
+  border-top: 1px solid rgba(26,108,255,0.2);
+  padding-top: 25px;
+  margin-top: 10px;
+}
+
+@media (max-width: 650px) {
+  .pp-top {
+    grid-template-columns: 1fr;
+  }
+  .pp-img-box img {
+    height: 280px;
   }
 }
