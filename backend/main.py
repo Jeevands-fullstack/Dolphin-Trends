@@ -1,5 +1,4 @@
 import os
-import is
 import uuid
 import time
 import asyncio
