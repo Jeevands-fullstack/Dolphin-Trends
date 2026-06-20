@@ -1,5 +1,5 @@
 import os
-import io
+import is
 import uuid
 import time
 import asyncio
@@ -14,16 +14,16 @@ from pymongo import MongoClient
 import certifi
 import cloudinary
 import cloudinary.uploader
-import telebot  # 🆕 pyTelegramBotAPI
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton  # 🆕
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# 🔄 ಮೀಡಿಯಾ ಗ್ರೂಪ್ ಟ್ರ್ಯಾಕ್
+# # ಮೀಡಿಯಾ ಗ್ರೂಪ್ ಸ್ಟೋರೇಜ್
 MEDIA_GROUPS = {}
 
 # 🚀 FastAPI Lifespan Handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 🆕 Bot 1 (Upload) Webhook
+    # # Bot 1 (Upload) Webhook
     if TELEGRAM_BOT_TOKEN:
         try:
             requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteWebhook", timeout=5)
@@ -34,9 +34,9 @@ async def lifespan(app: FastAPI):
             )
             print(f"✅ Upload Bot webhook set")
         except Exception as e:
-            print(f"Upload Bot webhook error: {e}")
-    
-    # 🆕 Bot 2 (Chat) Webhook
+            print(f"❌ Upload Bot webhook error: {e}")
+
+    # # Bot 2 (Chat) Webhook
     if TELEGRAM_CHAT_BOT_TOKEN:
         try:
             requests.get(f"https://api.telegram.org/bot{TELEGRAM_CHAT_BOT_TOKEN}/deleteWebhook", timeout=5)
@@ -47,15 +47,15 @@ async def lifespan(app: FastAPI):
             )
             print(f"✅ Chat Bot webhook set")
         except Exception as e:
-            print(f"Chat Bot webhook error: {e}")
-            
-    print(f"📸 Upload Bot: {bool(TELEGRAM_BOT_TOKEN)}")
-    print(f"💬 Chat Bot: {bool(TELEGRAM_CHAT_BOT_TOKEN)}")
-    print(f"👥 Upload Bot Chat ID: {ADMIN_TELEGRAM_CHAT_ID}")
-    print(f"👥 Chat Bot Chat ID: {ADMIN_CHAT_BOT_CHAT_ID}")
-    print(f"📞 Admin Phones: {ADMIN_PHONES}")
-    print(f"📱 WhatsApp Group: {bool(YOUR_WHATSAPP_GROUP_ID)}")
-    print(f"☁️ Cloudinary: {bool(CLOUDINARY_CLOUD_NAME)}")
+            print(f"❌ Chat Bot webhook error: {e}")
+
+    print(f"📊 Upload Bot: {bool(TELEGRAM_BOT_TOKEN)}")
+    print(f"📊 Chat Bot: {bool(TELEGRAM_CHAT_BOT_TOKEN)}")
+    print(f"📊 Upload Bot Chat ID: {ADMIN_TELEGRAM_CHAT_ID}")
+    print(f"📊 Chat Bot Chat ID: {ADMIN_CHAT_BOT_CHAT_ID}")
+    print(f"📊 Admin Phones: {ADMIN_PHONES}")
+    print(f"📊 WhatsApp Group: {bool(YOUR_WHATSAPP_GROUP_ID)}")
+    print(f"📊 Cloudinary: {bool(CLOUDINARY_CLOUD_NAME)}")
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -63,7 +63,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -74,17 +74,17 @@ GREEN_API_INSTANCE = os.getenv("GREEN_API_INSTANCE")
 GREEN_API_TOKEN = os.getenv("GREEN_API_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# 🆕 Bot 1: Image Upload Bot
+# # Bot 1: Image Upload Bot
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ADMIN_TELEGRAM_CHAT_ID = os.getenv("ADMIN_TELEGRAM_CHAT_ID")
 
-# 🆕 Bot 2: Chat Box Bot
+# # Bot 2: Chat Box Bot
 TELEGRAM_CHAT_BOT_TOKEN = os.getenv("TELEGRAM_CHAT_BOT_TOKEN")
 ADMIN_CHAT_BOT_CHAT_ID = os.getenv("ADMIN_CHAT_BOT_CHAT_ID")
 
 BACKEND_URL = "https://dolphin-trends-3.onrender.com"
 FRONTEND_URL = "https://dolphin-trends-two.vercel.app"
-INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends_rajagopalanagar?igsh=MWJ4MGRybGFxOXdiYw=="
+INSTAGRAM_URL = "https://www.instagram.com/dolphin_trends_rajagopalanagar?igsh=MWJ4MGRyYmF0Ymd1Yw=="
 
 CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "")
 CLOUDINARY_API_KEY_VAL = os.getenv("CLOUDINARY_API_KEY", "")
@@ -99,6 +99,7 @@ cloudinary.config(
 YOUR_PERSONAL_PHONE = "917411255628"
 SECOND_PERSONAL_PHONE = os.getenv("SECOND_PERSONAL_PHONE", "")
 THIRD_PERSONAL_PHONE = os.getenv("THIRD_PERSONAL_PHONE", "")
+
 ADMIN_PHONES = [p for p in [YOUR_PERSONAL_PHONE, SECOND_PERSONAL_PHONE, THIRD_PERSONAL_PHONE] if p]
 
 YOUR_WHATSAPP_GROUP_ID = os.getenv("YOUR_WHATSAPP_GROUP_ID", "")
@@ -122,7 +123,7 @@ if MONGO_URL:
         products_table = db["products"]
         bookings_table = db["bookings"]
         chat_messages_table = db["chat_messages"]
-        print("✅ MongoDB Connected!")
+        print("📊 MongoDB Connected!")
     except Exception as e:
         print(f"❌ MongoDB Error: {e}")
 
@@ -136,7 +137,7 @@ def upload_to_cloudinary(image_source, is_file=False):
         )
         return result.get("secure_url")
     except Exception as e:
-        print(f"Cloudinary Error: {e}")
+        print(f"❌ Cloudinary Error: {e}")
         return None
 
 def send_whatsapp_msg(phone, message):
@@ -150,7 +151,7 @@ def send_whatsapp_msg(phone, message):
             chat_id = f"91{clean_phone}@c.us"
         elif len(clean_phone) == 12 and clean_phone.startswith("91"):
             chat_id = f"{clean_phone}@c.us"
-        elif len(clean_phone) >= 10:
+        elif len(clean_phone) > 10:
             chat_id = f"91{clean_phone[-10:]}@c.us"
         else:
             return False
@@ -158,7 +159,7 @@ def send_whatsapp_msg(phone, message):
         response = requests.post(url, json={"chatId": chat_id, "message": message}, timeout=10)
         return response.status_code == 200
     except Exception as e:
-        print(f"WhatsApp Error: {e}")
+        print(f"❌ WhatsApp Error: {e}")
         return False
 
 def send_whatsapp_to_admins(message):
@@ -176,11 +177,11 @@ def send_whatsapp_group_product(image_url):
         if not GREEN_API_INSTANCE or not GREEN_API_TOKEN or not YOUR_WHATSAPP_GROUP_ID:
             return False
         caption = (
-            "* Offer 🎉*\n"
-            "📸 *Follow our Instagram page to get an extra 10% discount*👇\n"
-            "🔗 dolphin_trends_rajagopalanagar\n\n"
-            "💥 *Explore & order here:* 👇\n"
-            "🔗 https://dolphin-trends-two.vercel.app"
+            "🎁 *Offer Alert* 🎁\n"
+            "✨ *Follow our Instagram page to get an extra 10% discount!* ✨\n"
+            f"🔗 {INSTAGRAM_URL}\n"
+            "✨ *Explore & order here:* ✨\n"
+            f"🔗 {FRONTEND_URL}"
         )
         url = f"https://api.green-api.com/waInstance{GREEN_API_INSTANCE}/sendFileByUrl/{GREEN_API_TOKEN}"
         payload = {
@@ -191,7 +192,8 @@ def send_whatsapp_group_product(image_url):
         }
         response = requests.post(url, json=payload, timeout=30)
         return response.status_code == 200
-    except:
+    except Exception as e:
+        print(f"❌ WhatsApp Group Product Error: {e}")
         return False
 
 def send_empty_caption_whatsapp_group(image_url):
@@ -207,35 +209,24 @@ def send_empty_caption_whatsapp_group(image_url):
         }
         response = requests.post(url, json=payload, timeout=30)
         return response.status_code == 200
-    except:
+    except Exception as e:
+        print(f"❌ WhatsApp Empty Caption Error: {e}")
         return False
 
-# 🆕 Telegram Helper (pyTelegramBotAPI - Sync)
 def send_telegram_with_buttons_upload(chat_id, message, buttons):
-    """Upload Bot ಗೆ buttons ಜೊತೆ message"""
     try:
         bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
         keyboard = InlineKeyboardMarkup()
         for btn_row in buttons:
             row_buttons = []
             for btn in btn_row:
-                row_buttons.append(InlineKeyboardButton(
-                    text=btn["text"],
-                    callback_data=btn["data"]
-                ))
+                row_buttons.append(InlineKeyboardButton(text=btn["text"], callback_data=btn["data"]))
             keyboard.row(*row_buttons)
-        
-        bot.send_message(
-            chat_id=chat_id,
-            text=message,
-            reply_markup=keyboard,
-            parse_mode='HTML'
-        )
+        bot.send_message(chat_id=chat_id, text=message, reply_markup=keyboard, parse_mode='HTML')
         return True
     except Exception as e:
         print(f"❌ Telegram Error: {e}")
         return False
-
 
 def detect_category_from_name(name):
     if not name:
@@ -244,8 +235,8 @@ def detect_category_from_name(name):
     category_map = {
         "formal pant": "Formal Pants", "formal pants": "Formal Pants",
         "formal trouser": "Formal Pants", "formal trousers": "Formal Pants",
-        "formal shirt": "Formal Shirt", "formal shirts": "Formal Shirt",
-        "office shirt": "Formal Shirt", "office shirts": "Formal Shirt",
+        "formal shirt": "Formal Shirts", "formal shirts": "Formal Shirts",
+        "office shirt": "Formal Shirts", "office shirts": "Formal Shirts",
         "leggings": "Leggings", "legging": "Leggings",
         "churidar": "Leggings", "churidhar": "Leggings",
         "kurta set": "Kurta Sets", "kurti set": "Kurta Sets",
@@ -258,17 +249,17 @@ def detect_category_from_name(name):
         "western": "Western Wear", "western wear": "Western Wear",
         "gym": "Gym Pants", "gym pant": "Gym Pants", "gym pants": "Gym Pants",
         "track pant": "Gym Pants", "track pants": "Gym Pants",
-        "jogger": "Gym Pants", "joggers": "Gym Pants",
+        "jagger": "Gym Pants", "jeggers": "Gym Pants",
         "250 top": "250 Tops", "250 tops": "250 Tops",
         "350 top": "350 Tops", "350 tops": "350 Tops",
         "jeans top": "Jeans Tops", "jeans tops": "Jeans Tops",
         "top": "Kurtha Top", "tops": "Kurtha Top",
         "t-shirt": "Western Wear", "tshirt": "Western Wear",
-        "shirt": "Formal Shirt", "shirts": "Formal Shirt",
+        "shirt": "Formal Shirts", "shirts": "Formal Shirts",
         "palazzo": "Plazzo Pants", "plazzo pants": "Plazzo Pants",
         "shrug": "Western Wear", "jacket": "Western Wear", "blazer": "Western Wear",
         "pant": "Formal Pants", "pants": "Formal Pants",
-        "trouser": "Formal Pants", "trousers": "Formal Pants",
+        "trouser": "Formal Pants", "trousers": "Formal Pants"
     }
     sorted_keywords = sorted(category_map.keys(), key=len, reverse=True)
     for keyword in sorted_keywords:
@@ -286,15 +277,8 @@ def _try_google_ai(image_url):
         image_bytes = response.content
         if not image_bytes:
             return None
-        model_names = [
-            'gemini-1.5-flash-latest', 'gemini-1.5-flash',
-            'gemini-1.5-flash-001', 'gemini-1.5-flash-002',
-            'gemini-1.5-pro', 'gemini-1.5-pro-001',
-            'gemini-pro', 'gemini-pro-vision',
-        ]
-        prompt = ("Analyze this boutique fashion clothing image. "
-                  "1. Simple product name. 2. Category. 3. Short description. "
-                  "Format: Name | Category | Description")
+        model_names = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro']
+        prompt = "Analyze this boutique fashion clothing image. 1. Simple product name, 2. Category, 3. Short description. Format: Name | Category | Description"
         cookie_img = {"mime_type": "image/jpeg", "data": image_bytes}
         for model_name in model_names:
             try:
@@ -303,11 +287,10 @@ def _try_google_ai(image_url):
                 text_res = ai_response.text.strip()
                 if "|" in text_res:
                     parts = text_res.split("|")
-                    return (parts[0].strip(), parts[1].strip(), parts[2].strip() if len(parts) > 2 else "Beautiful outfit.")
-                return "Premium Dress", "Suit Set", "Beautiful design."
+                    return parts[0].strip(), parts[1].strip(), parts[2].strip()
             except:
                 continue
-        return None
+        return "Premium Dress", "Suit Set", "Beautiful design."
     except:
         return None
 
@@ -362,7 +345,8 @@ def home():
 def home_head():
     return {}
 
-# 🆕 Chat Box API (Bot 2 - Chat Bot)
+# 💬 Chat Box API (Bot 2 - Chat Bot)
+@app.post("/api-chat-box")
 @app.post("/api/chat-box")
 async def chat_box_endpoint(
     customer_name: str = Form(...),
@@ -374,26 +358,23 @@ async def chat_box_endpoint(
     message: str = Form(""),
     push_subscription: str = Form(None)
 ):
-    """Chat Box using CHAT BOT (Bot 2)"""
     try:
         customer_chat_id = str(uuid.uuid4())[:12]
-        
         welcome_message = (
-            f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
-            f"Hi {customer_name},\n\n"
+            f"🛍️ *Welcome to Dolphin Trends!* 🛍️\n\n"
+            f"Hi {customer_name},\n"
             f"Thank you for choosing us! We have received your booking request:\n\n"
-            f"👗 *{product_name}*\n"
+            f"👕 *{product_name}*\n"
             f"📏 Size: *{size}*\n"
-            f"💰 Price: *{price}*\n\n"
-            f"📝 *Current Status:* We are checking stock availability. "
-            f"Our team will contact you shortly with confirmation. 🙏\n\n"
+            f"💰 Price: *₹{price}*\n\n"
+            f"📌 *Current Status:* We are checking stock availability. "
+            f"Our team will contact you shortly with confirmation. 🙏\n"
             f"⏰ You'll get a response within 5 minutes!\n\n"
-            f"💥 *Meanwhile, explore our latest collections here:* 👇\n"
+            f"✨ Meanwhile, explore our latest collections here: ✨\n"
             f"🔗 {FRONTEND_URL}\n\n"
-            f"✨Thank you for choosing us 😊\n"
-            f"*🧑🏻‍💻Team Dolphin Trends* 🐬"
+            f"Thank you for choosing us 😊\n"
+            f"🧑‍ިއTeam Dolphin Trends 🐬"
         )
-        
         if chat_messages_table is not None:
             chat_messages_table.insert_one({
                 "customer_chat_id": customer_chat_id,
@@ -410,7 +391,6 @@ async def chat_box_endpoint(
                     "timestamp": time.time(),
                     "type": "customer_message"
                 })
-        
         bookings_table.insert_one({
             "customer_chat_id": customer_chat_id,
             "customer_name": customer_name,
@@ -426,20 +406,19 @@ async def chat_box_endpoint(
             "created_at": time.time(),
             "updated_at": time.time()
         })
-        
+
         # ✅ Send to CHAT BOT (Bot 2) with buttons
         if TELEGRAM_CHAT_BOT_TOKEN and ADMIN_CHAT_BOT_CHAT_ID:
             telegram_msg = (
-                f"🛍️ <b>New Chat Booking!</b>\n\n"
+                f"🛍️ <b>New Chat Booking!</b> 🛍️\n\n"
                 f"👤 <b>Customer:</b> {customer_name}\n"
                 f"📞 <b>Phone:</b> {customer_phone}\n"
                 f"👗 <b>Product:</b> {product_name}\n"
-                f"📏 <b>Size:</b> {size}\n"
-                f"💰 <b>Price:</b> {price}\n\n"
-                f"💬 <b>Message:</b>\n<i>{message or 'No message'}</i>\n\n"
+                f"📐 <b>Size:</b> {size}\n"
+                f"💰 <b>Price:</b> ₹{price}\n"
+                f"💬 <b>Message:</b> <i>{message or 'No message'}</i>\n"
                 f"🆔 <b>Chat ID:</b> <code>{customer_chat_id}</code>"
             )
-            
             buttons = [
                 [
                     {"text": "🟢 Approve", "data": f"approve_{customer_chat_id}"},
@@ -449,20 +428,14 @@ async def chat_box_endpoint(
                     {"text": "🟡 Size Unavailable", "data": f"sizeno_{customer_chat_id}"}
                 ]
             ]
-            
-            # Try with image first
             try:
                 chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
                 keyboard = InlineKeyboardMarkup()
                 for btn_row in buttons:
                     row_buttons = []
                     for btn in btn_row:
-                        row_buttons.append(InlineKeyboardButton(
-                            text=btn["text"],
-                            callback_data=btn["data"]
-                        ))
+                        row_buttons.append(InlineKeyboardButton(text=btn["text"], callback_data=btn["data"]))
                     keyboard.row(*row_buttons)
-                
                 if product_image:
                     try:
                         chat_bot.send_photo(
@@ -486,21 +459,19 @@ async def chat_box_endpoint(
                         reply_markup=keyboard,
                         parse_mode='HTML'
                     )
-                print(f"✅ Chat Bot message sent")
+                print("✅ Chat Bot message sent")
             except Exception as e:
                 print(f"❌ Chat Bot error: {e}")
-        
-        # WhatsApp admins
+
         whatsapp_msg = (
-            f"🛍️ *New Chat Booking*\n"
+            f"🎁 *New Chat Booking*\n"
             f"👤 {customer_name}\n"
             f"📞 {customer_phone}\n"
             f"👗 {product_name} (Size: {size})\n"
-            f"💰 {price}\n\n"
+            f"💰 ₹{price}\n\n"
             f"Check Chat Bot for buttons!"
         )
         send_whatsapp_to_admins(whatsapp_msg)
-        
         return {
             "status": "success",
             "customer_chat_id": customer_chat_id,
@@ -510,19 +481,15 @@ async def chat_box_endpoint(
         print(f"❌ Chat Box Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.get("/api/chat/{customer_chat_id}/messages")
 def get_chat_messages(customer_chat_id: str):
-    """Polling for live updates"""
     try:
         if chat_messages_table is None:
             return {"status": "error", "messages": []}
-        messages = list(chat_messages_table.find(
-            {"customer_chat_id": customer_chat_id}
-        ).sort("timestamp", 1))
-        booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table else None
+        messages = list(chat_messages_table.find({"customer_chat_id": customer_chat_id}).sort("timestamp", 1))
+        booking = bookings_table.find_one({"customer_chat_id": customer_chat_id})
         return {
-            "status": booking.get("status", "pending") if booking else "unknown",
+            "status": booking["status"] if booking else "unknown",
             "messages": [
                 {"from": msg["from"], "message": msg["message"], "timestamp": msg["timestamp"]}
                 for msg in messages
@@ -531,7 +498,7 @@ def get_chat_messages(customer_chat_id: str):
     except Exception as e:
         return {"status": "error", "messages": []}
 
-# 📋 Bookings API (Existing)
+# 📦 Bookings API (Existing)
 @app.post("/api/bookings")
 def create_booking(payload: BookingPayload):
     if bookings_table is None:
@@ -549,39 +516,36 @@ def create_booking(payload: BookingPayload):
             "status": "Pending"
         }
         bookings_table.insert_one(booking_data)
-
         customer_message = (
-            f"🎉 *Welcome to Dolphin Trends!* 🐬\n\n"
-            f"Hi {payload.customer_name},\n\n"
+            f"🛍️ *Welcome to Dolphin Trends!* 🛍️\n\n"
+            f"Hi {payload.customer_name},\n"
             f"You have selected:\n"
             f"👗 *{payload.product_name}*\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Price: {payload.price}\n\n"
-            f"📝 *We are currently checking the stock availability for your order. "
-            f"Our team will contact you shortly with confirmation.* 🙏\n\n"
-            f"💥 *Meanwhile, explore our latest collections here:* 👇\n"
+            f"💰 Price: ₹{payload.price}\n\n"
+            f"📌 *We are currently checking the stock availability for your order. *"
+            f"Our team will contact you shortly with confirmation. 🙏\n"
+            f"✨ Meanwhile, explore our latest collections here: ✨\n"
             f"🔗 {FRONTEND_URL}\n\n"
-            f"✨Thank you for choosing us 😊\n"
-            f"*🧑🏻‍💻Team Dolphin Trends* 🐬"
+            f"Thank you for choosing us 😊\n"
+            f"🧑‍ިއTeam Dolphin Trends 🐬"
         )
         send_whatsapp_msg(payload.customer_phone, customer_message)
-
         admin_message = (
-            f"🛍️ *New Buy Request Boss😎*\n\n"
-            f"👗 *Product:* {payload.product_name}\n"
+            f"👔 *New Buy Request Boss* 😎\n\n"
+            f"👕 *Product:* {payload.product_name}\n"
             f"📏 Size: {payload.size}\n"
-            f"💰 Price: {payload.price}\n"
+            f"💰 Price: ₹{payload.price}\n"
             f"👤 Name: {payload.customer_name}\n"
             f"📞 Phone: {payload.customer_phone}\n\n"
-            f"⚙️ *🧑🏻‍💻Plz Update in Admin Panel Boss 👇*\n {FRONTEND_URL}"
+            f"📲 ⚙️ *Plz Update in Admin Panel Boss 👇* \n {FRONTEND_URL}"
         )
         send_whatsapp_to_admins(admin_message)
-
         return {"status": "success", "booking_id": booking_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 📦 Products API (Existing)
+# 👗 Products API (Existing)
 @app.post("/products")
 async def add_product(
     name: str = Form(...),
@@ -676,68 +640,55 @@ def update_booking_status(booking_id: str, action: str):
         if action == "agree":
             msg = (
                 f"Hello {c_name}! ✅\n\n"
-                f"Good news💫 *{p_name}* is available at Dolphin Trends!\n\n"
-                f"🛍️ Please visit our shop to collect your product👇\n\n"
-                f"🏪 *Store Address:*\n"
-                f"Rajgopal Nagar Main Road, Peenya 2nd Stage, Bangalore\n\n"
-                f"⏰ Timings: 11:00 AM - 10:00 PM\n\n"
-                f"📞 Phone : 9353344035\n\n"
-                f"See you soon! 🛍️\n\n 🧑🏻‍💻Team Dolphin Trends 🐬"
+                f"Good news 🌟 *{p_name}* is available at Dolphin Trends\n"
+                f"🛍️ Please visit our shop to collect your product👇\n"
+                f"📍 *Store Address:* \n"
+                f"Rajgopal Nagar Main Road, Peenya 2nd Stage, Bangalore\n"
+                f"⏰ Timings: 11:00 AM - 10:00 PM\n"
+                f"📞 Phone : 9353344035\n"
+                f"See you soon! 🛍️\n🧑‍ިއTeam Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Approved"}})
 
         elif action == "disagree":
             msg = (
-                f"Hello {c_name},\n\n"
+                f"Hello {c_name},\n"
                 f"Sorry 😔, *{p_name}* is currently out of stock.\n"
-                f"We'll notify you when it's back 😇💥\n\n"
-                f"✨Thank you for choosing us..🫶\n\n"
-                f"🧑🏻‍💻Team Dolphin Trends 🐬"
+                f" We'll notify you when it's back 😇👍\n"
+                f" Thank you for choosing us..😊\n"
+                f"🧑‍ިއTeam Dolphin Trends 🐬"
             )
             send_whatsapp_msg(c_phone, msg)
             bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Out of Stock"}})
-
-        elif action == "size_unavail" or action == "size_no_stock":
-            msg = (
-                f"Hello {c_name}! 😊\n\n"
-                f"*{p_name}*  is available, but your size is sold out.\n\n"
-                f"Drop by our store to check out other sizes 😇\n\n"
-                f"🏪Store Address : Rajagopalnagar main road, Peenya 2nd Stage, Bangalore\n\n"
-                f"✨Thank you for choosing us..🫶\n\n"
-                f"🧑🏻‍💻Team Dolphin Trends 🐬"
-            )
-            send_whatsapp_msg(c_phone, msg)
-            bookings_table.update_one({"booking_id": booking_id}, {"$set": {"status": "Size No Stock"}})
-
+            
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🤖 Telegram Webhook - Dual Bot Support
+# ================= 🚀 MAIN WEBHOOK ENDPOINT 🚀 =================
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
-    """Handles BOTH bots: Upload bot (photos) + Chat bot (callbacks)"""
     try:
         data = await request.json()
         
-        # 🆕 Handle Chat Bot callback queries (buttons)
+        # 📥 Handle Chat Bot callback queries (buttons)
         if "callback_query" in data:
             return await handle_chat_bot_callback(data)
-        
+            
         # 📸 Handle Upload Bot photos
         if "message" not in data:
             return {"status": "ok"}
-
+            
         message = data["message"]
         chat_id = message["chat"]["id"]
-
+        
         if ALLOWED_USERS and chat_id not in ALLOWED_USERS:
             return {"status": "Ignored"}
-
+            
         if "photo" not in message:
             return {"status": "ok"}
-
+            
         # Photo upload logic (existing code)
         caption = message.get("caption", "").strip()
         media_group_id = message.get("media_group_id")
@@ -747,14 +698,14 @@ async def telegram_webhook(request: Request):
         product_category = "Suit Set"
         product_description = "Curated boutique wear."
         has_valid_caption = False
-
+        
         if caption:
             has_valid_caption = True
             clean_caption = caption.replace("#edit", "").strip()
             lines = [l.strip() for l in clean_caption.split("\n") if l.strip()]
             clean_text = " ".join(lines)
-            price_match = re.search(r'(?:Rs\.?\s*|₹\s*)?(\d{3,5})', clean_text)
-
+            price_match = re.search(r'(? :Rs\.?|\$|₹)?(\d{3,5})', clean_text)
+            
             if "-" in clean_caption:
                 parts = clean_caption.split("-")
                 if len(parts) >= 3:
@@ -765,12 +716,12 @@ async def telegram_webhook(request: Request):
                         product_description = parts[3].strip()
             elif price_match:
                 product_price = price_match.group(1)
-                remaining_text = clean_text.replace(price_match.group(0), "").replace("₹", "").replace("Rs", "").replace("rs", "").strip()
-                if remaining_text and len(remaining_text) > 2:
+                remaining_text = clean_text.replace(price_match.group(0), "").replace("₹", "").strip()
+                if len(remaining_text) > 2:
                     product_name = remaining_text
-                    detected_cat = detect_category_from_name(product_name)
-                    if detected_cat:
-                        product_category = detected_cat
+                detected_cat = detect_category_from_name(product_name)
+                if detected_cat:
+                    product_category = detected_cat
             else:
                 product_name = clean_text
                 detected_cat = detect_category_from_name(product_name)
@@ -797,23 +748,23 @@ async def telegram_webhook(request: Request):
             params={"file_id": file_id}, timeout=10
         ).json()
         file_path = file_info.get("result", {}).get("file_path")
-
+        
         if not file_path:
             return {"status": "ok"}
-
+            
         telegram_image_url = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}/{file_path}"
         permanent_url = upload_to_cloudinary(telegram_image_url)
         if not permanent_url:
             permanent_url = telegram_image_url
-
+            
         if not has_valid_caption:
             ai_name, ai_cat, ai_desc = generate_product_details_via_ai(permanent_url)
             product_name = ai_name
             product_category = ai_cat
             product_description = ai_desc
-
+            
         product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
-
+        
         if media_group_id and media_group_id in MEDIA_GROUPS:
             group_data = MEDIA_GROUPS[media_group_id]
             product_name = group_data["name"]
@@ -822,7 +773,7 @@ async def telegram_webhook(request: Request):
             product_description = group_data["description"]
             product_price_display = product_price if product_price.startswith("₹") else f"₹{product_price}"
             group_data["processed_urls"].append(permanent_url)
-
+            
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "product_id": new_id, "id": new_id,
@@ -830,7 +781,7 @@ async def telegram_webhook(request: Request):
             "category": product_category, "image": permanent_url,
             "description": product_description, "available": True
         })
-
+        
         if media_group_id:
             old_task = MEDIA_GROUPS[media_group_id].get("task")
             if old_task and not old_task.done():
@@ -840,20 +791,19 @@ async def telegram_webhook(request: Request):
             )
         else:
             send_whatsapp_group_product(permanent_url)
-
+            
         # Confirmation (Upload Bot)
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | ₹{product_price.replace('₹','')} | {product_category}"},
+            json={"chat_id": chat_id, "text": f"✅ Saved: {product_name} | {product_price_display}"},
             timeout=5
         )
-
         return {"status": "success"}
     except Exception as e:
-        print(f"Webhook Error: {e}")
+        print(f"❌ Webhook Error: {e}")
         return {"status": "error"}
 
-
+# 🔥 ================= 🪄 DYNAMIC BUTTON HANDLER FUNCTION 🪄 =================
 async def handle_chat_bot_callback(data):
     """💬 Chat Bot (Bot 2) button click handler with dynamic button removal and double-click check"""
     try:
@@ -861,14 +811,14 @@ async def handle_chat_bot_callback(data):
         callback_data = callback.get("data")
         callback_id = callback.get("id")
         
-        # ಬಟನ್ ಇರುವ ಮೆಸೇಜ್ ವಿವರಗಳು (ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಬಟನ್ ಎಡಿಟ್ ಮಾಡಲು ಬೇಕು)
+        # ಬಟನ್ ಇರೋ ಟೆಲಿಗ್ರಾಮ್ ಮೆಸೇಜ್ ವಿವರಗಳು
         message_obj = callback.get("message", {})
         chat_id = message_obj.get("chat", {}).get("id")
         message_id = message_obj.get("message_id")
 
         print(f"👤 Chat Bot button clicked: {callback_data}")
 
-        # 1. 🛑 CRITICAL CHECK: ಈಗಾಗಲೇ ಒಮ್ಮೆ ಕ್ಲಿಕ್ ಆಗಿದ್ದರೆ, ಮತ್ತೊಮ್ಮೆ ಆಕ್ಷನ್ ರನ್ ಮಾಡಬೇಡಿ
+        # 1. 🛑 CRITICAL DOUBLE-CLICK CHECK
         if callback_data.startswith("clicked_"):
             chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
             chat_bot_instance.answer_callback_query(
@@ -894,8 +844,7 @@ async def handle_chat_bot_callback(data):
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
 
-        # 2. ⚡ ಕ್ಲಿಕ್ ಆದ ಆಕ್ಷನ್ ಮೇಲೆ ಸಿಂಗಲ್ ಬಟನ್ ಲೇಔಟ್ ಕ್ರಿಯೇಟ್ ಮಾಡುವುದು
-        from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+        # 2. ⚡ ಕ್ಲಿಕ್ ಆದ ಆಪ್ಷನ್ ಮಾತ್ರ ಉಳಿಸಿ ಕೀಬೋರ್ಡ್ ರೆಡಿ ಮಾಡುವುದು
         updated_keyboard = InlineKeyboardMarkup()
 
         if action == "approve":
@@ -917,7 +866,6 @@ async def handle_chat_bot_callback(data):
                 f"⏰ 11:00 AM - 10:00 PM"
             )
             response_text = "✅ Order Approved!"
-            # ಕೇವಲ Approved ಬಟನ್ ಮಾತ್ರ ಇಡಲಾಗುತ್ತದೆ ಮತ್ತು callback_data ಬದಲಾಯಿಸಲಾಗುತ್ತದೆ
             updated_keyboard.row(InlineKeyboardButton("🟢 Approved", callback_data=f"clicked_approve_{customer_chat_id}"))
             
         elif action == "reject":
@@ -930,7 +878,6 @@ async def handle_chat_bot_callback(data):
             new_status = "rejected"
             whatsapp_msg = f"Sorry, *{p_name}* is currently out of stock."
             response_text = "❌ Order Rejected"
-            # ಕೇವಲ Disapproved ಬಟನ್ ಮಾತ್ರ ಇಡಲಾಗುತ್ತದೆ
             updated_keyboard.row(InlineKeyboardButton("🔴 Disapproved", callback_data=f"clicked_reject_{customer_chat_id}"))
             
         elif action == "sizeno":
@@ -943,10 +890,9 @@ async def handle_chat_bot_callback(data):
             new_status = "size_no_stock"
             whatsapp_msg = f"*{p_name}* available, but your size sold out."
             response_text = "📏 Size Not Available"
-            # ಕೇವಲ Size Unavailable ಬಟನ್ ಮಾತ್ರ ಇಡಲಾಗುತ್ತದೆ
             updated_keyboard.row(InlineKeyboardButton("🟡 Size Unavailable", callback_data=f"clicked_sizeno_{customer_chat_id}"))
 
-        # 3. 🪄 MAGIC: ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಉಳಿದ ಬಟನ್‌ಗಳನ್ನು ಡಿಲೀಟ್ ಮಾಡಿ ಸಿಂಗಲ್ ಬಟನ್ ಉಳಿಸುವುದು
+        # 3. 🪄 MAGIC: ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಉಳಿದ ಬಟನ್‌ಗಳನ್ನು ಡಿಲೀಟ್ ಮಾಡುವುದು
         chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
         if chat_id and message_id:
             try:
@@ -956,9 +902,9 @@ async def handle_chat_bot_callback(data):
                     reply_markup=updated_keyboard
                 )
             except Exception as keyboard_err:
-                print(f"⚠️ Failed to update telegram buttons: {keyboard_err}")
+                print(f"⚠️ Failed to edit keyboard layout: {keyboard_err}")
 
-        # 4. 🗄️ Database Updates
+        # 4. 🗄️ Database status ಮತ್ತು ಮೆಸೇಜ್ ಅಪ್‌ಡೇಟ್
         bookings_table.update_one(
             {"customer_chat_id": customer_chat_id},
             {"$set": {"status": new_status, "last_admin_message": admin_msg, "updated_at": time.time()}}
@@ -972,7 +918,7 @@ async def handle_chat_bot_callback(data):
             "type": f"admin_{action}"
         })
         
-        # 5. 📱 WhatsApp Notification & Close Telegram Loading Spinner
+        # 5. 📱 WhatsApp ಕಳುಹಿಸುವುದು ಮತ್ತು ಟೆಲಿಗ್ರಾಮ್ ಕ್ಲೋಸ್ ಮಾಡುವುದು
         send_whatsapp_msg(c_phone, whatsapp_msg)
         chat_bot_instance.answer_callback_query(callback_id, response_text, show_alert=False)
         
