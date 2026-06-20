@@ -855,32 +855,49 @@ async def telegram_webhook(request: Request):
 
 
 async def handle_chat_bot_callback(data):
-    """🆕 Chat Bot (Bot 2) button click handler"""
+    """💬 Chat Bot (Bot 2) button click handler with dynamic button removal and double-click check"""
     try:
-        callback = data["callback_query"]
-        callback_data = callback["data"]
-        callback_id = callback["id"]
+        callback = data.get("callback_query")
+        callback_data = callback.get("data")
+        callback_id = callback.get("id")
         
-        print(f"🔘 Chat Bot button: {callback_data}")
-        
+        # ಬಟನ್ ಇರುವ ಮೆಸೇಜ್ ವಿವರಗಳು (ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಬಟನ್ ಎಡಿಟ್ ಮಾಡಲು ಬೇಕು)
+        message_obj = callback.get("message", {})
+        chat_id = message_obj.get("chat", {}).get("id")
+        message_id = message_obj.get("message_id")
+
+        print(f"👤 Chat Bot button clicked: {callback_data}")
+
+        # 1. 🛑 CRITICAL CHECK: ಈಗಾಗಲೇ ಒಮ್ಮೆ ಕ್ಲಿಕ್ ಆಗಿದ್ದರೆ, ಮತ್ತೊಮ್ಮೆ ಆಕ್ಷನ್ ರನ್ ಮಾಡಬೇಡಿ
+        if callback_data.startswith("clicked_"):
+            chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+            chat_bot_instance.answer_callback_query(
+                callback_id, 
+                text="This action is already processed! ⚠️", 
+                show_alert=False
+            )
+            return {"status": "ok"}
+
         parts = callback_data.split("_", 1)
         if len(parts) != 2:
             return {"status": "invalid"}
-        
+
         action, customer_chat_id = parts[0], parts[1]
-        
+
         booking = bookings_table.find_one({"customer_chat_id": customer_chat_id})
         if not booking:
-            # Use Chat Bot to answer
             chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
             chat_bot_instance.answer_callback_query(callback_id, "❌ Booking not found", show_alert=True)
-            return {"status": "not found"}
-        
+            return {"status": "not_found"}
+
         c_name = booking["customer_name"]
         c_phone = booking["customer_phone"]
         p_name = booking["product_name"]
-        
-        # Determine response
+
+        # 2. ⚡ ಕ್ಲಿಕ್ ಆದ ಆಕ್ಷನ್ ಮೇಲೆ ಸಿಂಗಲ್ ಬಟನ್ ಲೇಔಟ್ ಕ್ರಿಯೇಟ್ ಮಾಡುವುದು
+        from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+        updated_keyboard = InlineKeyboardMarkup()
+
         if action == "approve":
             admin_msg = (
                 f"🎉 *Your order has been approved!* ✅\n\n"
@@ -900,6 +917,8 @@ async def handle_chat_bot_callback(data):
                 f"⏰ 11:00 AM - 10:00 PM"
             )
             response_text = "✅ Order Approved!"
+            # ಕೇವಲ Approved ಬಟನ್ ಮಾತ್ರ ಇಡಲಾಗುತ್ತದೆ ಮತ್ತು callback_data ಬದಲಾಯಿಸಲಾಗುತ್ತದೆ
+            updated_keyboard.row(InlineKeyboardButton("🟢 Approved", callback_data=f"clicked_approve_{customer_chat_id}"))
             
         elif action == "reject":
             admin_msg = (
@@ -911,6 +930,8 @@ async def handle_chat_bot_callback(data):
             new_status = "rejected"
             whatsapp_msg = f"Sorry, *{p_name}* is currently out of stock."
             response_text = "❌ Order Rejected"
+            # ಕೇವಲ Disapproved ಬಟನ್ ಮಾತ್ರ ಇಡಲಾಗುತ್ತದೆ
+            updated_keyboard.row(InlineKeyboardButton("🔴 Disapproved", callback_data=f"clicked_reject_{customer_chat_id}"))
             
         elif action == "sizeno":
             admin_msg = (
@@ -922,14 +943,27 @@ async def handle_chat_bot_callback(data):
             new_status = "size_no_stock"
             whatsapp_msg = f"*{p_name}* available, but your size sold out."
             response_text = "📏 Size Not Available"
-        
-        # Update DB
+            # ಕೇವಲ Size Unavailable ಬಟನ್ ಮಾತ್ರ ಇಡಲಾಗುತ್ತದೆ
+            updated_keyboard.row(InlineKeyboardButton("🟡 Size Unavailable", callback_data=f"clicked_sizeno_{customer_chat_id}"))
+
+        # 3. 🪄 MAGIC: ಟೆಲಿಗ್ರಾಮ್‌ನಲ್ಲಿ ಉಳಿದ ಬಟನ್‌ಗಳನ್ನು ಡಿಲೀಟ್ ಮಾಡಿ ಸಿಂಗಲ್ ಬಟನ್ ಉಳಿಸುವುದು
+        chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+        if chat_id and message_id:
+            try:
+                chat_bot_instance.edit_message_reply_markup(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    reply_markup=updated_keyboard
+                )
+            except Exception as keyboard_err:
+                print(f"⚠️ Failed to update telegram buttons: {keyboard_err}")
+
+        # 4. 🗄️ Database Updates
         bookings_table.update_one(
             {"customer_chat_id": customer_chat_id},
             {"$set": {"status": new_status, "last_admin_message": admin_msg, "updated_at": time.time()}}
         )
         
-        # Save chat message
         chat_messages_table.insert_one({
             "customer_chat_id": customer_chat_id,
             "from": "admin",
@@ -938,11 +972,8 @@ async def handle_chat_bot_callback(data):
             "type": f"admin_{action}"
         })
         
-        # WhatsApp
+        # 5. 📱 WhatsApp Notification & Close Telegram Loading Spinner
         send_whatsapp_msg(c_phone, whatsapp_msg)
-        
-        # Answer callback using Chat Bot
-        chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
         chat_bot_instance.answer_callback_query(callback_id, response_text, show_alert=False)
         
         return {"status": "ok"}
