@@ -997,20 +997,24 @@ async def telegram_webhook(request: Request):
         return {"status": "error"}
 
 async def handle_chat_bot_callback(data):
-    """💬 Chat Bot (Bot 2) button click handler"""
+    """💬 Chat Bot (Bot 2) button click handler - With auto-delete buttons"""
     try:
         callback = data["callback_query"]
         callback_data = callback["data"]
         callback_id = callback["id"]
+        message_id = callback["message"]["message_id"]
+        chat_id = callback["message"]["chat"]["id"]
         
-        print(f"🔘 Chat Bot button: {callback_data}")
+        print(f"🔘 Chat Bot button clicked: {callback_data}")
         
+        # Parse button data
         parts = callback_data.split("_", 1)
         if len(parts) != 2:
             return {"status": "invalid"}
             
         action, customer_chat_id = parts[0], parts[1]
         
+        # Find booking
         booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table is not None else None
         if not booking:
             try:
@@ -1025,23 +1029,106 @@ async def handle_chat_bot_callback(data):
         p_name = booking["product_name"]
         booking_id = booking.get("booking_id", "")
         
+        # ✅ CHECK: If already processed, ignore duplicate clicks
+        current_status = booking.get("status", "pending")
+        if current_status in ["Approved", "Out of Stock", "Size Unavailable"]:
+            try:
+                chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                chat_bot_instance.answer_callback_query(
+                    callback_id, 
+                    f"⚠️ Already processed as {current_status}!", 
+                    show_alert=True
+                )
+            except Exception:
+                pass
+            return {"status": "already_processed"}
+        
+        # ✅ NEW: Show "processing" alert immediately
+        try:
+            chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+            chat_bot_instance.answer_callback_query(
+                callback_id, 
+                f"⏳ Processing {action.upper()}...", 
+                show_alert=False
+            )
+        except Exception:
+            pass
+        
+        # ✅ Process the action
         status_action = ""
+        status_text = ""
+        status_emoji = ""
+        
         if action == "approve":
             status_action = "agree"
+            status_text = "APPROVED"
+            status_emoji = "🟢"
         elif action == "reject":
             status_action = "disagree"
+            status_text = "DISAGREED"
+            status_emoji = "🔴"
         elif action == "sizeno":
             status_action = "size_no_stock"
+            status_text = "SIZE UNAVAILABLE"
+            status_emoji = "🟡"
             
         if status_action and booking_id:
             update_booking_status(booking_id, status_action)
-            
+        
+        # ✅✅✅ KEY FIX: EDIT THE MESSAGE TO REMOVE BUTTONS ✅✅✅
         try:
             chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
-            chat_bot_instance.answer_callback_query(callback_id, f"Processed: {action.upper()} for {c_name}!")
-        except Exception:
-            pass
             
+            # Get original message text/caption
+            original_msg = callback["message"]
+            original_text = original_msg.get("text") or original_msg.get("caption", "")
+            
+            # Build new caption/text with status indicator
+            new_text = (
+                f"{original_text}\n\n"
+                f"{'='*30}\n"
+                f"{status_emoji} <b>STATUS: {status_text}</b>\n"
+                f"👤 Processed for: {c_name}\n"
+                f"📞 {c_phone}\n"
+                f"⏰ {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"{'='*30}\n\n"
+                f"✅ <i>Buttons removed. Action completed.</i>\n"
+                f"<i>Customer will be notified in chat box.</i>"
+            )
+            
+            # ✅ If message had photo, edit caption
+            if "caption" in original_msg:
+                chat_bot_instance.edit_message_caption(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    caption=new_text,
+                    parse_mode='HTML',
+                    reply_markup=None  # ✅ THIS REMOVES ALL BUTTONS
+                )
+            else:
+                # ✅ If message had only text, edit text
+                chat_bot_instance.edit_message_text(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    text=new_text,
+                    parse_mode='HTML',
+                    reply_markup=None  # ✅ THIS REMOVES ALL BUTTONS
+                )
+            
+            print(f"✅ Buttons removed from message {message_id}")
+            
+        except Exception as e:
+            print(f"⚠️ Could not edit message: {e}")
+            # Fallback: send a new message saying it's done
+            try:
+                chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                chat_bot_instance.send_message(
+                    chat_id=chat_id,
+                    text=f"{status_emoji} {status_text} - {c_name} ({p_name})\n⏰ {time.strftime('%H:%M:%S')}",
+                )
+            except Exception:
+                pass
+        
         return {"status": "success"}
     except Exception as e:
         print(f"❌ Chat Callback Error: {e}")
