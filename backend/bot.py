@@ -2,6 +2,7 @@ import os
 import requests
 import base64
 import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ================= SETTINGS =================
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or ""
@@ -41,6 +42,19 @@ def send_whatsapp(image_bytes, name, description):
 
 # ================= TELEGRAM BOT =================
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+# 🔥 1. CRITICAL ADDITION: ಈಗಾಗಲೇ ಒಮ್ಮೆ ಕ್ಲಿಕ್ ಆಗಿರುವ ಬಟನ್‌ಗಳನ್ನು ಇಗ್ನೋರ್ ಮಾಡುವ ಹ್ಯಾಂಡ್ಲರ್
+@bot.callback_query_handler(func=lambda call: call.data.startswith('clicked_'))
+def handle_already_clicked(call):
+    try:
+        # ಟೆಲಿಗ್ರಾಮ್ ಲೋಡಿಂಗ್ ಸ್ಪಿನ್ನರ್ ಸ್ಟಾಪ್ ಮಾಡಿ ಸಣ್ಣ ಪಾಪ್-ಅಪ್ ಅಲರ್ಟ್ ತೋರಿಸುತ್ತದೆ
+        bot.answer_callback_query(
+            call.id, 
+            text="This action is already processed! ⚠️", 
+            show_alert=False
+        )
+    except Exception as e:
+        print(f"❌ Error handling already clicked callback: {e}")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
