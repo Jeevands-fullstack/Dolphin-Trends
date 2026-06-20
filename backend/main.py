@@ -399,6 +399,12 @@ async def chat_box_endpoint(
             
         if bookings_table is not None:
             bookings_table.insert_one({
+                # ✅ FIX: booking_id added (same value as customer_chat_id).
+                # Without this, the Telegram Agree/Disagree/Size-Unavailable
+                # buttons could never find a booking_id to act on — see
+                # handle_chat_bot_callback(), which requires a truthy
+                # booking_id before calling update_booking_status().
+                "booking_id": customer_chat_id,
                 "customer_chat_id": customer_chat_id,
                 "customer_name": customer_name,
                 "customer_phone": customer_phone,
