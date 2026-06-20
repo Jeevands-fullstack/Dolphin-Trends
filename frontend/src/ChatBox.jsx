@@ -5,26 +5,39 @@ const API = 'https://dolphin-trends-3.onrender.com';
 function ChatBox({ orderTrigger, clearOrderTrigger }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: "Hello! Welcome to Dolphin Trends. 👋", isUser: false, time: 'Just now', timestamp: Date.now() / 1000 }
+    { 
+      id: 1, 
+      text: "Hello! Welcome to Dolphin Trends. 👋", 
+      isUser: false, 
+      time: 'Just now', 
+      timestamp: Date.now() / 1000,
+      uniqueId: 'init-1'
+    }
   ]);
   const [inputText, setInputText] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [customerChatId, setCustomerChatId] = useState(null);
-  const [lastTimestamp, setLastTimestamp] = useState(0);
-  const [isSending, setIsSending] = useState(false);
   const [bookingStatus, setBookingStatus] = useState('pending');
+  const [isSending, setIsSending] = useState(false);
+  
   const messagesEndRef = useRef(null);
+  const lastTimestampRef = useRef(0);
+  const isPollingRef = useRef(false);
   const pollIntervalRef = useRef(null);
+  const seenMessageIds = useRef(new Set()); // ✅ Track seen messages
 
   // 🆕 Load customer_chat_id from localStorage on mount
   useEffect(() => {
     const savedChatId = localStorage.getItem('dolphin_chat_id');
     const savedMessages = localStorage.getItem('dolphin_chat_messages');
+    const savedLastTimestamp = localStorage.getItem('dolphin_chat_last_timestamp');
     
     if (savedChatId) {
       setCustomerChatId(savedChatId);
-      // Fetch latest messages from server
-      pollMessages(savedChatId, 0);
+    }
+    
+    if (savedLastTimestamp) {
+      lastTimestampRef.current = parseFloat(savedLastTimestamp);
     }
     
     if (savedMessages) {
@@ -32,10 +45,21 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
         const parsed = JSON.parse(savedMessages);
         if (parsed.length > 0) {
           setMessages(parsed);
+          // ✅ Add existing messages to seen set
+          parsed.forEach(m => {
+            if (m.uniqueId) seenMessageIds.current.add(m.uniqueId);
+          });
         }
       } catch (e) {
         console.error('Failed to parse saved messages', e);
       }
+    }
+
+    // ✅ Initial fetch after load
+    if (savedChatId) {
+      setTimeout(() => {
+        pollMessages(savedChatId, true);
+      }, 500);
     }
   }, []);
 
@@ -46,9 +70,13 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
       setCustomerChatId(chatId);
       localStorage.setItem('dolphin_chat_id', chatId);
       setIsOpen(true);
+      lastTimestampRef.current = 0;
+      localStorage.setItem('dolphin_chat_last_timestamp', '0');
+      seenMessageIds.current.clear();
 
       const systemMsg = {
         id: Date.now(),
+        uniqueId: `system-${Date.now()}`,
         text: `📦 Booking Request Received!\n\nProduct: ${orderTrigger.productName}\nSize: ${orderTrigger.size}\nPrice: ${orderTrigger.price}\n\nOur team will review this and update you shortly. 😊`,
         isUser: false,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -56,6 +84,11 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
       };
 
       setMessages(prev => [...prev, systemMsg]);
+      seenMessageIds.current.add(systemMsg.uniqueId);
+      
+      // ✅ Initial poll after booking
+      setTimeout(() => pollMessages(chatId, true), 500);
+      
       clearOrderTrigger();
     }
   }, [orderTrigger, clearOrderTrigger]);
@@ -67,25 +100,43 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
     }
   }, [messages]);
 
-  // 🆕 Poll for new messages every 4 seconds when chatbox is open AND we have a chat_id
+  // 🆕 Polling - Single useEffect that doesn't re-run on lastTimestamp change
   useEffect(() => {
     if (isOpen && customerChatId) {
-      pollMessages(customerChatId, lastTimestamp);
+      // Initial poll
+      pollMessages(customerChatId, true);
+      
+      // Set up interval - uses REF to avoid stale closure
       pollIntervalRef.current = setInterval(() => {
-        pollMessages(customerChatId, lastTimestamp);
+        pollMessages(customerChatId, false);
       }, 4000);
     }
+    
     return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     };
-  }, [isOpen, customerChatId, lastTimestamp]);
+  }, [isOpen, customerChatId]); // ✅ Only depend on isOpen & customerChatId
+
+  // 🆕 Background polling (when chat is closed)
+  useEffect(() => {
+    if (!isOpen && customerChatId) {
+      const bgInterval = setInterval(() => {
+        pollMessages(customerChatId, false, true);
+      }, 5000);
+      
+      return () => clearInterval(bgInterval);
+    }
+  }, [isOpen, customerChatId]);
 
   // 🆕 Clear unread count when chatbox opens
   useEffect(() => {
     if (isOpen) {
       setUnreadCount(0);
     }
-  }, [isOpen, messages]);
+  }, [isOpen]);
 
   // 🆕 Visibility change - reset unread when tab is active
   useEffect(() => {
@@ -103,33 +154,54 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 🆕 Poll messages from backend
-  const pollMessages = async (chatId, since) => {
+  // 🆕 Poll messages from backend - DEDUPLICATION FIX
+  const pollMessages = async (chatId, force = false, silent = false) => {
+    if (isPollingRef.current) return; // ✅ Prevent concurrent polls
+    isPollingRef.current = true;
+    
     try {
+      const since = force ? 0 : lastTimestampRef.current;
       const response = await fetch(`${API}/api/chat/${chatId}/messages?since=${since}`);
       const data = await response.json();
 
       if (data.status === 'success' && data.messages && data.messages.length > 0) {
-        const newMsgs = data.messages.map(msg => ({
-          id: msg.timestamp * 1000 + Math.random(),
-          text: msg.message,
-          isUser: msg.from === 'customer',
-          time: new Date(msg.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timestamp: msg.timestamp,
-          type: msg.type
-        }));
+        const newMsgs = data.messages
+          .map(msg => {
+            // ✅ Create unique key using timestamp + message content hash
+            const uniqueId = `${msg.timestamp}-${msg.from}-${msg.message.substring(0, 30)}`;
+            return {
+              id: msg.timestamp * 1000 + Math.random(),
+              uniqueId: uniqueId,
+              text: msg.message,
+              isUser: msg.from === 'customer',
+              time: new Date(msg.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: msg.timestamp,
+              type: msg.type
+            };
+          })
+          .filter(msg => {
+            // ✅ DEDUPLICATION: Skip if already seen
+            if (seenMessageIds.current.has(msg.uniqueId)) {
+              return false;
+            }
+            seenMessageIds.current.add(msg.uniqueId);
+            return true;
+          });
 
-        setMessages(prev => [...prev, ...newMsgs]);
+        if (newMsgs.length > 0) {
+          setMessages(prev => [...prev, ...newMsgs]);
 
-        // Update last timestamp
-        const maxTimestamp = Math.max(...data.messages.map(m => m.timestamp));
-        setLastTimestamp(maxTimestamp);
+          // ✅ Update last timestamp
+          const maxTimestamp = Math.max(...data.messages.map(m => m.timestamp));
+          lastTimestampRef.current = maxTimestamp;
+          localStorage.setItem('dolphin_chat_last_timestamp', String(maxTimestamp));
 
-        // If admin sent a message and chat is closed → increment unread
-        if (!isOpen) {
-          const adminMsgs = newMsgs.filter(m => !m.isUser);
-          if (adminMsgs.length > 0) {
-            setUnreadCount(prev => prev + adminMsgs.length);
+          // ✅ If admin sent a message and chat is closed → increment unread
+          if (!isOpen) {
+            const adminMsgs = newMsgs.filter(m => !m.isUser);
+            if (adminMsgs.length > 0) {
+              setUnreadCount(prev => prev + adminMsgs.length);
+            }
           }
         }
       }
@@ -140,6 +212,8 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
       }
     } catch (error) {
       console.error('Polling error:', error);
+    } finally {
+      isPollingRef.current = false;
     }
   };
 
@@ -148,8 +222,6 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    // If no chat_id yet, create one by saving to local storage with temp ID
-    // Actually, we need chat_id from a booking. If no booking, just show locally.
     if (!customerChatId) {
       alert('⚠️ Please book a product first to start chatting with us!');
       return;
@@ -159,16 +231,20 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
     const messageText = inputText;
     setInputText('');
 
-    // Optimistic update - add message immediately
+    // Optimistic update
+    const tempTimestamp = Date.now() / 1000;
     const optimisticMsg = {
       id: Date.now(),
+      uniqueId: `temp-${Date.now()}`,
       text: messageText,
       isUser: true,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      timestamp: Date.now() / 1000,
+      timestamp: tempTimestamp,
       sending: true
     };
+    
     setMessages(prev => [...prev, optimisticMsg]);
+    seenMessageIds.current.add(optimisticMsg.uniqueId);
 
     try {
       const formData = new FormData();
@@ -181,18 +257,27 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
       });
 
       if (response.ok) {
+        const data = await response.json();
         // Mark message as sent
         setMessages(prev => prev.map(m => 
           m.id === optimisticMsg.id ? { ...m, sending: false } : m
         ));
+        
+        // ✅ Update timestamp with server response to avoid duplicate
+        if (data.timestamp) {
+          lastTimestampRef.current = Math.max(lastTimestampRef.current, data.timestamp);
+          localStorage.setItem('dolphin_chat_last_timestamp', String(lastTimestampRef.current));
+        }
       } else {
         alert('❌ Failed to send message. Please try again.');
         setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+        seenMessageIds.current.delete(optimisticMsg.uniqueId);
       }
     } catch (error) {
       console.error('Send error:', error);
       alert('❌ Network error. Please try again.');
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+      seenMessageIds.current.delete(optimisticMsg.uniqueId);
     } finally {
       setIsSending(false);
     }
@@ -203,17 +288,20 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
     if (!window.confirm('Clear all chat history? Your booking will remain active.')) return;
     localStorage.removeItem('dolphin_chat_messages');
     localStorage.removeItem('dolphin_chat_id');
+    localStorage.removeItem('dolphin_chat_last_timestamp');
     setMessages([{
       id: 1,
+      uniqueId: 'init-1',
       text: "Hello! Welcome to Dolphin Trends. 👋",
       isUser: false,
       time: 'Just now',
       timestamp: Date.now() / 1000
     }]);
     setCustomerChatId(null);
-    setLastTimestamp(0);
+    lastTimestampRef.current = 0;
     setUnreadCount(0);
     setBookingStatus('pending');
+    seenMessageIds.current.clear();
   };
 
   return (
@@ -262,7 +350,7 @@ function ChatBox({ orderTrigger, clearOrderTrigger }) {
             <div className="chatbox-messages-body">
               {messages.map((msg) => (
                 <div 
-                  key={msg.id} 
+                  key={msg.uniqueId || msg.id} 
                   className={`chatbox-message-row ${msg.isUser ? 'user-side' : 'admin-side'}`}
                 >
                   <div className="chatbox-text-bubble">
