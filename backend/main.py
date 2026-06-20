@@ -380,7 +380,6 @@ async def chat_box_endpoint(
         )
         
         if chat_messages_table is not None:
-            # Save welcome message
             chat_messages_table.insert_one({
                 "customer_chat_id": customer_chat_id,
                 "from": "admin",
@@ -390,13 +389,12 @@ async def chat_box_endpoint(
                 "read": False
             })
             
-            # Save customer initial message if any
             if message:
                 chat_messages_table.insert_one({
                     "customer_chat_id": customer_chat_id,
                     "from": "customer",
                     "message": message,
-                    "timestamp": time.time() + 0.1,  # +0.1 to keep order
+                    "timestamp": time.time() + 0.1,
                     "type": "customer_message",
                     "read": False
                 })
@@ -419,7 +417,6 @@ async def chat_box_endpoint(
                 "updated_at": time.time()
             })
             
-        # Send to Telegram Admin with Buttons
         if TELEGRAM_CHAT_BOT_TOKEN and ADMIN_CHAT_BOT_CHAT_ID:
             telegram_msg = (
                 f"🛍️ <b>New Chat Booking!</b>\n\n"
@@ -497,7 +494,7 @@ async def chat_box_endpoint(
         print(f"❌ Chat Box Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🆕 NEW: Customer sends message → forwarded to Telegram
+# 🆕 Customer sends message → forwarded to Telegram
 @app.post("/api/send-customer-message")
 async def send_customer_message(
     customer_chat_id: str = Form(...),
@@ -509,7 +506,6 @@ async def send_customer_message(
         
         current_time = time.time()
         
-        # Save to MongoDB
         if chat_messages_table is not None:
             chat_messages_table.insert_one({
                 "customer_chat_id": customer_chat_id,
@@ -520,12 +516,10 @@ async def send_customer_message(
                 "read": False
             })
             
-        # Get booking details for context
         booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table is not None else None
         c_name = booking["customer_name"] if booking else "Customer"
         c_phone = booking["customer_phone"] if booking else "Unknown"
         
-        # Send to Telegram Admin
         if TELEGRAM_CHAT_BOT_TOKEN and ADMIN_CHAT_BOT_CHAT_ID:
             try:
                 chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
@@ -534,7 +528,8 @@ async def send_customer_message(
                     f"📞 {c_phone}\n"
                     f"🆔 <code>{customer_chat_id}</code>\n\n"
                     f"💭 {message}\n\n"
-                    f"👆 <i>Reply to this message to send back to customer chat box</i>"
+                    f"👆 <i>Reply to this message to send back to customer</i>\n"
+                    f"📝 <i>Or use: /send {customer_chat_id} your_message</i>"
                 )
                 chat_bot.send_message(
                     chat_id=ADMIN_CHAT_BOT_CHAT_ID,
@@ -550,14 +545,13 @@ async def send_customer_message(
         print(f"❌ Error forwarding customer message: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🆕 NEW: Get chat messages with polling support
+# 🆕 Get chat messages with polling support
 @app.get("/api/chat/{customer_chat_id}/messages")
 def get_chat_messages(customer_chat_id: str, since: float = 0):
     try:
         if chat_messages_table is None:
             return {"status": "error", "messages": [], "booking_status": "unknown"}
 
-        # Build query - only fetch messages newer than `since` timestamp
         query = {"customer_chat_id": customer_chat_id}
         if since > 0:
             query["timestamp"] = {"$gt": since}
@@ -566,11 +560,9 @@ def get_chat_messages(customer_chat_id: str, since: float = 0):
             chat_messages_table.find(query).sort("timestamp", 1)
         )
 
-        # Get booking status
         booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table is not None else None
         booking_status = booking.get("status", "pending") if booking else "unknown"
 
-        # Count unread messages from admin (for badge)
         unread_count = 0
         if since > 0:
             unread_count = chat_messages_table.count_documents({
@@ -579,7 +571,6 @@ def get_chat_messages(customer_chat_id: str, since: float = 0):
                 "timestamp": {"$gt": since},
                 "read": False
             })
-            # Mark as read
             chat_messages_table.update_many(
                 {
                     "customer_chat_id": customer_chat_id,
@@ -824,7 +815,9 @@ def update_booking_status(booking_id: str, action: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 🌐 Telegram Webhook Endpoint
+# ============================================================
+# 🌐 TELEGRAM WEBHOOK - COMPLETELY REWRITTEN
+# ============================================================
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
@@ -839,11 +832,11 @@ async def telegram_webhook(request: Request):
             
         message = data["message"]
         chat_id = message["chat"]["id"]
+        message_text = message.get("text", "").strip()
         
-        if ALLOWED_USERS and chat_id not in ALLOWED_USERS:
-            return {"status": "Ignored"}
-
-        # 💬 ✅ ADMIN REPLY → CUSTOMER CHAT BOX (Bot 2)
+        # =========================================================
+        # 💬 SCENARIO 1: ADMIN REPLIES TO A MESSAGE (Reply feature)
+        # =========================================================
         if "reply_to_message" in message and "text" in message:
             reply_to = message["reply_to_message"]
             admin_reply_text = message["text"]
@@ -851,8 +844,12 @@ async def telegram_webhook(request: Request):
             # Find Chat ID in parent message text or caption
             parent_text = reply_to.get("text") or reply_to.get("caption") or ""
             
-            # Match 12-char hex Chat ID
-            match = re.search(r'([a-f0-9]{12})', parent_text)
+            # Match 12-char hex Chat ID using multiple patterns
+            match = re.search(r'<code>([a-f0-9]{12})</code>', parent_text)
+            if not match:
+                match = re.search(r'🆔[^a-f0-9]*([a-f0-9]{12})', parent_text)
+            if not match:
+                match = re.search(r'([a-f0-9]{12})', parent_text)
             
             if match:
                 customer_chat_id = match.group(1)
@@ -867,7 +864,7 @@ async def telegram_webhook(request: Request):
                         "type": "admin_reply",
                         "read": False
                     })
-                    print(f"✅ Telegram reply forwarded to chat box {customer_chat_id}")
+                    print(f"✅ Admin reply forwarded to chat box: {customer_chat_id}")
                     
                     # Confirm to admin
                     try:
@@ -875,8 +872,168 @@ async def telegram_webhook(request: Request):
                         chat_bot.reply_to(message, "🚀 Forwarded to Customer Chat Box!")
                     except Exception:
                         pass
-                    return {"status": "success"}
-            
+                    return {"status": "success", "type": "reply_forwarded"}
+        
+        # =========================================================
+        # 💬 SCENARIO 2: ADMIN USES /send COMMAND
+        #    Format: /send <chat_id> <message>
+        #    Example: /send e61e9e773ec Hello! Your order is ready
+        # =========================================================
+        if message_text.startswith("/send "):
+            send_match = re.match(r'^/send\s+([a-f0-9]{12})\s+(.+)$', message_text, re.DOTALL)
+            if send_match:
+                customer_chat_id = send_match.group(1)
+                admin_message_text = send_match.group(2)
+                
+                # Verify chat_id exists
+                booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table is not None else None
+                if not booking:
+                    try:
+                        chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                        chat_bot.send_message(
+                            chat_id=chat_id,
+                            text=f"❌ Chat ID `{customer_chat_id}` not found!",
+                            parse_mode="HTML"
+                        )
+                    except Exception:
+                        pass
+                    return {"status": "chat_not_found"}
+                
+                # Save to DB
+                if chat_messages_table is not None:
+                    chat_messages_table.insert_one({
+                        "customer_chat_id": customer_chat_id,
+                        "from": "admin",
+                        "message": admin_message_text,
+                        "timestamp": time.time(),
+                        "type": "admin_reply",
+                        "read": False
+                    })
+                    print(f"✅ Admin /send command forwarded: {customer_chat_id}")
+                    
+                    # Confirm to admin
+                    try:
+                        chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                        chat_bot.send_message(
+                            chat_id=chat_id,
+                            text=f"✅ Sent to customer `{customer_chat_id}`:\n\n{admin_message_text}",
+                            parse_mode="HTML"
+                        )
+                    except Exception:
+                        pass
+                    return {"status": "success", "type": "send_command"}
+            else:
+                # Invalid format
+                try:
+                    chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                    chat_bot.send_message(
+                        chat_id=chat_id,
+                        text=(
+                            "❌ Invalid format!\n\n"
+                            "✅ Correct format:\n"
+                            "<code>/send CHAT_ID your_message</code>\n\n"
+                            "Example:\n"
+                            "<code>/send e61e9e773ec Hello! Your order is ready</code>"
+                        ),
+                        parse_mode="HTML"
+                    )
+                except Exception:
+                    pass
+                return {"status": "invalid_format"}
+        
+        # =========================================================
+        # 💬 SCENARIO 3: BROADCAST TO ALL CUSTOMERS
+        #    Format: /sendall <message>
+        # =========================================================
+        if message_text.startswith("/sendall "):
+            broadcast_msg = message_text.replace("/sendall ", "", 1)
+            if broadcast_msg and chat_messages_table is not None and bookings_table is not None:
+                active_chats = bookings_table.distinct("customer_chat_id")
+                sent_count = 0
+                for cc_id in active_chats:
+                    if cc_id:
+                        chat_messages_table.insert_one({
+                            "customer_chat_id": cc_id,
+                            "from": "admin",
+                            "message": broadcast_msg,
+                            "timestamp": time.time(),
+                            "type": "broadcast",
+                            "read": False
+                        })
+                        sent_count += 1
+                
+                try:
+                    chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                    chat_bot.send_message(
+                        chat_id=chat_id,
+                        text=f"📢 Broadcast sent to {sent_count} customers!\n\nMessage: {broadcast_msg}"
+                    )
+                except Exception:
+                    pass
+                return {"status": "success", "type": "broadcast", "count": sent_count}
+        
+        # =========================================================
+        # 💬 SCENARIO 4: LIST ACTIVE CHATS
+        #    Format: /list
+        # =========================================================
+        if message_text == "/list":
+            if bookings_table is not None:
+                active_bookings = list(bookings_table.find().sort("created_at", -1).limit(10))
+                if active_bookings:
+                    list_text = "📋 <b>Recent Active Chats:</b>\n\n"
+                    for b in active_bookings:
+                        list_text += (
+                            f"🆔 <code>{b.get('customer_chat_id', 'N/A')}</code>\n"
+                            f"👤 {b.get('customer_name', 'Unknown')}\n"
+                            f"📞 {b.get('customer_phone', 'N/A')}\n"
+                            f"👗 {b.get('product_name', 'N/A')}\n"
+                            f"📊 Status: {b.get('status', 'pending')}\n"
+                            f"{'─'*20}\n"
+                        )
+                    list_text += "\n💡 <i>Use: /send CHAT_ID your_message</i>"
+                else:
+                    list_text = "📭 No active chats found."
+                
+                try:
+                    chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                    chat_bot.send_message(chat_id=chat_id, text=list_text, parse_mode="HTML")
+                except Exception:
+                    pass
+            return {"status": "success", "type": "list"}
+        
+        # =========================================================
+        # 💬 SCENARIO 5: HELP COMMAND
+        # =========================================================
+        if message_text in ["/help", "/start"]:
+            help_text = (
+                "🤖 <b>Chat Bot Commands:</b>\n\n"
+                "1️⃣ <b>Reply to customer message</b>\n"
+                "   → Just reply, it auto-forwards\n\n"
+                "2️⃣ <b>/send CHAT_ID message</b>\n"
+                "   → Send to specific customer\n"
+                "   → Example: <code>/send e61e9e773ec Hello</code>\n\n"
+                "3️⃣ <b>/sendall message</b>\n"
+                "   → Broadcast to all customers\n\n"
+                "4️⃣ <b>/list</b>\n"
+                "   → Show recent active chats\n\n"
+                "5️⃣ <b>/help</b>\n"
+                "   → Show this help"
+            )
+            try:
+                chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                chat_bot.send_message(chat_id=chat_id, text=help_text, parse_mode="HTML")
+            except Exception:
+                pass
+            return {"status": "success", "type": "help"}
+        
+        # =========================================================
+        # 📸 HANDLE UPLOAD BOT (Bot 1) PHOTOS
+        # =========================================================
+        
+        # ALLOWED_USERS check - only for upload bot
+        if ALLOWED_USERS and chat_id not in ALLOWED_USERS:
+            return {"status": "Ignored"}
+        
         if "photo" not in message:
             return {"status": "ok"}
             
@@ -1005,14 +1162,12 @@ async def handle_chat_bot_callback(data):
         
         print(f"🔘 Chat Bot button clicked: {callback_data}")
         
-        # Parse button data
         parts = callback_data.split("_", 1)
         if len(parts) != 2:
             return {"status": "invalid"}
             
         action, customer_chat_id = parts[0], parts[1]
         
-        # Find booking
         booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table is not None else None
         if not booking:
             try:
@@ -1041,7 +1196,7 @@ async def handle_chat_bot_callback(data):
                 pass
             return {"status": "already_processed"}
         
-        # ✅ NEW: Show "processing" alert immediately
+        # ✅ Show "processing" alert immediately
         try:
             chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
             chat_bot_instance.answer_callback_query(
@@ -1077,11 +1232,9 @@ async def handle_chat_bot_callback(data):
         try:
             chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
             
-            # Get original message text/caption
             original_msg = callback["message"]
             original_text = original_msg.get("text") or original_msg.get("caption", "")
             
-            # Build new caption/text with status indicator
             new_text = (
                 f"{original_text}\n\n"
                 f"{'='*30}\n"
@@ -1094,30 +1247,27 @@ async def handle_chat_bot_callback(data):
                 f"<i>Customer will be notified in chat box.</i>"
             )
             
-            # ✅ If message had photo, edit caption
             if "caption" in original_msg:
                 chat_bot_instance.edit_message_caption(
                     chat_id=chat_id,
                     message_id=message_id,
                     caption=new_text,
                     parse_mode='HTML',
-                    reply_markup=None  # ✅ THIS REMOVES ALL BUTTONS
+                    reply_markup=None
                 )
             else:
-                # ✅ If message had only text, edit text
                 chat_bot_instance.edit_message_text(
                     chat_id=chat_id,
                     message_id=message_id,
                     text=new_text,
                     parse_mode='HTML',
-                    reply_markup=None  # ✅ THIS REMOVES ALL BUTTONS
+                    reply_markup=None
                 )
             
             print(f"✅ Buttons removed from message {message_id}")
             
         except Exception as e:
             print(f"⚠️ Could not edit message: {e}")
-            # Fallback: send a new message saying it's done
             try:
                 chat_bot_instance = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
                 chat_bot_instance.send_message(
