@@ -368,18 +368,15 @@ async def chat_box_endpoint(
         
         welcome_message = (
             f"👋 *Welcome to Dolphin Trends!* 🐬\n\n"
-            f"Hi *{customer_name}*,\n"
+            f"Hi {customer_name},\n"
             f"Thank you for choosing us! We have received your booking request:\n\n"
-            f"📌 *{product_name}*\n"
+            f"👗 *{product_name}*\n"
             f"📏 Size: *{size}*\n"
-            f"💰 Price: *₹{price}*\n\n"
-            f"⏳ *Current Status:* We are checking stock availability. "
+            f"💰 Price: *₹{price}*\n\n\n"
+            f"⏳ Current Status: We are checking stock availability. "
             f"Our team will contact you shortly with confirmation. 🙏\n\n"
-            f"⏰ You'll get a response within 5 minutes!\n"
-            f"✨ Meanwhile, explore our latest collections here: 👇\n"
-            f"🔗 {FRONTEND_URL}\n\n"
             f"👋 Thank you for choosing us 😊\n"
-            f"🏢 *Team Dolphin Trends* 🐬"
+            f"🏢 Team Dolphin Trends 🐬"
         )
         
         if chat_messages_table is not None:
@@ -487,7 +484,7 @@ async def chat_box_endpoint(
             f"📞 {customer_phone}\n"
             f"👗 {product_name} (Size: {size})\n"
             f"💰 ₹{price}\n\n"
-            f"👉 Check Chat Bot for buttons!"
+            f"👉 Check Telegram Chat Bot for buttons!"
         )
         send_whatsapp_to_admins(whatsapp_msg)
         
@@ -808,6 +805,7 @@ def update_booking_status(booking_id: str, action: str):
                 f"Hello {c_name}!\n\n"
                 f"Sorry 😔, your requested size for *{p_name}* is currently unavailable.\n"
                 f"Please select another size or checkout other items!\n\n"
+                f"Thank you for choosing us..😊\n\n"
                 f"👤 *Team Dolphin Trends* 🐬"
             )
             if chat_messages_table is not None and customer_chat_id:
