@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Admin from './Admin';
 import ProductPage from './ProductPage';
-import ChatBox from './ChatBox'; // ✅ ಇದು ಮಾತ್ರ ನೂರಕ್ಕೆ ನೂರು ಕರೆಕ್ಟ್!
+import ChatBox from './ChatBox';
 import dolphin from './assets/dolphin.jpg';
 import heroVideo from './assets/hero-video.mp4';
 
@@ -13,6 +13,50 @@ import shop4 from './assets/shop-4..jpeg';
 import shop5 from './assets/shop-5..jpeg';
 
 const API = 'https://dolphin-trends-3.onrender.com';
+
+// 🆕 Smart Price Display Component
+function PriceDisplay({ product, size = 'normal' }) {
+  const getNumericPrice = (priceStr) => {
+    if (!priceStr) return 0;
+    return parseInt(String(priceStr).replace(/[^0-9]/g, '')) || 0;
+  };
+
+  const currentPrice = getNumericPrice(product.price);
+  const originalPrice = getNumericPrice(product.original_price);
+  
+  let discountPercent = 0;
+  let finalOldPrice = originalPrice;
+  
+  // Calculate discount based on available data
+  if (originalPrice > currentPrice && currentPrice > 0) {
+    // Has original_price - calculate discount percentage
+    discountPercent = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+  } else if (product.discount_percent && product.discount_percent > 0) {
+    // Has discount_percent field - calculate old price
+    discountPercent = product.discount_percent;
+    finalOldPrice = Math.round(currentPrice / (1 - discountPercent / 100));
+  } else {
+    // Default 40% discount
+    discountPercent = 40;
+    finalOldPrice = Math.round(currentPrice / 0.6);
+  }
+
+  const isLarge = size === 'large';
+
+  return (
+    <div className={`price-row ${isLarge ? 'price-row-large' : ''}`}>
+      <span className={`product-price ${isLarge ? 'product-price-large' : ''}`}>
+        {product.price}
+      </span>
+      {finalOldPrice > currentPrice && (
+        <>
+          <span className="old-price">₹{finalOldPrice}</span>
+          <span className="discount-tag">{discountPercent}% OFF</span>
+        </>
+      )}
+    </div>
+  );
+}
 
 function App() {
   const [activeCategory, setActiveCategory] = useState('All');
@@ -27,7 +71,7 @@ function App() {
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [editProductData, setEditProductData] = useState(null); 
   
-  // 🆕 ಆರ್ಡರ್ ಆದ ತಕ್ಷಣ ಚಾಟ್ ಬಾಕ್ಸ್ ಟ್ರಿಗರ್ ಮಾಡಲು ಸ್ಟೇಟ್
+  // 🆕 Order trigger for chatbox
   const [orderData, setOrderData] = useState(null);
 
   // 🔐 Admin Login States
@@ -106,6 +150,13 @@ function App() {
     fetchProducts();
   };
 
+  // 🆕 Back to Store button handler (NEW!)
+  const handleBackToStore = () => {
+    setShowAdmin(false);
+    setEditProductData(null);
+    setActivePage('shop');
+  };
+
   // 🗑️ Delete Product
   const handleDeleteProduct = async (productId) => {
     if (!window.confirm('⚠️ ನೀವು ಖಚಿತವಾಗಿ ಈ ಪ್ರಾಡಕ್ಟ್ ಅನ್ನು ಡಿಲೀಟ್ ಮಾಡಲು ಬಯಸುತ್ತೀರಾ?')) return;
@@ -136,18 +187,18 @@ function App() {
     setActivePage('shop'); 
   };
 
-  // ✅ Buy Now → ProductPage Details Popup Open
+  // ✅ Buy Now
   const handleBuyNow = (product) => {
     if (product.available === false) {
       alert('❌ ಈ product ಸದ್ಯ ಲಭ್ಯವಿಲ್ಲ!');
       return;
     }
-    setViewProduct(product); // ProductPage ವಿವರಗಳ ಮಾಡಲ್ ಓಪನ್ ಆಗುತ್ತೆ
+    setViewProduct(product);
   };
 
-  // 🛍️ ProductPage ನಲ್ಲಿ ಬುಕಿಂಗ್ ಕನ್ಫರ್ಮ್ ಆದಾಗ ಚಾಟ್ ಬಾಕ್ಸ್ ಸಿಗ್ನಲ್ ರಿಸೀವ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+  // 🛍️ Order Success
   const handleOrderSuccess = (details) => {
-    setOrderData(details); // ಇದು ಕೆಳಗಡೆ ಇರೋ ChatBox ಅನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಓಪನ್ ಮಾಡುತ್ತೆ
+    setOrderData(details);
   };
 
   const filtered = activeCategory === 'All' 
@@ -191,6 +242,31 @@ function App() {
         </ul>
         
         <div className="navbar-right">
+          {/* 🆕 Back to Store button - shows only when in admin mode */}
+          {showAdmin && isAdminLoggedIn && (
+            <button 
+              className="back-to-store-btn" 
+              onClick={handleBackToStore}
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#fff',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                marginRight: '10px',
+                fontSize: '14px',
+                boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            >
+              ← 🏪 Back to Store
+            </button>
+          )}
+          
           <button 
             className="admin-btn" 
             onClick={() => isAdminLoggedIn 
@@ -205,11 +281,47 @@ function App() {
 
       {showAdmin ? (
         isAdminLoggedIn ? (
-          <Admin 
-            onProductAdded={handleProductAddedSuccess} 
-            editData={editProductData} 
-            onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); setActivePage('shop'); }}
-          />
+          <div style={{ position: 'relative' }}>
+            {/* 🆕 Floating Back Button at Top of Admin Panel */}
+            <button 
+              onClick={handleBackToStore}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                left: '20px',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '15px',
+                boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
+                zIndex: 100,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.transform = 'scale(1.05)';
+                e.target.style.boxShadow = '0 6px 20px rgba(16,185,129,0.5)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.transform = 'scale(1)';
+                e.target.style.boxShadow = '0 4px 15px rgba(16,185,129,0.4)';
+              }}
+            >
+              ← 🏪 Back to Store
+            </button>
+
+            <Admin 
+              onProductAdded={handleProductAddedSuccess} 
+              editData={editProductData} 
+              onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); setActivePage('shop'); }}
+            />
+          </div>
         ) : (
           <div style={{ background: '#070b19', padding: '60px 20px', minHeight: '75vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
             
@@ -466,7 +578,10 @@ function App() {
                         <div className="product-info">
                           <span className="category-tag">{product.category}</span>
                           <h4>{product.name}</h4>
-                          <p className="price">{product.price}</p>
+                          
+                          {/* ✅ DYNAMIC PRICE - No more hardcoded values! */}
+                          <PriceDisplay product={product} />
+                          
                           {product.available !== false && (
                             <button className="buy-btn" onClick={() => handleBuyNow(product)}>
                               🛍️ Book Now
@@ -668,7 +783,7 @@ function App() {
         <ProductPage 
           product={viewProduct} 
           onClose={() => setViewProduct(null)} 
-          onOrderSuccess={handleOrderSuccess} // 🆕 ಆರ್ಡರ್ ಆದಾಗ ಕೀ ಮೆಸೇಜ್ ಕಳಿಸಲು
+          onOrderSuccess={handleOrderSuccess}
         />
       )}
 
