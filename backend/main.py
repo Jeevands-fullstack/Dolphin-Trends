@@ -20,6 +20,21 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 # 🎬 ಮೀಡಿಯಾ ಗ್ರೂಪ್ಸ್ ಮ್ಯಾಪ್
 MEDIA_GROUPS = {}
 
+# 🆕 Rate limiting for admin actions
+last_admin_action = {}
+
+def check_rate_limit(chat_id, action_type, cooldown_seconds=10):
+    """Prevent spam from same admin"""
+    key = f"{chat_id}_{action_type}"
+    now = time.time()
+    
+    if key in last_admin_action:
+        if now - last_admin_action[key] < cooldown_seconds:
+            return False
+    
+    last_admin_action[key] = now
+    return True
+
 # 🚀 FastAPI Lifespan Handler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -348,6 +363,19 @@ def home():
 def home_head():
     return {}
 
+# 🆕 Health check endpoint
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "mongo": "connected" if products_table is not None else "disconnected",
+        "bots": {
+            "upload": bool(TELEGRAM_BOT_TOKEN),
+            "chat": bool(TELEGRAM_CHAT_BOT_TOKEN)
+        },
+        "timestamp": time.time()
+    }
+
 # ============================================================
 # 💬 CHAT BOX SYSTEM (Bot 2 - Chat Bot) - NEW LIVE CHAT FEATURES
 # ============================================================
@@ -366,17 +394,18 @@ async def chat_box_endpoint(
     try:
         customer_chat_id = str(uuid.uuid4())[:12]
         
+        # ✅ FIXED: Bold formatting with asterisks
         welcome_message = (
             f"👋 *Welcome to Dolphin Trends!* 🐬\n\n"
-            f"Hi {customer_name},\n"
+            f"Hi *{customer_name}*,\n"
             f"Thank you for choosing us! We have received your booking request:\n\n"
             f"👗 *{product_name}*\n"
             f"📏 Size: *{size}*\n"
-            f"💰 Price: *₹{price}*\n\n\n"
-            f"⏳ Current Status: We are checking stock availability. "
+            f"💰 Price: *₹{price}*\n\n"
+            f"⏳ Current Status: We are checking stock availability.\n"
             f"Our team will contact you shortly with confirmation. 🙏\n\n"
             f"👋 Thank you for choosing us 😊\n"
-            f"🏢 Team Dolphin Trends 🐬"
+            f"🏢 *Team Dolphin Trends* 🐬"
         )
         
         if chat_messages_table is not None:
@@ -417,6 +446,7 @@ async def chat_box_endpoint(
                 "updated_at": time.time()
             })
             
+        # ✅ IMPROVED: Better formatted Telegram message
         if TELEGRAM_CHAT_BOT_TOKEN and ADMIN_CHAT_BOT_CHAT_ID:
             telegram_msg = (
                 f"🛍️ <b>New Chat Booking!</b>\n\n"
@@ -426,7 +456,8 @@ async def chat_box_endpoint(
                 f"📏 <b>Size:</b> {size}\n"
                 f"💰 <b>Price:</b> ₹{price}\n"
                 f"💬 <b>Message:</b> <i>{message or 'No message'}</i>\n\n"
-                f"🆔 <b>Chat ID:</b> <code>{customer_chat_id}</code>"
+                f"🆔 <b>Chat ID:</b> <code>{customer_chat_id}</code>\n\n"
+                f"💡 <i>Reply here or use /send {customer_chat_id} your_reply</i>"
             )
             
             buttons = [
@@ -657,6 +688,7 @@ async def add_product(
     name: str = Form(...),
     price: str = Form(...),
     original_price: str = Form(None),
+    discount_percent: str = Form(None),
     description: str = Form(None),
     category: str = Form(...),
     available: str = Form("true"),
@@ -677,13 +709,28 @@ async def add_product(
                 raise HTTPException(status_code=400, detail="Empty file!")
         else:
             raise HTTPException(status_code=400, detail="Please upload a product image!")
+        
+        # 🆕 Auto-calculate discount fields
+        current_price_num = int(re.sub(r'[^0-9]', '', price)) if price else 0
+        original_price_num = int(re.sub(r'[^0-9]', '', original_price)) if original_price else 0
+        discount_pct = int(discount_percent) if discount_percent else 0
+        
+        if original_price_num > 0 and discount_pct == 0:
+            discount_pct = round(((original_price_num - current_price_num) / original_price_num) * 100)
+        elif discount_pct > 0 and original_price_num == 0:
+            original_price_num = round(current_price_num / (1 - discount_pct / 100))
             
         new_id = str(uuid.uuid4())[:8]
         products_table.insert_one({
             "id": new_id, "product_id": new_id,
-            "name": name, "price": price, "original_price": original_price or "",
-            "category": category, "description": description or "",
-            "image": cloud_image_url, "available": is_available
+            "name": name, 
+            "price": price, 
+            "original_price": f"₹{original_price_num}" if original_price_num > 0 else "",
+            "discount_percent": discount_pct,
+            "category": category, 
+            "description": description or "",
+            "image": cloud_image_url, 
+            "available": is_available
         })
         return {"status": "success", "action": "created", "product_id": new_id}
     except HTTPException:
@@ -816,7 +863,7 @@ def update_booking_status(booking_id: str, action: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================
-# 🌐 TELEGRAM WEBHOOK - COMPLETELY REWRITTEN
+# 🌐 TELEGRAM WEBHOOK - COMPLETELY REWRITTEN WITH ALL FIXES
 # ============================================================
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
@@ -841,20 +888,20 @@ async def telegram_webhook(request: Request):
             reply_to = message["reply_to_message"]
             admin_reply_text = message["text"]
             
-            # Find Chat ID in parent message text or caption
             parent_text = reply_to.get("text") or reply_to.get("caption") or ""
             
-            # Match 12-char hex Chat ID using multiple patterns
+            # ✅ FIXED: Multiple regex patterns in priority order
             match = re.search(r'<code>([a-f0-9]{12})</code>', parent_text)
             if not match:
                 match = re.search(r'🆔[^a-f0-9]*([a-f0-9]{12})', parent_text)
+            if not match:
+                match = re.search(r'Chat ID:?\s*([a-f0-9]{12})', parent_text)
             if not match:
                 match = re.search(r'([a-f0-9]{12})', parent_text)
             
             if match:
                 customer_chat_id = match.group(1)
                 
-                # Save admin reply to DB
                 if chat_messages_table is not None:
                     chat_messages_table.insert_one({
                         "customer_chat_id": customer_chat_id,
@@ -866,7 +913,6 @@ async def telegram_webhook(request: Request):
                     })
                     print(f"✅ Admin reply forwarded to chat box: {customer_chat_id}")
                     
-                    # Confirm to admin
                     try:
                         chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
                         chat_bot.reply_to(message, "🚀 Forwarded to Customer Chat Box!")
@@ -876,30 +922,39 @@ async def telegram_webhook(request: Request):
         
         # =========================================================
         # 💬 SCENARIO 2: ADMIN USES /send COMMAND
-        #    Format: /send <chat_id> <message>
-        #    Example: /send e61e9e773ec Hello! Your order is ready
         # =========================================================
         if message_text.startswith("/send "):
+            # 🆕 Rate limiting
+            if not check_rate_limit(chat_id, "send", cooldown_seconds=3):
+                try:
+                    chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                    chat_bot.send_message(
+                        chat_id=chat_id,
+                        text="⏰ Please wait 3 seconds between messages!"
+                    )
+                except Exception:
+                    pass
+                return {"status": "rate_limited"}
+            
             send_match = re.match(r'^/send\s+([a-f0-9]{12})\s+(.+)$', message_text, re.DOTALL)
             if send_match:
                 customer_chat_id = send_match.group(1)
                 admin_message_text = send_match.group(2)
                 
-                # Verify chat_id exists
                 booking = bookings_table.find_one({"customer_chat_id": customer_chat_id}) if bookings_table is not None else None
                 if not booking:
                     try:
                         chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                        # ✅ FIXED: Use HTML <code> tag instead of backticks
                         chat_bot.send_message(
                             chat_id=chat_id,
-                            text=f"❌ Chat ID `{customer_chat_id}` not found!",
+                            text=f"❌ Chat ID <code>{customer_chat_id}</code> not found!",
                             parse_mode="HTML"
                         )
                     except Exception:
                         pass
                     return {"status": "chat_not_found"}
                 
-                # Save to DB
                 if chat_messages_table is not None:
                     chat_messages_table.insert_one({
                         "customer_chat_id": customer_chat_id,
@@ -911,12 +966,11 @@ async def telegram_webhook(request: Request):
                     })
                     print(f"✅ Admin /send command forwarded: {customer_chat_id}")
                     
-                    # Confirm to admin
                     try:
                         chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
                         chat_bot.send_message(
                             chat_id=chat_id,
-                            text=f"✅ Sent to customer `{customer_chat_id}`:\n\n{admin_message_text}",
+                            text=f"✅ Sent to customer <code>{customer_chat_id}</code>:\n\n{admin_message_text}",
                             parse_mode="HTML"
                         )
                     except Exception:
@@ -943,9 +997,20 @@ async def telegram_webhook(request: Request):
         
         # =========================================================
         # 💬 SCENARIO 3: BROADCAST TO ALL CUSTOMERS
-        #    Format: /sendall <message>
         # =========================================================
         if message_text.startswith("/sendall "):
+            # 🆕 Rate limiting - 5 minutes for broadcasts
+            if not check_rate_limit(chat_id, "broadcast", cooldown_seconds=300):
+                try:
+                    chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                    chat_bot.send_message(
+                        chat_id=chat_id,
+                        text="⏰ Please wait 5 minutes between broadcasts!"
+                    )
+                except Exception:
+                    pass
+                return {"status": "rate_limited"}
+            
             broadcast_msg = message_text.replace("/sendall ", "", 1)
             if broadcast_msg and chat_messages_table is not None and bookings_table is not None:
                 active_chats = bookings_table.distinct("customer_chat_id")
@@ -974,7 +1039,6 @@ async def telegram_webhook(request: Request):
         
         # =========================================================
         # 💬 SCENARIO 4: LIST ACTIVE CHATS
-        #    Format: /list
         # =========================================================
         if message_text == "/list":
             if bookings_table is not None:
@@ -1025,6 +1089,31 @@ async def telegram_webhook(request: Request):
             except Exception:
                 pass
             return {"status": "success", "type": "help"}
+        
+        # =========================================================
+        # 💬 SCENARIO 6: STATS COMMAND (NEW)
+        # =========================================================
+        if message_text == "/stats":
+            if bookings_table is not None and chat_messages_table is not None:
+                total_bookings = bookings_table.count_documents({})
+                pending = bookings_table.count_documents({"status": "pending"})
+                approved = bookings_table.count_documents({"status": "Approved"})
+                total_messages = chat_messages_table.count_documents({})
+                
+                stats_text = (
+                    "📊 <b>Bot Statistics:</b>\n\n"
+                    f"📦 Total Bookings: <b>{total_bookings}</b>\n"
+                    f"⏳ Pending: <b>{pending}</b>\n"
+                    f"✅ Approved: <b>{approved}</b>\n"
+                    f"💬 Total Messages: <b>{total_messages}</b>\n"
+                )
+                
+                try:
+                    chat_bot = telebot.TeleBot(TELEGRAM_CHAT_BOT_TOKEN)
+                    chat_bot.send_message(chat_id=chat_id, text=stats_text, parse_mode="HTML")
+                except Exception:
+                    pass
+            return {"status": "success", "type": "stats"}
         
         # =========================================================
         # 📸 HANDLE UPLOAD BOT (Bot 1) PHOTOS
