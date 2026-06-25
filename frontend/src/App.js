@@ -29,14 +29,11 @@ function PriceDisplay({ product, size = 'normal' }) {
   
   // Calculate discount based on available data
   if (originalPrice > currentPrice && currentPrice > 0) {
-    // Has original_price - calculate discount percentage
     discountPercent = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
   } else if (product.discount_percent && product.discount_percent > 0) {
-    // Has discount_percent field - calculate old price
     discountPercent = product.discount_percent;
     finalOldPrice = Math.round(currentPrice / (1 - discountPercent / 100));
   } else {
-    // Default 40% discount
     discountPercent = 40;
     finalOldPrice = Math.round(currentPrice / 0.6);
   }
@@ -70,8 +67,6 @@ function App() {
   const [viewProduct, setViewProduct] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [editProductData, setEditProductData] = useState(null); 
-  
-  // 🆕 Order trigger for chatbox
   const [orderData, setOrderData] = useState(null);
 
   // 🔐 Admin Login States
@@ -86,22 +81,10 @@ function App() {
   const prevShopImage = () => setCurrentImgIndex((prev) => (prev - 1 + shopImages.length) % shopImages.length);
 
   const categories = [
-    'All', 
-    'Suit Set',
-    'Kurta Sets', 
-    'Kurtha Top', 
-    'Jeans',
-    'Plazzo Pants', 
-    'Umbrella Sets', 
-    'Frocks',
-    'Western Wear', 
-    'Gym Pants',
-    '250 Tops',
-    '350 Tops',
-    'Jeans Tops',
-    'Leggings',
-    'Formal Pants',
-    'Formal Shirt'
+    'All', 'Suit Set', 'Kurta Sets', 'Kurtha Top', 'Jeans',
+    'Plazzo Pants', 'Umbrella Sets', 'Frocks', 'Western Wear',
+    'Gym Pants', '250 Tops', '350 Tops', 'Jeans Tops',
+    'Leggings', 'Formal Pants', 'Formal Shirt'
   ];
 
   // 🔄 Products Fetch
@@ -150,11 +133,17 @@ function App() {
     fetchProducts();
   };
 
-  // 🆕 Back to Store button handler (NEW!)
+  // 🆕 Exit admin completely (Back to Store)
   const handleBackToStore = () => {
     setShowAdmin(false);
     setEditProductData(null);
     setActivePage('shop');
+  };
+
+  // 🆕 Cancel edit, stay in admin (Back to Admin Panel)
+  const handleBackToAdminPanel = () => {
+    setEditProductData(null);
+    // Stay in admin panel
   };
 
   // 🗑️ Delete Product
@@ -209,7 +198,7 @@ function App() {
     <div className="App">
       {/* 🔝 Navbar */}
       <nav className="navbar">
-        <div className="navbar-logo" onClick={() => { setActivePage('shop'); setShowAdmin(false); }} style={{cursor:'pointer'}}>
+        <div className="navbar-logo" onClick={() => { setActivePage('shop'); setShowAdmin(false); setEditProductData(null); }} style={{cursor:'pointer'}}>
           <img src={dolphin} alt="Dolphin Trends Logo" />
           <div className="logo-text">
             <h1>🐬 Dolphin Trends</h1>
@@ -218,10 +207,10 @@ function App() {
         </div>
         
         <ul className="navbar-links">
-          <li><button className={activePage === 'shop' && !showAdmin ? 'active' : ''} onClick={() => { setActivePage('shop'); setShowAdmin(false); }}>🛍️ Shop</button></li>
-          <li><button className={activePage === 'branches' ? 'active' : ''} onClick={() => { setActivePage('branches'); setShowAdmin(false); }}>🏪 Branches</button></li>
-          <li><button className={activePage === 'contact' ? 'active' : ''} onClick={() => { setActivePage('contact'); setShowAdmin(false); }}>📞 Contact</button></li>
-          <li><button className={activePage === 'location' ? 'active' : ''} onClick={() => { setActivePage('location'); setShowAdmin(false); }}>📍 Location</button></li>
+          <li><button className={activePage === 'shop' && !showAdmin ? 'active' : ''} onClick={() => { setActivePage('shop'); setShowAdmin(false); setEditProductData(null); }}>🛍️ Shop</button></li>
+          <li><button className={activePage === 'branches' ? 'active' : ''} onClick={() => { setActivePage('branches'); setShowAdmin(false); setEditProductData(null); }}>🏪 Branches</button></li>
+          <li><button className={activePage === 'contact' ? 'active' : ''} onClick={() => { setActivePage('contact'); setShowAdmin(false); setEditProductData(null); }}>📞 Contact</button></li>
+          <li><button className={activePage === 'location' ? 'active' : ''} onClick={() => { setActivePage('location'); setShowAdmin(false); setEditProductData(null); }}>📍 Location</button></li>
           
           <li>
             <button 
@@ -242,26 +231,69 @@ function App() {
         </ul>
         
         <div className="navbar-right">
-          {/* 🆕 Back to Store button - shows only when in admin mode */}
-          {showAdmin && isAdminLoggedIn && (
+          {/* ✅ FIXED: Smart Navigation Buttons */}
+          
+          {/* Show "Back to Admin Panel" only when EDITING a product */}
+          {showAdmin && isAdminLoggedIn && editProductData && (
             <button 
-              className="back-to-store-btn" 
+              onClick={handleBackToAdminPanel}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#fff',
+                border: 'none',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                marginRight: '10px',
+                fontSize: '14px',
+                boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(245,158,11,0.5)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(245,158,11,0.3)';
+              }}
+            >
+              ← ⚙️ Back to Admin Panel
+            </button>
+          )}
+          
+          {/* Show "Back to Store" when in admin but NOT editing */}
+          {showAdmin && isAdminLoggedIn && !editProductData && (
+            <button 
               onClick={handleBackToStore}
               style={{
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 color: '#fff',
                 border: 'none',
-                padding: '10px 20px',
+                padding: '10px 18px',
                 borderRadius: '10px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
                 marginRight: '10px',
                 fontSize: '14px',
                 boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
-              onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16,185,129,0.5)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(16,185,129,0.3)';
+              }}
             >
               ← 🏪 Back to Store
             </button>
@@ -281,47 +313,13 @@ function App() {
 
       {showAdmin ? (
         isAdminLoggedIn ? (
-          <div style={{ position: 'relative' }}>
-            {/* 🆕 Floating Back Button at Top of Admin Panel */}
-            <button 
-              onClick={handleBackToStore}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                left: '20px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#fff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '15px',
-                boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
-                zIndex: 100,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.transform = 'scale(1.05)';
-                e.target.style.boxShadow = '0 6px 20px rgba(16,185,129,0.5)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.transform = 'scale(1)';
-                e.target.style.boxShadow = '0 4px 15px rgba(16,185,129,0.4)';
-              }}
-            >
-              ← 🏪 Back to Store
-            </button>
-
-            <Admin 
-              onProductAdded={handleProductAddedSuccess} 
-              editData={editProductData} 
-              onCancelEdit={() => { setEditProductData(null); setShowAdmin(false); setActivePage('shop'); }}
-            />
-          </div>
+          <Admin 
+            key={editProductData ? `edit-${editProductData.product_id}` : 'new'}
+            onProductAdded={handleProductAddedSuccess} 
+            editData={editProductData} 
+            onCancelEdit={handleBackToAdminPanel}
+            onBackToStore={handleBackToStore}
+          />
         ) : (
           <div style={{ background: '#070b19', padding: '60px 20px', minHeight: '75vh', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
             
@@ -579,7 +577,6 @@ function App() {
                           <span className="category-tag">{product.category}</span>
                           <h4>{product.name}</h4>
                           
-                          {/* ✅ DYNAMIC PRICE - No more hardcoded values! */}
                           <PriceDisplay product={product} />
                           
                           {product.available !== false && (
