@@ -68,6 +68,7 @@ function App() {
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [editProductData, setEditProductData] = useState(null); 
   const [orderData, setOrderData] = useState(null);
+  const [wishlist, setWishlist] = useState([]); // 🆕 Wishlist state
 
   // 🔐 Admin Login States
   const [adminUsername, setAdminUsername] = useState('');
@@ -103,6 +104,23 @@ function App() {
   };
 
   useEffect(() => { fetchProducts(); }, []);
+
+  // 🆕 Load wishlist from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('dolphin_wishlist');
+    if (saved) {
+      try {
+        setWishlist(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse wishlist', e);
+      }
+    }
+  }, []);
+
+  // 🆕 Save wishlist to localStorage
+  useEffect(() => {
+    localStorage.setItem('dolphin_wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
 
   // 🔐 Admin Login
   const handleAdminLoginSubmit = (e) => {
@@ -143,7 +161,6 @@ function App() {
   // 🆕 Cancel edit, stay in admin (Back to Admin Panel)
   const handleBackToAdminPanel = () => {
     setEditProductData(null);
-    // Stay in admin panel
   };
 
   // 🗑️ Delete Product
@@ -190,6 +207,18 @@ function App() {
     setOrderData(details);
   };
 
+  // 🆕 Toggle wishlist
+  const toggleWishlist = (product) => {
+    setWishlist(prev => {
+      const exists = prev.find(p => p.product_id === product.product_id);
+      if (exists) {
+        return prev.filter(p => p.product_id !== product.product_id);
+      } else {
+        return [...prev, product];
+      }
+    });
+  };
+
   const filtered = activeCategory === 'All' 
     ? products 
     : products.filter(p => p.category === activeCategory);
@@ -231,9 +260,40 @@ function App() {
         </ul>
         
         <div className="navbar-right">
-          {/* ✅ FIXED: Smart Navigation Buttons */}
+          {/* 🆕 Wishlist Badge */}
+          {wishlist.length > 0 && !showAdmin && (
+            <button 
+              onClick={() => alert(`❤️ You have ${wishlist.length} items in wishlist!`)}
+              style={{
+                background: 'transparent',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                marginRight: '10px',
+                position: 'relative'
+              }}
+            >
+              ❤️
+              <span style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-8px',
+                background: '#ef4444',
+                color: '#fff',
+                borderRadius: '50%',
+                padding: '2px 6px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                minWidth: '18px',
+                textAlign: 'center'
+              }}>
+                {wishlist.length}
+              </span>
+            </button>
+          )}
           
-          {/* Show "Back to Admin Panel" only when EDITING a product */}
+          {/* ✅ Smart Navigation Buttons */}
           {showAdmin && isAdminLoggedIn && editProductData && (
             <button 
               onClick={handleBackToAdminPanel}
@@ -266,7 +326,6 @@ function App() {
             </button>
           )}
           
-          {/* Show "Back to Store" when in admin but NOT editing */}
           {showAdmin && isAdminLoggedIn && !editProductData && (
             <button 
               onClick={handleBackToStore}
@@ -491,13 +550,16 @@ function App() {
                   </div>
                 ) : (
                   <div className="products-grid">
-                    {filtered.map(product => (
+                    {filtered.map(product => {
+                      const isWishlisted = wishlist.find(p => p.product_id === product.product_id);
+                      return (
                       <div 
                         className={product.available === false ? 'product-card not-available' : 'product-card'} 
                         key={product.product_id || product.id} 
                         style={{ position: 'relative' }}
                       >
                         
+                        {/* Admin Edit/Delete buttons */}
                         {isAdminLoggedIn && (
                           <div style={{ 
                             position: 'absolute', 
@@ -524,6 +586,39 @@ function App() {
                               🗑️ Del
                             </button>
                           </div>
+                        )}
+
+                        {/* 🆕 Wishlist Heart Button */}
+                        {!isAdminLoggedIn && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleWishlist(product);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '10px',
+                              right: '10px',
+                              background: 'rgba(11,19,41,0.85)',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '40px',
+                              height: '40px',
+                              cursor: 'pointer',
+                              fontSize: '20px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 10,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                              transition: 'transform 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                          >
+                            {isWishlisted ? '❤️' : '🤍'}
+                          </button>
                         )}
 
                         <div 
@@ -586,7 +681,8 @@ function App() {
                           )}
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </div>
